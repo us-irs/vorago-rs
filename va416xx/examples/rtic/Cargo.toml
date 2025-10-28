@@ -1,0 +1,20 @@
+[package]
+name = "rtic-example"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+cortex-m = { version = "0.7", features = ["critical-section-single-core"] }
+defmt-rtt = "1"
+defmt = "1"
+panic-probe = { version = "1", features = ["defmt"] }
+
+va416xx-hal = { version = "0.6", path = "../../va416xx-hal", features = ["va41630"] }
+
+[dependencies.rtic]
+version = "2"
+features = ["thumbv7-backend"]
+
+[dependencies.rtic-monotonics]
+version = "2"
+features = ["cortex-m-systick"]

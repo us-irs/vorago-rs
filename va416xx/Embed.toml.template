@@ -1,0 +1,5 @@
+[default.general]
+chip = "VA416xx_RAM"
+
+[default.rtt]
+enabled = true

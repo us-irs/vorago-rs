@@ -1,0 +1,46 @@
+[workspace]
+resolver = "2"
+members = [
+  "vorago-reb1",
+  "va108xx",
+  "va108xx-hal",
+  "va108xx-embassy",
+  "examples/simple",
+  "examples/rtic",
+  "examples/embassy",
+  "board-tests",
+  "bootloader",
+  "flashloader",
+]
+exclude = [
+  "flashloader/slot-a-blinky",
+  "flashloader/slot-b-blinky",
+]
+
+[profile.dev]
+codegen-units = 1
+debug = 2
+debug-assertions = true # <-
+incremental = false
+# 1 instead of 0, the flashloader is too larger otherwise..
+# opt-level = 1         # <-
+overflow-checks = true  # <-
+
+# cargo build/run --release
+[profile.release]
+codegen-units = 1
+debug = 2
+debug-assertions = false # <-
+incremental = false
+lto = 'fat'
+opt-level = 3            # <-
+overflow-checks = false  # <-
+
+[profile.small]
+inherits = "release"
+codegen-units = 1
+debug-assertions = false # <-
+lto = true
+opt-level = 'z'            # <-
+overflow-checks = false  # <-
+strip = true  # Automatically strip symbols from the binary.

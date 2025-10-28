@@ -1,0 +1,27 @@
+[package]
+name = "va108xx-embassy"
+version = "0.3.0"
+edition = "2021"
+authors = ["Robin Mueller <muellerr@irs.uni-stuttgart.de>"]
+description = "Embassy-rs support for the Vorago VA108xx family of microcontrollers"
+homepage = "https://egit.irs.uni-stuttgart.de/rust/va108xx-rs"
+repository = "https://egit.irs.uni-stuttgart.de/rust/va108xx-rs"
+license = "Apache-2.0"
+keywords = ["no-std", "hal", "cortex-m", "vorago", "va108xx"]
+categories = ["aerospace", "embedded", "no-std", "hardware-support"]
+
+[dependencies]
+vorago-shared-hal = { version = "0.2", features = ["vor1x"] }
+va108xx-hal = { version = "0.12" }
+
+[features]
+default = ["irq-oc30-oc31"]
+irqs-in-lib = []
+# This determines the reserved interrupt functions for the embassy time drivers. Only one
+# is allowed to be selected!
+irq-oc28-oc29 = ["irqs-in-lib"]
+irq-oc29-oc30 = ["irqs-in-lib"]
+irq-oc30-oc31 = ["irqs-in-lib"]
+
+[package.metadata.docs.rs]
+rustdoc-args = ["--generate-link-to-definition"]

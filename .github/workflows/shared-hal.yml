@@ -1,0 +1,47 @@
+name: shared-hal-ci
+on: [push, pull_request]
+defaults:
+  run:
+    working-directory: ./vorago-shared-hal
+
+jobs:
+  check:
+    name: Check build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: "thumbv7em-none-eabihf, thumbv6m-none-eabi"
+      - run: cargo check --target thumbv7em-none-eabihf --features "vor4x, defmt"
+      - run: cargo check --target thumbv6m-none-eabi --features "vor1x, defmt"
+
+  fmt:
+    name: Check formatting
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo fmt --all -- --check
+
+  docs:
+    name: Check Documentation Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@nightly
+        with:
+          targets: "thumbv7em-none-eabihf, thumbv6m-none-eabi"
+      - run: RUSTDOCFLAGS="--cfg docsrs --generate-link-to-definition -Z unstable-options" cargo +nightly doc --target thumbv7em-none-eabihf --features "vor4x, defmt"
+      - run: RUSTDOCFLAGS="--cfg docsrs --generate-link-to-definition -Z unstable-options" cargo +nightly doc --target thumbv6m-none-eabi --features "vor1x, defmt"
+
+  clippy:
+    name: Clippy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: "thumbv7em-none-eabihf, thumbv6m-none-eabi"
+      - run: cargo clippy --target thumbv7em-none-eabihf --features vor4x -- -D warnings
+      - run: cargo clippy --target thumbv6m-none-eabi --features vor1x -- -D warnings

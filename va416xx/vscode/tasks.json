@@ -1,0 +1,255 @@
+{
+    // See https://go.microsoft.com/fwlink/?LinkId=733558
+    // for the documentation about the tasks.json format
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "bootloader",
+            "type": "shell",
+            "command": "~/.cargo/bin/cargo", // note: full path to the cargo
+            "args": [
+                "build",
+                "--bin",
+                "bootloader"
+            ],
+            "group": {
+                "kind": "build",
+            }
+        },
+        {
+            "label": "flashloader",
+            "type": "shell",
+            "command": "~/.cargo/bin/cargo", // note: full path to the cargo
+            "args": [
+                "build",
+                "--bin",
+                "flashloader"
+            ],
+            "group": {
+                "kind": "build",
+            }
+        },
+        {
+            "label": "blinky-pac-example",
+            "type": "shell",
+            "command": "~/.cargo/bin/cargo", // note: full path to the cargo
+            "args": [
+                "build",
+                "--example",
+                "blinky-pac"
+            ],
+            "group": {
+                "kind": "build",
+            }
+        },
+        {
+            "label": "rtt-log-example",
+            "type": "shell",
+            "command": "~/.cargo/bin/cargo", // note: full path to the cargo
+            "args": [
+                "build",
+                "--example",
+                "rtt-log"
+            ],
+            "group": {
+                "kind": "build",
+            }
+        },
+        {
+            "label": "timer-ticks-example",
+            "type": "shell",
+            "command": "~/.cargo/bin/cargo", // note: full path to the cargo
+            "args": [
+                "build",
+                "--example",
+                "timer-ticks"
+            ],
+            "group": {
+                "kind": "build",
+            }
+        },
+        {
+            "label": "blinky-example",
+            "type": "shell",
+            "command": "~/.cargo/bin/cargo", // note: full path to the cargo
+            "args": [
+                "build",
+                "--example",
+                "blinky"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
+        {
+            "label": "uart-example",
+            "type": "shell",
+            "command": "~/.cargo/bin/cargo", // note: full path to the cargo
+            "args": [
+                "build",
+                "--example",
+                "uart"
+            ],
+            "group": {
+                "kind": "build",
+            }
+        },
+        {
+            "label": "uart-echo-with-irq",
+            "type": "shell",
+            "command": "~/.cargo/bin/cargo", // note: full path to the cargo
+            "args": [
+                "build",
+                "--bin",
+                "uart-echo-with-irq"
+            ],
+            "group": {
+                "kind": "build",
+            }
+        },
+        {
+            "label": "pwm-example",
+            "type": "shell",
+            "command": "~/.cargo/bin/cargo", // note: full path to the cargo
+            "args": [
+                "build",
+                "--example",
+                "pwm"
+            ],
+            "group": {
+                "kind": "build",
+            }
+        },
+        {
+            "label": "wdt-example",
+            "type": "shell",
+            "command": "~/.cargo/bin/cargo", // note: full path to the cargo
+            "args": [
+                "build",
+                "--example",
+                "wdt"
+            ],
+            "group": {
+                "kind": "build",
+            }
+        },
+        {
+            "label": "spi-example",
+            "type": "shell",
+            "command": "~/.cargo/bin/cargo", // note: full path to the cargo
+            "args": [
+                "build",
+                "--example",
+                "spi"
+            ],
+            "group": {
+                "kind": "build",
+            }
+        },
+        {
+            "label": "dac-adc-example",
+            "type": "shell",
+            "command": "~/.cargo/bin/cargo", // note: full path to the cargo
+            "args": [
+                "build",
+                "--example",
+                "dac-adc"
+            ],
+            "group": {
+                "kind": "build",
+            }
+        },
+        {
+            "label": "adc-example",
+            "type": "shell",
+            "command": "~/.cargo/bin/cargo", // note: full path to the cargo
+            "args": [
+                "build",
+                "--example",
+                "adc"
+            ],
+            "group": {
+                "kind": "build",
+            }
+        },
+        {
+            "label": "dma-example",
+            "type": "shell",
+            "command": "~/.cargo/bin/cargo", // note: full path to the cargo
+            "args": [
+                "build",
+                "--example",
+                "dma"
+            ],
+            "group": {
+                "kind": "build",
+            }
+        },
+        {
+            "label": "embassy-example",
+            "type": "shell",
+            "command": "~/.cargo/bin/cargo", // note: full path to the cargo
+            "args": [
+                "build",
+                "--bin",
+                "embassy-example"
+            ],
+            "group": {
+                "kind": "build",
+            }
+        },
+        {
+            "label": "async-gpio",
+            "type": "shell",
+            "command": "~/.cargo/bin/cargo", // note: full path to the cargo
+            "args": [
+                "build",
+                "--bin",
+                "async-gpio"
+            ],
+            "group": {
+                "kind": "build",
+            }
+        },
+        {
+            "label": "rtic-example",
+            "type": "shell",
+            "command": "~/.cargo/bin/cargo", // note: full path to the cargo
+            "args": [
+                "build",
+                "--bin",
+                "rtic-example"
+            ],
+            "group": {
+                "kind": "build",
+            }
+        },
+        {
+            "label": "async-uart-tx",
+            "type": "shell",
+            "command": "~/.cargo/bin/cargo", // note: full path to the cargo
+            "args": [
+                "build",
+                "--bin",
+                "async-uart-tx"
+            ],
+            "group": {
+                "kind": "build",
+            }
+        },
+        {
+            "label": "async-uart-rx",
+            "type": "shell",
+            "command": "~/.cargo/bin/cargo", // note: full path to the cargo
+            "args": [
+                "build",
+                "--bin",
+                "async-uart-rx"
+            ],
+            "group": {
+                "kind": "build",
+            }
+        },
+    ]
+}

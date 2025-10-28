@@ -1,0 +1,17 @@
+[package]
+name = "rtic-example"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+cortex-m = { version = "0.7", features = ["critical-section-single-core"] }
+embedded-io = "0.6"
+defmt-rtt = "1"
+defmt = "1"
+panic-probe = { version = "1", features = ["defmt"] }
+rtic = { version = "2", features = ["thumbv6-backend"] }
+rtic-monotonics = { version = "2", features = ["cortex-m-systick"] }
+ringbuf = { version = "0.4.7", default-features = false, features = ["portable-atomic"] }
+
+va108xx-hal = { version = "0.12", path = "../../va108xx-hal" }
+vorago-reb1 = { version = "0.9", path = "../../vorago-reb1" }

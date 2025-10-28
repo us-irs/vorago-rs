@@ -1,0 +1,43 @@
+[package]
+name = "simple_examples"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+cortex-m = { version = "0.7", features = ["critical-section-single-core"] }
+cortex-m-rt = "0.7"
+critical-section = "1"
+defmt-rtt = "1"
+defmt = "1"
+panic-probe = { version = "1", features = ["defmt"] }
+embedded-hal = "1"
+embedded-hal-nb = "1"
+nb = "1"
+embedded-io = "0.6"
+panic-halt = "1"
+accelerometer = "0.12"
+
+va416xx-hal = { version = "0.6", path = "../../va416xx-hal", features = ["va41630", "defmt"] }
+
+[dependencies.vorago-peb1]
+path = "../../vorago-peb1"
+optional = true
+
+[features]
+default = ["va41630"]
+va41630 = ["va416xx-hal/va41630", "has-adc-dac"]
+va41629 = ["va416xx-hal/va41629", "has-adc-dac"]
+va41628 = ["va416xx-hal/va41628"]
+has-adc-dac = []
+
+[[example]]
+name = "peb1-accelerometer"
+required-features = ["vorago-peb1"]
+
+[[example]]
+name = "dac-adc"
+required-features = ["has-adc-dac"]
+
+[[example]]
+name = "adc"
+required-features = ["has-adc-dac"]

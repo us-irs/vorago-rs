@@ -1,0 +1,61 @@
+name: va108xx-ci
+on: [push, pull_request]
+defaults:
+  run:
+    working-directory: ./va108xx
+
+jobs:
+  check:
+    name: Check build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: "thumbv6m-none-eabi"
+      - run: cargo check --target thumbv6m-none-eabi
+      - run: cargo check --target thumbv6m-none-eabi --examples
+      - run: cargo check -p va108xx --target thumbv6m-none-eabi --all-features
+      - run: cargo check -p va108xx-hal --target thumbv6m-none-eabi --features "defmt"
+
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Install nextest
+        uses: taiki-e/install-action@nextest
+      - run: cargo nextest run --all-features -p va108xx-hal --no-tests=pass
+      # I think we can skip those on an embedded crate..
+      # - run: cargo test --doc -p va108xx-hal
+
+  fmt:
+    name: Check formatting
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - run: cargo fmt --all -- --check
+
+  docs:
+    name: Check Documentation Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@nightly
+      - run: RUSTDOCFLAGS="--cfg docsrs --generate-link-to-definition -Z unstable-options" cargo +nightly doc -p va108xx --all-features
+      - run: RUSTDOCFLAGS="--cfg docsrs --generate-link-to-definition -Z unstable-options" cargo +nightly doc -p va108xx-hal --all-features
+      - run: RUSTDOCFLAGS="--cfg docsrs --generate-link-to-definition -Z unstable-options" cargo +nightly doc -p vorago-reb1
+
+  clippy:
+    name: Clippy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: "thumbv6m-none-eabi"
+      - run: cargo clippy --target thumbv6m-none-eabi -- -D warnings

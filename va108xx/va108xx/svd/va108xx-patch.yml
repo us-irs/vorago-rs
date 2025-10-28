@@ -1,0 +1,137 @@
+_svd: va108xx.svd
+
+SYSCONFIG:
+  PERIPHERAL_CLK_ENABLE:
+    _add:
+        PORTA:
+          description: Enable PORTA clock
+          bitOffset: 0
+          bitWidth: 1
+        PORTB:
+          description: Enable PORTB clock
+          bitOffset: 1
+          bitWidth: 1
+        SPI_0:
+          description: Enable SPI[0] clock
+          bitOffset: 4
+          bitWidth: 1
+        SPI_1:
+          description: Enable SPI[1] clock
+          bitOffset: 5
+          bitWidth: 1
+        SPI_2:
+          description: Enable SPI[2] clock
+          bitOffset: 6
+          bitWidth: 1
+        UART_0:
+          description: Enable UART[0] clock
+          bitOffset: 8
+          bitWidth: 1
+        UART_1:
+          description: Enable UART[1] clock
+          bitOffset: 9
+          bitWidth: 1
+        I2C_0:
+          description: Enable I2C[0] clock
+          bitOffset: 16
+          bitWidth: 1
+        I2C_1:
+          description: Enable I2C[1] clock
+          bitOffset: 17
+          bitWidth: 1
+        IRQSEL:
+          description: Enable IRQ selector clock
+          bitOffset: 21
+          bitWidth: 1
+        IOCONFIG:
+          description: Enable IO Configuration block clock
+          bitOffset: 22
+          bitWidth: 1
+        UTILITY:
+          description: Enable utility clock
+          bitOffset: 23
+          bitWidth: 1
+        GPIO:
+          description: Enable GPIO clock
+          bitOffset: 24
+          bitWidth: 1
+
+  PERIPHERAL_RESET:
+    _add:
+      PORTA:
+        description: Reset PORTA
+        bitOffset: 0
+        bitWidth: 1
+      PORTB:
+        description: Reset PORTB
+        bitOffset: 1
+        bitWidth: 1
+      SPI_0:
+        description: Reset SPI[0]
+        bitOffset: 4
+        bitWidth: 1
+      SPI_1:
+        description: Reset SPI[1]
+        bitOffset: 5
+        bitWidth: 1
+      SPI_2:
+        description: Reset SPI[2]
+        bitOffset: 6
+        bitWidth: 1
+      UART_0:
+        description: Reset UART[0]
+        bitOffset: 8
+        bitWidth: 1
+      UART_1:
+        description: Reset UART[1]
+        bitOffset: 9
+        bitWidth: 1
+      I2C_0:
+        description: Reset I2C[0]
+        bitOffset: 16
+        bitWidth: 1
+      I2C_1:
+        description: Reset I2C[1]
+        bitOffset: 17
+        bitWidth: 1
+      IRQSEL:
+        description: Reset IRQ selector
+        bitOffset: 21
+        bitWidth: 1
+      IOCONFIG:
+        description: Reset IO Configuration block
+        bitOffset: 22
+        bitWidth: 1
+      UTILITY:
+        description: Reset Utility Block
+        bitOffset: 23
+        bitWidth: 1
+      GPIO:
+        description: Reset GPIO
+        bitOffset: 24
+        bitWidth: 1
+
+# I2CB is derived from I2CA
+I2CA:
+  _modify:
+    STATUS:
+      access: read-only
+  STATUS:
+    _add:
+      I2C_IDLE:
+        description: I2C bus is Idle
+        bitOffset: 0
+        bitWidth: 1
+      IDLE:
+        description: Controller is Idle
+        bitOffset: 1
+        bitWidth: 1
+
+# All TIMs are derived from TIM0
+TIM0:
+  CSD_CTRL:
+    _add:
+      CSDTRG2:
+        description: Cascade 2 Enabled as Trigger
+        bitOffset: 10
+        bitWidth: 1

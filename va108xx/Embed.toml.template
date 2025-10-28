@@ -1,0 +1,12 @@
+[default.probe]
+protocol = "Jtag"
+
+[default.general]
+chip = "VA108xx_RAM"
+
+[default.rtt]
+enabled = true
+
+[default.gdb]
+# Whether or not a GDB server should be opened after flashing.
+enabled = false

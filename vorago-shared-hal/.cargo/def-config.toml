@@ -1,0 +1,41 @@
+[target.'cfg(all(target_arch = "arm", target_os = "none"))']
+# uncomment ONE of these three option to make `cargo run` start a GDB session
+# which option to pick depends on your system
+# runner = "arm-none-eabi-gdb -q -x openocd.gdb"
+# runner = "gdb-multiarch -q -x openocd.gdb"
+# runner = "gdb -q -x openocd.gdb"
+# runner = "gdb-multiarch -q -x jlink.gdb"
+
+runner = "probe-rs run --chip VA108xx_RAM --protocol jtag"
+# runner = ["probe-rs", "run", "--chip", "$CHIP", "--log-format", "{L} {s}"]
+
+rustflags = [
+  # This is needed if your flash or ram addresses are not aligned to 0x10000 in memory.x
+  # See https://github.com/rust-embedded/cortex-m-quickstart/pull/95
+  "-C", "link-arg=--nmagic",
+
+  # LLD (shipped with the Rust toolchain) is used as the default linker
+  "-C", "link-arg=-Tlink.x",
+
+  # knurling-rs tooling. If you want to use flip-link, ensure it is installed first.
+  "-C", "linker=flip-link",
+  # Unfortunately, defmt is clunky to use without probe-rs..
+  "-C", "link-arg=-Tdefmt.x",
+
+  # Can be useful for debugging.
+  # "-Clink-args=-Map=app.map"
+]
+
+[build]
+# Pick ONE of these compilation targets
+target = "thumbv6m-none-eabi"        # Cortex-M0 and Cortex-M0+ for VA108xx
+# target = "thumbv7em-none-eabi"       # Cortex-M4 and Cortex-M7 (no FPU) for VA416xx
+
+[alias]
+re = "run --example"
+rb = "run --bin"
+rrb = "run --release --bin"
+ut = "test --target x86_64-unknown-linux-gnu"
+
+[env]
+DEFMT_LOG = "info"

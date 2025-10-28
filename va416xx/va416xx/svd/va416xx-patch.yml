@@ -1,0 +1,8 @@
+_svd: va416xx.svd
+
+# Read-only access for a write-only register does not really make sense..
+DMA:
+    CFG:
+      _modify:
+        MASTER_ENABLE:
+          access: read-write

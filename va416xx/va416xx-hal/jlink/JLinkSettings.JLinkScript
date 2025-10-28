@@ -1,0 +1,77 @@
+/*********************************************************************
+*                    SEGGER Microcontroller GmbH                     *
+*       Solutions for real time microcontroller applications         *
+**********************************************************************
+*                                                                    *
+*            (c) 1995 - 2018 SEGGER Microcontroller GmbH             *
+*                                                                    *
+*       www.segger.com     Support: support@segger.com               *
+*                                                                    *
+**********************************************************************
+----------------------------------------------------------------------
+File    : JLinkSettings.JLinkScript
+Purpose : J-Link target setup file for VORAGO VA416xx
+---------------------------END-OF-HEADER------------------------------
+*/
+
+int DisableRomProt(void) {
+  JLINK_SYS_Report("VA416XX: Disabling ROM protection");
+  return JLINK_MEM_WriteU32(0x40010010, 0x1); // ROM_PROT = 0x1
+}
+
+int DisableWatchdog(void) {
+  JLINK_MEM_WriteU32(0x400210C0, 0x1ACCE551); // WDOGLOCK = 0x1ACCE551
+  JLINK_MEM_WriteU32(0x40021008, 0x0);        // WDOGCONTROL = 0x0 (diable)
+}
+
+int SetupTarget (void) {
+  JLINK_SYS_Report("SetupTarget()");
+  return DisableRomProt(); // ROM_PROT = 0x1
+}
+
+/*********************************************************************
+*
+*       AfterResetTarget
+*/
+int AfterResetTarget (void) {
+  JLINK_SYS_Report("AfterResetTarget()");
+  // disable watchdog and unlock code RAM for write
+  DisableWatchdog();
+  return DisableRomProt(); // ROM_PROT = 0x1
+}
+
+/*********************************************************************
+*
+*       BeforeTargetDownload
+*/
+int BeforeTargetDownload (void) {
+  JLINK_SYS_Report("BeforeTargetDownload()");
+  return DisableRomProt(); // ROM_PROT = 0x1
+}
+
+/*********************************************************************
+*
+*       AfterTargetDownload
+*/
+int AfterTargetDownload (void) {
+  JLINK_SYS_Report("AfterTargetDownload()");
+  return DisableRomProt(); // ROM_PROT = 0x0
+}
+
+/*********************************************************************
+*
+*       HandleBeforeFlashProg
+*/
+int HandleBeforeFlashProg(void) {
+  JLINK_SYS_Report("HandleBeforeFlashProg()");
+  return DisableRomProt(); // ROM_PROT = 0x1
+}
+
+/*********************************************************************
+*
+*       HandleAfterFlashProg
+*/
+int HandleAfterFlashProg(void) {
+  JLINK_SYS_Report("HandleAfterFlashProg()");
+  return DisableRomProt(); // ROM_PROT = 0x0
+}

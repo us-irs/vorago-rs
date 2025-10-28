@@ -1,0 +1,30 @@
+[package]
+name = "va108xx"
+version = "0.6.0"
+authors = ["Robin Mueller <muellerr@irs.uni-stuttgart.de>"]
+edition = "2021"
+description = "PAC for the Vorago VA108xx family of microcontrollers"
+homepage = "https://egit.irs.uni-stuttgart.de/rust/va108xx-rs"
+repository = "https://egit.irs.uni-stuttgart.de/rust/va108xx-rs"
+license = "Apache-2.0"
+keywords = ["no-std", "arm", "cortex-m", "vorago", "va108xx"]
+categories = ["embedded", "no-std", "hardware-support"]
+
+[dependencies]
+cortex-m = "0.7"
+vcell = "0.1.3"
+defmt = { version = "1", optional = true }
+critical-section = { version = "1", optional = true }
+
+[dependencies.cortex-m-rt]
+optional = true
+version = ">=0.6.15,<0.8"
+
+[features]
+rt = ["cortex-m-rt/device"]
+# Adds Debug implementation
+debug = []
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--generate-link-to-definition"]

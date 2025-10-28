@@ -1,0 +1,45 @@
+pipeline {
+    agent {
+        dockerfile {
+            dir 'automation'
+            reuseNode true
+        }
+    }
+
+    stages {
+        stage('Rust Toolchain Info') {
+          steps {
+            sh 'rustc --version'
+          }
+        }
+        stage('Clippy') {
+          steps {
+            sh 'cargo clippy --target thumbv6m-none-eabi'
+          }
+        }
+        stage('Rustfmt') {
+          steps {
+            sh 'cargo fmt'
+          }
+        }
+        stage('Docs') {
+          steps {
+            sh """
+              RUSTDOCFLAGS="--cfg docsrs --generate-link-to-definition -Z unstable-options" cargo +nightly doc -p va108xx
+              RUSTDOCFLAGS="--cfg docsrs --generate-link-to-definition -Z unstable-options" cargo +nightly doc -p va108xx-hal
+              RUSTDOCFLAGS="--cfg docsrs --generate-link-to-definition -Z unstable-options" cargo +nightly doc -p vorago-reb1
+            """
+          }
+        }
+        stage('Check') {
+          steps {
+            sh 'cargo check --target thumbv6m-none-eabi'
+          }
+        }
+        stage('Check Examples') {
+          steps {
+            sh 'cargo check --target thumbv6m-none-eabi --examples'
+          }
+        }
+    }
+}

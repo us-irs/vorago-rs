@@ -1,0 +1,31 @@
+[package]
+name = "va416xx-embassy"
+version = "0.1.2"
+edition = "2021"
+authors = ["Robin Mueller <muellerr@irs.uni-stuttgart.de>"]
+description = "Embassy-rs support for the Vorago VA416xx family of microcontrollers"
+homepage = "https://egit.irs.uni-stuttgart.de/rust/va416xx-rs"
+repository = "https://egit.irs.uni-stuttgart.de/rust/va416xx-rs"
+license = "Apache-2.0"
+keywords = ["no-std", "hal", "cortex-m", "vorago", "va416xx"]
+categories = ["aerospace", "embedded", "no-std", "hardware-support"]
+
+[dependencies]
+vorago-shared-hal = { version = "0.2", features = ["vor4x"] }
+va416xx-hal = { version = "0.6", path = "../va416xx-hal" }
+
+[features]
+default = ["irq-tim14-tim15"]
+
+# This determines the reserved interrupt functions for the embassy time drivers. Only one
+# is allowed to be selected!
+irq-tim14-tim15 = ["_irqs-in-lib"]
+irq-tim13-tim14 = ["_irqs-in-lib"]
+# These TIMs are clocked slower!
+irq-tim22-tim23 = ["_irqs-in-lib"]
+
+# Private feature.
+_irqs-in-lib = []
+
+[package.metadata.docs.rs]
+rustdoc-args = ["--generate-link-to-definition"]

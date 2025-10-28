@@ -1,0 +1,62 @@
+/*********************************************************************
+*                    SEGGER Microcontroller GmbH                     *
+*       Solutions for real time microcontroller applications         *
+**********************************************************************
+*                                                                    *
+*            (c) 1995 - 2018 SEGGER Microcontroller GmbH             *
+*                                                                    *
+*       www.segger.com     Support: support@segger.com               *
+*                                                                    *
+**********************************************************************
+----------------------------------------------------------------------
+File    : JLinkSettings.JLinkScript
+Purpose : J-Link target setup file for VORAGO VA416xx
+---------------------------END-OF-HEADER------------------------------
+*/
+
+/*********************************************************************
+*
+*       AfterResetTarget
+*/
+int AfterResetTarget (void) {
+  JLINK_SYS_Report("AfterResetTarget()");
+  JLINK_MEM_WriteU32(0x400210C0, 0x1ACCE551); // WDOGLOCK = 0x1ACCE551
+  JLINK_MEM_WriteU32(0x40021008, 0x0);        // WDOGCONTROL = 0x0 (diable)
+  return JLINK_MEM_WriteU32(0x40010010, 0x1); // ROM_PROT = 0x1
+}
+
+/*********************************************************************
+*
+*       BeforeTargetDownload
+*/
+int BeforeTargetDownload (void) {
+  JLINK_SYS_Report("BeforeTargetDownload()");
+  return JLINK_MEM_WriteU32(0x40010010, 0x1); // ROM_PROT = 0x1
+}
+
+/*********************************************************************
+*
+*       AfterTargetDownload
+*/
+int AfterTargetDownload (void) {
+  JLINK_SYS_Report("AfterTargetDownload()");
+  return JLINK_MEM_WriteU32(0x40010010, 0x0); // ROM_PROT = 0x0
+}
+
+/*********************************************************************
+*
+*       HandleBeforeFlashProg
+*/
+int HandleBeforeFlashProg(void) {
+  JLINK_SYS_Report("HandleBeforeFlashProg()");
+  return JLINK_MEM_WriteU32(0x40010010, 0x1); // ROM_PROT = 0x1
+}
+
+/*********************************************************************
+*
+*       HandleAfterFlashProg
+*/
+int HandleAfterFlashProg(void) {
+  JLINK_SYS_Report("HandleAfterFlashProg()");
+  return JLINK_MEM_WriteU32(0x40010010, 0x0); // ROM_PROT = 0x0
+}

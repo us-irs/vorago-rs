@@ -1,0 +1,18 @@
+[package]
+name = "board-tests"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+cortex-m = { version = "0.7", features = ["critical-section-single-core"] }
+cortex-m-rt = "0.7"
+defmt = "1"
+defmt-rtt = "1"
+panic-probe = { version = "1", features = ["print-defmt"] }
+embedded-hal = "1"
+
+[dependencies.va108xx-hal]
+version = "0.12"
+features = ["rt"]
+path = "../va108xx-hal"
+

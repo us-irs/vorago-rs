@@ -1,0 +1,39 @@
+[package]
+name = "embassy-example"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+cfg-if = "1"
+cortex-m-rt = "0.7"
+embedded-hal-async = "1"
+embedded-io = "0.6"
+embedded-io-async = "0.6"
+heapless = "0.9"
+static_cell = "2"
+
+defmt = "1"
+defmt-rtt = "1"
+panic-probe = { version = "1", features = ["print-defmt"] }
+
+critical-section = "1"
+
+embassy-sync = "0.7"
+embassy-time = "0.5"
+embassy-executor = { version = "0.9", features = [
+  "arch-cortex-m",
+  "executor-thread",
+  "executor-interrupt"
+]}
+
+va108xx-hal = { version = "0.12", path = "../../va108xx-hal", features = ["defmt"] }
+va108xx-embassy = { version = "0.3", path = "../../va108xx-embassy" }
+
+[features]
+default = ["ticks-hz-1_000", "va108xx-embassy/irq-oc30-oc31"]
+custom-irqs = []
+ticks-hz-1_000 = ["embassy-time/tick-hz-1_000"]
+ticks-hz-32_768 = ["embassy-time/tick-hz-32_768"]
+
+[package.metadata.cargo-machete]
+ignored = ["cortex-m-rt"]

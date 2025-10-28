@@ -1,0 +1,308 @@
+{
+  // See https://go.microsoft.com/fwlink/?LinkId=733558
+  // for the documentation about the tasks.json format
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "rust: cargo build",
+      "type": "shell",
+      "command": "~/.cargo/bin/cargo", // note: full path to the cargo
+      "args": [
+        "build"
+      ],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
+    },
+    {
+      "label": "rust: cargo build hal tests",
+      "type": "shell",
+      "command": "~/.cargo/bin/cargo", // note: full path to the cargo
+      "args": [
+        "build",
+        "--bin",
+        "board-tests",
+        "--features",
+        "rt"
+      ],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
+    },
+    {
+      "label": "rust: cargo build systick",
+      "type": "shell",
+      "command": "~/.cargo/bin/cargo", // note: full path to the cargo
+      "args": [
+        "build",
+        "--example",
+        "timer-ticks",
+        "--features",
+        "rt"
+      ],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
+    },
+    {
+      "label": "rust: cargo build uart",
+      "type": "shell",
+      "command": "~/.cargo/bin/cargo", // note: full path to the cargo
+      "args": [
+        "build",
+        "--example",
+        "uart"
+      ],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
+    },
+    {
+      "label": "rust: cargo build spi",
+      "type": "shell",
+      "command": "~/.cargo/bin/cargo", // note: full path to the cargo
+      "args": [
+        "build",
+        "--example",
+        "spi"
+      ],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
+    },
+    {
+      "label": "rust: cargo build pwm",
+      "type": "shell",
+      "command": "~/.cargo/bin/cargo", // note: full path to the cargo
+      "args": [
+        "build",
+        "--example",
+        "pwm",
+        "--features",
+        "rt"
+      ],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
+    },
+    {
+      "label": "rust: cargo build cascade",
+      "type": "shell",
+      "command": "~/.cargo/bin/cargo", // note: full path to the cargo
+      "args": [
+        "build",
+        "--example",
+        "cascade",
+        "--features",
+        "rt"
+      ],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
+    },
+    {
+      "label": "uart-echo-rtic-example",
+      "type": "shell",
+      "command": "~/.cargo/bin/cargo", // note: full path to the cargo
+      "args": [
+        "build",
+        "--bin",
+        "uart-echo-rtic"
+      ],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
+    },
+    {
+      "label": "blinky-hal",
+      "type": "shell",
+      "command": "~/.cargo/bin/cargo", // note: full path to the cargo
+      "args": [
+        "build",
+        "--example",
+        "blinky"
+      ],
+      "group": {
+        "kind": "build"
+      }
+    },
+    {
+      "label": "rust: cargo build led blinky",
+      "type": "shell",
+      "command": "~/.cargo/bin/cargo", // note: full path to the cargo
+      "args": [
+        "build",
+        "--example",
+        "blinky-leds"
+      ],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
+    },
+    {
+      "label": "rust: cargo build button blinky",
+      "type": "shell",
+      "command": "~/.cargo/bin/cargo", // note: full path to the cargo
+      "args": [
+        "build",
+        "--example",
+        "blinky-button-irq"
+      ],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
+    },
+    {
+      "label": "rust: cargo build temp sensor",
+      "type": "shell",
+      "command": "~/.cargo/bin/cargo", // note: full path to the cargo
+      "args": [
+        "build",
+        "--example",
+        "adt75-temp-sensor"
+      ],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
+    },
+    {
+      "label": "rust: cargo build button blinky rtic",
+      "type": "shell",
+      "command": "~/.cargo/bin/cargo", // note: full path to the cargo
+      "args": [
+        "build",
+        "--example",
+        "blinky-button-rtic"
+      ],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
+    },
+    {
+      "label": "rust: cargo build accelerometer",
+      "type": "shell",
+      "command": "~/.cargo/bin/cargo", // note: full path to the cargo
+      "args": [
+        "build",
+        "--example",
+        "adxl343-accelerometer"
+      ],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
+    },
+    {
+      "label": "rust: cargo build adc",
+      "type": "shell",
+      "command": "~/.cargo/bin/cargo", // note: full path to the cargo
+      "args": [
+        "build",
+        "--example",
+        "max11619-adc"
+      ],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
+    },
+    {
+      "label": "reb1-nvm",
+      "type": "shell",
+      "command": "~/.cargo/bin/cargo", // note: full path to the cargo
+      "args": [
+        "build",
+        "--example",
+        "nvm"
+      ],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
+    },
+    {
+      "label": "rtic-example",
+      "type": "shell",
+      "command": "~/.cargo/bin/cargo", // note: full path to the cargo
+      "args": [
+        "build",
+        "--bin",
+        "rtic-example"
+      ]
+    },
+    {
+      "label": "embassy-example",
+      "type": "shell",
+      "command": "~/.cargo/bin/cargo", // note: full path to the cargo
+      "args": [
+        "build",
+        "--bin",
+        "embassy-example"
+      ]
+    },
+    {
+      "label": "async-gpio",
+      "type": "shell",
+      "command": "~/.cargo/bin/cargo", // note: full path to the cargo
+      "args": [
+        "build",
+        "--bin",
+        "async-gpio"
+      ]
+    },
+    {
+      "label": "async-uart-tx",
+      "type": "shell",
+      "command": "~/.cargo/bin/cargo", // note: full path to the cargo
+      "args": [
+        "build",
+        "--bin",
+        "async-uart-tx"
+      ]
+    },
+    {
+      "label": "async-uart-rx",
+      "type": "shell",
+      "command": "~/.cargo/bin/cargo", // note: full path to the cargo
+      "args": [
+        "build",
+        "--bin",
+        "async-uart-rx"
+      ]
+    },
+    {
+      "label": "bootloader",
+      "type": "shell",
+      "command": "~/.cargo/bin/cargo", // note: full path to the cargo
+      "args": [
+        "build",
+        "--bin",
+        "bootloader",
+        "--release",
+      ]
+    },
+    {
+      "label": "flashloader",
+      "type": "shell",
+      "command": "~/.cargo/bin/cargo", // note: full path to the cargo
+      "args": [
+        "build",
+        "--bin",
+        "flashloader",
+        "--release"
+      ]
+    }
+  ]
+}

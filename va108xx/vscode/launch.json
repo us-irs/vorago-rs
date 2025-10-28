@@ -1,0 +1,626 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    // You can set the "gdbPath" setting in a custom settings.json to use a non-default
+    // GDB application
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "cortex-debug",
+            "request": "launch",
+            "name": "Debug LED Blinky",
+            "servertype": "jlink",
+            "cwd": "${workspaceRoot}",
+            "device": "Cortex-M0",
+            "svdFile": "./va108xx/svd/va108xx.svd.patched",
+            "preLaunchTask": "rust: cargo build led blinky",
+            "serverArgs": [
+                "-jtagconf",
+                "-1,-1"
+            ],
+            "executable": "${workspaceFolder}/target/thumbv6m-none-eabi/debug/examples/blinky-leds",
+            "interface": "jtag",
+            "runToEntryPoint": "main",
+            "rttConfig": {
+                "enabled": true,
+                "address": "auto",
+                "decoders": [
+                    {
+                        "port": 0,
+                        "timestamp": true,
+                        "type": "console"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "cortex-debug",
+            "request": "launch",
+            "name": "Debug Tests HAL",
+            "servertype": "jlink",
+            "cwd": "${workspaceRoot}",
+            "device": "Cortex-M0",
+            "svdFile": "./va108xx/svd/va108xx.svd.patched",
+            "preLaunchTask": "rust: cargo build hal tests",
+            "serverArgs": [
+                "-jtagconf",
+                "-1,-1"
+            ],
+            "executable": "${workspaceFolder}/target/thumbv6m-none-eabi/debug/board-tests",
+            "interface": "jtag",
+            "runToEntryPoint": "main",
+            "rttConfig": {
+                "enabled": true,
+                "address": "auto",
+                "decoders": [
+                    {
+                        "port": 0,
+                        "timestamp": true,
+                        "type": "console"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "cortex-debug",
+            "request": "launch",
+            "name": "Debug Blinky Button IRQ",
+            "servertype": "jlink",
+            "cwd": "${workspaceRoot}",
+            "device": "Cortex-M0",
+            "svdFile": "./va108xx/svd/va108xx.svd.patched",
+            "preLaunchTask": "rust: cargo build button blinky",
+            "serverArgs": [
+                "-jtagconf",
+                "-1,-1"
+            ],
+            "executable": "${workspaceFolder}/target/thumbv6m-none-eabi/debug/examples/blinky-button-irq",
+            "interface": "jtag",
+            "runToEntryPoint": "main",
+            "rttConfig": {
+                "enabled": true,
+                "address": "auto",
+                "decoders": [
+                    {
+                        "port": 0,
+                        "timestamp": true,
+                        "type": "console"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "cortex-debug",
+            "request": "launch",
+            "name": "Debug Timer MS Ticks",
+            "servertype": "jlink",
+            "cwd": "${workspaceRoot}",
+            "device": "Cortex-M0",
+            "svdFile": "./va108xx/svd/va108xx.svd.patched",
+            "preLaunchTask": "rust: cargo build systick",
+            "executable": "${workspaceFolder}/target/thumbv6m-none-eabi/debug/examples/timer-ticks",
+            "interface": "jtag",
+            "serverArgs": [
+                "-jtagconf",
+                "-1,-1"
+            ],
+            "runToEntryPoint": "main",
+            "rttConfig": {
+                "enabled": true,
+                "address": "auto",
+                "decoders": [
+                    {
+                        "port": 0,
+                        "timestamp": true,
+                        "type": "console"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "cortex-debug",
+            "request": "launch",
+            "name": "UART Example",
+            "servertype": "jlink",
+            "cwd": "${workspaceRoot}",
+            "device": "Cortex-M0",
+            "svdFile": "./va108xx/svd/va108xx.svd.patched",
+            "serverArgs": [
+                "-jtagconf",
+                "-1,-1"
+            ],
+            "preLaunchTask": "rust: cargo build uart",
+            "executable": "${workspaceFolder}/target/thumbv6m-none-eabi/debug/examples/uart",
+            "interface": "jtag",
+            "runToEntryPoint": "main",
+            "rttConfig": {
+                "enabled": true,
+                "address": "auto",
+                "decoders": [
+                    {
+                        "port": 0,
+                        "timestamp": true,
+                        "type": "console"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "cortex-debug",
+            "request": "launch",
+            "name": "Debug SPI",
+            "servertype": "jlink",
+            "cwd": "${workspaceRoot}",
+            "device": "Cortex-M0",
+            "svdFile": "./va108xx/svd/va108xx.svd.patched",
+            "serverArgs": [
+                "-jtagconf",
+                "-1,-1"
+            ],
+            "preLaunchTask": "rust: cargo build spi",
+            "executable": "${workspaceFolder}/target/thumbv6m-none-eabi/debug/examples/spi",
+            "interface": "jtag",
+            "runToEntryPoint": "main",
+            "rttConfig": {
+                "enabled": true,
+                "address": "auto",
+                "decoders": [
+                    {
+                        "port": 0,
+                        "timestamp": true,
+                        "type": "console"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "cortex-debug",
+            "request": "launch",
+            "name": "Debug I2C / Temperature Sensor",
+            "servertype": "jlink",
+            "cwd": "${workspaceRoot}",
+            "device": "Cortex-M0",
+            "svdFile": "./va108xx/svd/va108xx-base.svd.patched",
+            "serverArgs": [
+                "-jtagconf",
+                "-1,-1"
+            ],
+            "preLaunchTask": "rust: cargo build temp sensor",
+            "executable": "${workspaceFolder}/target/thumbv6m-none-eabi/debug/examples/adt75-temp-sensor",
+            "interface": "jtag",
+            "runToEntryPoint": "main",
+            "rttConfig": {
+                "enabled": true,
+                "address": "auto",
+                "decoders": [
+                    {
+                        "port": 0,
+                        "timestamp": true,
+                        "type": "console"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "cortex-debug",
+            "request": "launch",
+            "name": "Button Blinky RTIC Example",
+            "servertype": "jlink",
+            "cwd": "${workspaceRoot}",
+            "device": "Cortex-M0",
+            "svdFile": "./va108xx/svd/va108xx-base.svd.patched",
+            "serverArgs": [
+                "-jtagconf",
+                "-1,-1"
+            ],
+            "preLaunchTask": "rust: cargo build button blinky rtic",
+            "executable": "${workspaceFolder}/target/thumbv6m-none-eabi/debug/examples/blinky-button-rtic",
+            "interface": "jtag",
+            "runToEntryPoint": "main",
+            "rttConfig": {
+                "enabled": true,
+                "address": "auto",
+                "decoders": [
+                    {
+                        "port": 0,
+                        "timestamp": true,
+                        "type": "console"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "cortex-debug",
+            "request": "launch",
+            "name": "UART Echo with RTIC",
+            "servertype": "jlink",
+            "cwd": "${workspaceRoot}",
+            "device": "Cortex-M0",
+            "svdFile": "./va108xx/svd/va108xx-base.svd.patched",
+            "serverArgs": [
+                "-jtagconf",
+                "-1,-1"
+            ],
+            "preLaunchTask": "uart-echo-rtic-example",
+            "executable": "${workspaceFolder}/target/thumbv6m-none-eabi/debug/uart-echo-rtic",
+            "interface": "jtag",
+            "runToEntryPoint": "main",
+            "rttConfig": {
+                "enabled": true,
+                "address": "auto",
+                "decoders": [
+                    {
+                        "port": 0,
+                        "timestamp": true,
+                        "type": "console"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "cortex-debug",
+            "request": "launch",
+            "name": "PWM Example",
+            "servertype": "jlink",
+            "cwd": "${workspaceRoot}",
+            "device": "Cortex-M0",
+            "svdFile": "./va108xx/svd/va108xx.svd.patched",
+            "serverArgs": [
+                "-jtagconf",
+                "-1,-1"
+            ],
+            "preLaunchTask": "rust: cargo build pwm",
+            "executable": "${workspaceFolder}/target/thumbv6m-none-eabi/debug/examples/pwm",
+            "interface": "jtag",
+            "runToEntryPoint": "main",
+            "rttConfig": {
+                "enabled": true,
+                "address": "auto",
+                "decoders": [
+                    {
+                        "port": 0,
+                        "timestamp": true,
+                        "type": "console"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "cortex-debug",
+            "request": "launch",
+            "name": "Cascade Example",
+            "servertype": "jlink",
+            "cwd": "${workspaceRoot}",
+            "device": "Cortex-M0",
+            "svdFile": "./va108xx/svd/va108xx.svd.patched",
+            "serverArgs": [
+                "-jtagconf",
+                "-1,-1"
+            ],
+            "preLaunchTask": "rust: cargo build cascade",
+            "executable": "${workspaceFolder}/target/thumbv6m-none-eabi/debug/examples/cascade",
+            "interface": "jtag",
+            "runToEntryPoint": "main",
+            "rttConfig": {
+                "enabled": true,
+                "address": "0x10000000",
+                "decoders": [
+                    {
+                        "port": 0,
+                        "timestamp": true,
+                        "type": "console"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "cortex-debug",
+            "request": "launch",
+            "name": "Accelerometer Example",
+            "servertype": "jlink",
+            "cwd": "${workspaceRoot}",
+            "device": "Cortex-M0",
+            "svdFile": "./va108xx/svd/va108xx.svd.patched",
+            "serverArgs": [
+                "-jtagconf",
+                "-1,-1"
+            ],
+            "preLaunchTask": "rust: cargo build accelerometer",
+            "executable": "${workspaceFolder}/target/thumbv6m-none-eabi/debug/examples/adxl343-accelerometer",
+            "interface": "jtag",
+            "runToEntryPoint": "main",
+            "rttConfig": {
+                "enabled": true,
+                "address": "auto",
+                "decoders": [
+                    {
+                        "port": 0,
+                        "timestamp": true,
+                        "type": "console"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "cortex-debug",
+            "request": "launch",
+            "name": "ADC Example",
+            "servertype": "jlink",
+            "cwd": "${workspaceRoot}",
+            "device": "Cortex-M0",
+            "svdFile": "./va108xx/svd/va108xx.svd.patched",
+            "serverArgs": [
+                "-jtagconf",
+                "-1,-1"
+            ],
+            "preLaunchTask": "rust: cargo build adc",
+            "executable": "${workspaceFolder}/target/thumbv6m-none-eabi/debug/examples/max11619-adc",
+            "interface": "jtag",
+            "runToEntryPoint": "main",
+            "rttConfig": {
+                "enabled": true,
+                "address": "auto",
+                "decoders": [
+                    {
+                        "port": 0,
+                        "timestamp": true,
+                        "type": "console"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "cortex-debug",
+            "request": "launch",
+            "name": "UART IRQ Example",
+            "servertype": "jlink",
+            "cwd": "${workspaceRoot}",
+            "device": "Cortex-M0",
+            "svdFile": "./va108xx/svd/va108xx.svd.patched",
+            "serverArgs": [
+                "-jtagconf",
+                "-1,-1"
+            ],
+            "preLaunchTask": "uart-echo-rtic-example",
+            "executable": "${workspaceFolder}/target/thumbv6m-none-eabi/debug/uart-echo-rtic",
+            "interface": "jtag",
+            "runToEntryPoint": "main",
+            "rttConfig": {
+                "enabled": true,
+                "address": "auto",
+                "decoders": [
+                    {
+                        "port": 0,
+                        "timestamp": true,
+                        "type": "console"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "cortex-debug",
+            "request": "launch",
+            "name": "REB1 NVM Example",
+            "servertype": "jlink",
+            "cwd": "${workspaceRoot}",
+            "device": "Cortex-M0",
+            "svdFile": "./va108xx/svd/va108xx.svd.patched",
+            "serverArgs": [
+                "-jtagconf",
+                "-1,-1"
+            ],
+            "preLaunchTask": "reb1-nvm",
+            "executable": "${workspaceFolder}/target/thumbv6m-none-eabi/debug/examples/nvm",
+            "interface": "jtag",
+            "runToEntryPoint": "main",
+            "rttConfig": {
+                "enabled": true,
+                "address": "auto",
+                "decoders": [
+                    {
+                        "port": 0,
+                        "timestamp": true,
+                        "type": "console"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "cortex-debug",
+            "request": "launch",
+            "name": "RTIC Example",
+            "servertype": "jlink",
+            "cwd": "${workspaceRoot}",
+            "device": "Cortex-M0",
+            "svdFile": "./va108xx/svd/va108xx.svd.patched",
+            "serverArgs": [
+                "-jtagconf",
+                "-1,-1"
+            ],
+            "preLaunchTask": "rtic-example",
+            "executable": "${workspaceFolder}/target/thumbv6m-none-eabi/debug/rtic-example",
+            "interface": "jtag",
+            "runToEntryPoint": "main",
+            "rttConfig": {
+                "enabled": true,
+                "address": "auto",
+                "decoders": [
+                    {
+                        "port": 0,
+                        "timestamp": true,
+                        "type": "console"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "cortex-debug",
+            "request": "launch",
+            "name": "Embassy Example",
+            "servertype": "jlink",
+            "cwd": "${workspaceRoot}",
+            "device": "Cortex-M0",
+            "svdFile": "./va108xx/svd/va108xx.svd.patched",
+            "serverArgs": [
+                "-jtagconf",
+                "-1,-1"
+            ],
+            "preLaunchTask": "embassy-example",
+            "executable": "${workspaceFolder}/target/thumbv6m-none-eabi/debug/embassy-example",
+            "interface": "jtag",
+            "runToEntryPoint": "main",
+            "rttConfig": {
+                "enabled": true,
+                "address": "auto",
+                "decoders": [
+                    {
+                        "port": 0,
+                        "timestamp": true,
+                        "type": "console"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "cortex-debug",
+            "request": "launch",
+            "name": "Bootloader",
+            "servertype": "jlink",
+            "cwd": "${workspaceRoot}",
+            "device": "Cortex-M0",
+            "svdFile": "./va108xx/svd/va108xx.svd.patched",
+            "serverArgs": [
+                "-jtagconf",
+                "-1,-1"
+            ],
+            "preLaunchTask": "bootloader",
+            "executable": "${workspaceFolder}/target/thumbv6m-none-eabi/release/bootloader",
+            "interface": "jtag",
+            "runToEntryPoint": "main",
+            "rttConfig": {
+                "enabled": true,
+                "address": "auto",
+                "decoders": [
+                    {
+                        "port": 0,
+                        "timestamp": true,
+                        "type": "console"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "cortex-debug",
+            "request": "launch",
+            "name": "Flashloader",
+            "servertype": "jlink",
+            "cwd": "${workspaceRoot}",
+            "device": "Cortex-M0",
+            "svdFile": "./va108xx/svd/va108xx.svd.patched",
+            "serverArgs": [
+                "-jtagconf",
+                "-1,-1"
+            ],
+            "preLaunchTask": "flashloader",
+            "executable": "${workspaceFolder}/target/thumbv6m-none-eabi/release/flashloader",
+            "interface": "jtag",
+            "runToEntryPoint": "main",
+            "rttConfig": {
+                "enabled": true,
+                "address": "auto",
+                "decoders": [
+                    {
+                        "port": 0,
+                        "timestamp": true,
+                        "type": "console"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "cortex-debug",
+            "request": "launch",
+            "name": "Async GPIO",
+            "servertype": "jlink",
+            "cwd": "${workspaceRoot}",
+            "device": "Cortex-M0",
+            "svdFile": "./va108xx/svd/va108xx.svd.patched",
+            "serverArgs": [
+                "-jtagconf",
+                "-1,-1"
+            ],
+            "preLaunchTask": "async-gpio",
+            "executable": "${workspaceFolder}/target/thumbv6m-none-eabi/debug/async-gpio",
+            "interface": "jtag",
+            "runToEntryPoint": "main",
+            "rttConfig": {
+                "enabled": true,
+                "address": "auto",
+                "decoders": [
+                    {
+                        "port": 0,
+                        "timestamp": true,
+                        "type": "console"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "cortex-debug",
+            "request": "launch",
+            "name": "Async UART TX",
+            "servertype": "jlink",
+            "cwd": "${workspaceRoot}",
+            "device": "Cortex-M0",
+            "svdFile": "./va108xx/svd/va108xx.svd.patched",
+            "serverArgs": [
+                "-jtagconf",
+                "-1,-1"
+            ],
+            "preLaunchTask": "async-uart-tx",
+            "executable": "${workspaceFolder}/target/thumbv6m-none-eabi/debug/async-uart-tx",
+            "interface": "jtag",
+            "runToEntryPoint": "main",
+            "rttConfig": {
+                "enabled": true,
+                "address": "auto",
+                "decoders": [
+                    {
+                        "port": 0,
+                        "timestamp": true,
+                        "type": "console"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "cortex-debug",
+            "request": "launch",
+            "name": "Async UART RX",
+            "servertype": "jlink",
+            "cwd": "${workspaceRoot}",
+            "device": "Cortex-M0",
+            "svdFile": "./va108xx/svd/va108xx.svd.patched",
+            "serverArgs": [
+                "-jtagconf",
+                "-1,-1"
+            ],
+            "preLaunchTask": "async-uart-rx",
+            "executable": "${workspaceFolder}/target/thumbv6m-none-eabi/debug/async-uart-rx",
+            "interface": "jtag",
+            "runToEntryPoint": "main",
+            "rttConfig": {
+                "enabled": true,
+                "address": "auto",
+                "decoders": [
+                    {
+                        "port": 0,
+                        "timestamp": true,
+                        "type": "console"
+                    }
+                ]
+            }
+        },
+    ]
+}

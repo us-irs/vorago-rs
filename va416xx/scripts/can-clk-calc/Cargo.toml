@@ -1,0 +1,9 @@
+[workspace]
+
+[package]
+name = "can-clk-calc"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+va416xx-hal = { path = "../../va416xx-hal", features = ["alloc", "revb"], default-features = false }
