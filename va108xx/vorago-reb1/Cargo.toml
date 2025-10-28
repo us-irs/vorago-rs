@@ -34,4 +34,5 @@ dummy-pin = "1"
 
 [package.metadata.docs.rs]
 all-features = true
+targets = ["thumbv6m-none-eabi"]
 rustdoc-args = ["--generate-link-to-definition"]

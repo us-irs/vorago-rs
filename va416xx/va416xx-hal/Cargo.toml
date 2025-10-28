@@ -48,4 +48,5 @@ revb = []
 
 [package.metadata.docs.rs]
 features = ["va41630", "defmt"]
+targets = ["thumbv7em-none-eabihf"]
 rustdoc-args = ["--generate-link-to-definition"]

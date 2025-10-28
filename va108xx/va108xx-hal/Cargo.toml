@@ -30,6 +30,7 @@ defmt = ["dep:defmt", "vorago-shared-hal/defmt"]
 
 [package.metadata.docs.rs]
 all-features = true
+targets = ["thumbv6m-none-eabi"]
 rustdoc-args = ["--generate-link-to-definition"]
 
 [package.metadata.cargo-machete]

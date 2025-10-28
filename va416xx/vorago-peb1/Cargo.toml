@@ -18,4 +18,5 @@ lis2dh12 = { version = "0.7", features = ["out_f32"] }
 
 [package.metadata.docs.rs]
 all-features = true
+targets = ["thumbv7em-none-eabihf"]
 rustdoc-args = ["--generate-link-to-definition"]

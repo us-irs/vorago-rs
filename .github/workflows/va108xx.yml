@@ -18,6 +18,16 @@ jobs:
       - run: cargo check -p va108xx --target thumbv6m-none-eabi --all-features
       - run: cargo check -p va108xx-hal --target thumbv6m-none-eabi --features "defmt"
 
+  build:
+    name: Check build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: "thumbv6m-none-eabi"
+      - run: cargo build --target thumbv6m-none-eabi
+
   test:
     name: Run Tests
     runs-on: ubuntu-latest

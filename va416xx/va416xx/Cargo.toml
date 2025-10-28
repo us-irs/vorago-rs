@@ -30,4 +30,5 @@ debug = []
 
 [package.metadata.docs.rs]
 all-features = true
+targets = ["thumbv7em-none-eabihf"]
 rustdoc-args = ["--generate-link-to-definition"]

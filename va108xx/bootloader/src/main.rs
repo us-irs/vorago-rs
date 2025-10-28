@@ -64,7 +64,7 @@ const APP_B_CRC_ADDR: u32 = APP_B_END_ADDR - 4;
 pub const APP_B_END_ADDR: u32 = NVM_SIZE - 8;
 pub const APP_IMG_SZ: u32 = (APP_B_END_ADDR - APP_A_START_ADDR) / 2;
 
-static_assertions::const_assert!((APP_B_END_ADDR - BOOTLOADER_END_ADDR) % 2 == 0);
+static_assertions::const_assert!((APP_B_END_ADDR - BOOTLOADER_END_ADDR).is_multiple_of(2));
 
 pub const VECTOR_TABLE_OFFSET: u32 = 0x0;
 pub const VECTOR_TABLE_LEN: u32 = 0xC0;

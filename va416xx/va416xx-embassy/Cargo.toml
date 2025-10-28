@@ -28,4 +28,5 @@ irq-tim22-tim23 = ["_irqs-in-lib"]
 _irqs-in-lib = []
 
 [package.metadata.docs.rs]
+targets = ["thumbv7em-none-eabihf"]
 rustdoc-args = ["--generate-link-to-definition"]

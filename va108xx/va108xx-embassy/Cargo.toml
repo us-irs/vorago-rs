@@ -24,4 +24,5 @@ irq-oc29-oc30 = ["irqs-in-lib"]
 irq-oc30-oc31 = ["irqs-in-lib"]
 
 [package.metadata.docs.rs]
+targets = ["thumbv6m-none-eabi"]
 rustdoc-args = ["--generate-link-to-definition"]

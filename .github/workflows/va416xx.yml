@@ -18,6 +18,16 @@ jobs:
       - run: cargo check -p va416xx --target thumbv7em-none-eabihf --all-features
       - run: cargo check -p va416xx-hal --target thumbv7em-none-eabihf --features "defmt va41630"
 
+  build:
+    name: Check build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: "thumbv7em-none-eabihf"
+      - run: cargo build --target thumbv7em-none-eabihf
+
   test:
     name: Run Tests
     runs-on: ubuntu-latest
