@@ -4,5 +4,5 @@
 //!
 //! ## Examples
 //!
-//! - [PWM example](https://egit.irs.uni-stuttgart.de/rust/va416xx-rs/src/branch/main/examples/simple/examples/pwm.rs)
+//! - [PWM example](https://egit.irs.uni-stuttgart.de/rust/vorago-rs/src/branch/main/va416xx/examples/simple/examples/pwm.rs)
 pub use vorago_shared_hal::pwm::*;

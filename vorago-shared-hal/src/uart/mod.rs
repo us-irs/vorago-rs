@@ -9,9 +9,9 @@
 //!
 //! ## Examples
 //!
-//! - [UART simple example](https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/src/branch/main/examples/simple/examples/uart.rs)
-//! - [UART with IRQ and RTIC](https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/src/branch/main/examples/rtic/src/bin/uart-echo-rtic.rs)
-//! - [Flashloader exposing a CCSDS interface via UART](https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/src/branch/main/flashloader)
+//! - [UART simple example](https://egit.irs.uni-stuttgart.de/rust/vorago-rs/src/branch/main/va108xx/examples/simple/examples/uart.rs)
+//! - [UART with IRQ and RTIC](https://egit.irs.uni-stuttgart.de/rust/vorago-rs/src/branch/main/va108xx/examples/rtic/src/bin/uart-echo-rtic.rs)
+//! - [Flashloader exposing a CCSDS interface via UART](https://egit.irs.uni-stuttgart.de/rust/vorago-rs/src/branch/main/va108xx/flashloader)
 use core::convert::Infallible;
 pub mod regs;
 #[cfg(feature = "vor1x")]

@@ -2,8 +2,8 @@
 //!
 //! ## Examples
 //!
-//! - [Button Blinky with IRQs](https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/src/branch/main/vorago-reb1/examples/blinky-button-irq.rs)
-//! - [Button Blinky with IRQs and RTIC](https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/src/branch/main/vorago-reb1/examples/blinky-button-rtic.rs)
+//! - [Button Blinky with IRQs](https://egit.irs.uni-stuttgart.de/rust/vorago-rs/src/branch/main/va108xx/vorago-reb1/examples/blinky-button-irq.rs)
+//! - [Button Blinky with IRQs and RTIC](https://egit.irs.uni-stuttgart.de/rust/vorago-rs/src/branch/main/va108xx/vorago-reb1/examples/blinky-button-rtic.rs)
 use va108xx_hal::{
     clock::FilterClockSelect,
     gpio::{FilterType, Input, InterruptEdge, InterruptLevel, Pin},

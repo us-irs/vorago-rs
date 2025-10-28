@@ -2,7 +2,7 @@
 //!
 //! ## Examples
 //!
-//! - [ADC and DAC example](https://github.com/us-irs/va416xx-rs/blob/main/examples/simple/examples/dac-adc.rs)
+//! - [ADC and DAC example](https://github.com/us-irs/vorago-rs/blob/main/va416xx/examples/simple/examples/dac-adc.rs)
 use core::ops::Deref;
 
 use vorago_shared_hal::{

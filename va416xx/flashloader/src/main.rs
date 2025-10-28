@@ -93,6 +93,8 @@ pub const APP_B_END_ADDR: u32 = 0x40000;
 #[rtic::app(device = pac, dispatchers = [U1, U2, U3])]
 mod app {
     use super::*;
+    use arbitrary_int::traits::Integer as _;
+    use arbitrary_int::{u11, u14};
     use cortex_m::asm;
     use embedded_io::Write;
     // Import panic provider.
@@ -102,8 +104,8 @@ mod app {
     use rtic::Mutex;
     use rtic_monotonics::systick::prelude::*;
     use satrs::pus::verification::VerificationReportCreator;
-    use spacepackets::ecss::PusServiceId;
-    use spacepackets::ecss::{
+    use satrs::spacepackets::ecss::PusServiceId;
+    use satrs::spacepackets::ecss::{
         tc::PusTcReader, tm::PusTmCreator, EcssEnumU8, PusPacket, WritablePusPacket,
     };
     use va416xx_hal::clock::ClockConfigurator;
@@ -175,7 +177,7 @@ mod app {
         .unwrap();
         let (tx, rx) = uart0.split();
 
-        let verif_reporter = VerificationReportCreator::new(0).unwrap();
+        let verif_reporter = VerificationReportCreator::new(u11::new(0));
 
         let (buf_prod_tm, buf_cons_tm) = BUF_RB_TM
             .init(StaticRb::<u8, BUF_RB_SIZE_TM>::default())
@@ -360,14 +362,14 @@ mod app {
         let tm = cx
             .local
             .verif_reporter
-            .acceptance_success(cx.local.src_data_buf, &request_id, 0, 0, &[])
+            .acceptance_success(cx.local.src_data_buf, &request_id, u14::ZERO, 0, &[])
             .expect("acceptance success failed");
         write_and_send(&tm);
 
         let tm = cx
             .local
             .verif_reporter
-            .start_success(cx.local.src_data_buf, &request_id, 0, 0, &[])
+            .start_success(cx.local.src_data_buf, &request_id, u14::ZERO, 0, &[])
             .expect("acceptance success failed");
         write_and_send(&tm);
 
@@ -387,7 +389,7 @@ mod app {
                 let tm = cx
                     .local
                     .verif_reporter
-                    .completion_success(cx.local.src_data_buf, &request_id, 0, 0, &[])
+                    .completion_success(cx.local.src_data_buf, &request_id, u14::ZERO, 0, &[])
                     .expect("completion success failed");
                 write_and_send(&tm);
             };
@@ -405,7 +407,7 @@ mod app {
             let tm = cx
                 .local
                 .verif_reporter
-                .completion_success(cx.local.src_data_buf, &request_id, 0, 0, &[])
+                .completion_success(cx.local.src_data_buf, &request_id, u14::ZERO, 0, &[])
                 .expect("completion success failed");
             write_and_send(&tm);
         } else if pus_tc.service() == PusServiceId::MemoryManagement as u8 {
@@ -415,7 +417,7 @@ mod app {
                 .step_success(
                     cx.local.src_data_buf,
                     &request_id,
-                    0,
+                    u14::ZERO,
                     0,
                     &[],
                     EcssEnumU8::new(0),
@@ -460,7 +462,7 @@ mod app {
                 let tm = cx
                     .local
                     .verif_reporter
-                    .completion_success(cx.local.src_data_buf, &request_id, 0, 0, &[])
+                    .completion_success(cx.local.src_data_buf, &request_id, u14::ZERO, 0, &[])
                     .expect("completion success failed");
                 write_and_send(&tm);
                 defmt::info!("NVM operation done");

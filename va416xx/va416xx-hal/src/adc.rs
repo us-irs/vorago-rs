@@ -2,8 +2,8 @@
 //!
 //! ## Examples
 //!
-//! - [ADC and DAC example](https://github.com/us-irs/va416xx-rs/blob/main/examples/simple/examples/dac-adc.rs)
-//! - [ADC](https://github.com/us-irs/va416xx-rs/blob/main/examples/simple/examples/adc.rs)
+//! - [ADC and DAC example](https://github.com/us-irs/vorago-rs/blob/main/va416xx/examples/simple/examples/dac-adc.rs)
+//! - [ADC](https://github.com/us-irs/vorago-rs/blob/main/va416xx/examples/simple/examples/adc.rs)
 use core::marker::PhantomData;
 
 use crate::clock::Clocks;

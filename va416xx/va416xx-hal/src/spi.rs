@@ -6,6 +6,6 @@
 //!
 //! ## Examples
 //!
-//! - [Blocking SPI example](https://egit.irs.uni-stuttgart.de/rust/va416xx-rs/src/branch/main/examples/simple/examples/spi.rs)
+//! - [Blocking SPI example](https://egit.irs.uni-stuttgart.de/rust/vorago-rs/src/branch/main/va416xx/examples/simple/examples/spi.rs)
 //! - [NVM library][crate::nvm]
 pub use vorago_shared_hal::spi::*;

@@ -6,7 +6,7 @@
 This is the Rust **B**oard **S**upport **P**ackage crate for the Vorago PEB1 development board.
 Its aim is to provide drivers for the board features of the PEB1 board.
 
-The BSP builds on top of the [HAL crate for VA416xx devices](https://egit.irs.uni-stuttgart.de/rust/va416xx-rs/src/branch/main/va416xx-hal).
+The BSP builds on top of the [HAL crate for VA416xx devices](https://egit.irs.uni-stuttgart.de/rust/vorago-rs/src/branch/main/va416xx/va416xx-hal).
 
 ## Notes on board revisions
 

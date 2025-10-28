@@ -2,7 +2,7 @@
 //!
 //! ## Examples
 //!
-//! - [Simple DMA example](https://egit.irs.uni-stuttgart.de/rust/va416xx-rs/src/branch/main/examples/simple/examples/dma.rs)
+//! - [Simple DMA example](https://egit.irs.uni-stuttgart.de/rust/vorago-rs/src/branch/main/va416xx/examples/simple/examples/dma.rs)
 use arbitrary_int::{u10, u3};
 use vorago_shared_hal::{enable_peripheral_clock, reset_peripheral_for_cycles, PeripheralSelect};
 

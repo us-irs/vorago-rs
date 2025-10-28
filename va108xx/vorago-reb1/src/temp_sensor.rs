@@ -4,7 +4,7 @@
 //!
 //! ## Examples
 //!
-//! - [Temperature Sensor example](https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/src/branch/main/vorago-reb1/examples/adt75-temp-sensor.rs)
+//! - [Temperature Sensor example](https://egit.irs.uni-stuttgart.de/rust/vorago-rs/src/branch/main/va108xx/vorago-reb1/examples/adt75-temp-sensor.rs)
 use embedded_hal::i2c::{I2c, SevenBitAddress};
 use va108xx_hal::{
     i2c::{Error, I2cMaster, I2cSpeed, InitError, MasterConfig},

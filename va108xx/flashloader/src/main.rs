@@ -59,13 +59,15 @@ pub const PREFERRED_SLOT_OFFSET: u32 = 0x20000 - 1;
 #[rtic::app(device = pac, dispatchers = [OC20, OC21, OC22])]
 mod app {
     use super::*;
+    use arbitrary_int::traits::Integer as _;
+    use arbitrary_int::{u11, u14};
     use cortex_m::asm;
     use embedded_io::Write;
     use rtic::Mutex;
     use rtic_monotonics::systick::prelude::*;
     use satrs::pus::verification::{FailParams, VerificationReportCreator};
-    use spacepackets::ecss::PusServiceId;
-    use spacepackets::ecss::{
+    use satrs::spacepackets::ecss::PusServiceId;
+    use satrs::spacepackets::ecss::{
         tc::PusTcReader, tm::PusTmCreator, EcssEnumU8, PusPacket, WritablePusPacket,
     };
     use va108xx_hal::pins::PinsA;
@@ -127,7 +129,7 @@ mod app {
         // Unwrap is okay, we explicitely set the interrupt ID.
         let mut rx = rx.into_rx_with_irq();
 
-        let verif_reporter = VerificationReportCreator::new(0).unwrap();
+        let verif_reporter = VerificationReportCreator::new(u11::new(0));
 
         let mut rx_context = InterruptContextTimeoutOrMaxSize::new(MAX_TC_FRAME_SIZE);
         rx.read_fixed_len_or_timeout_based_using_irq(&mut rx_context)
@@ -284,14 +286,14 @@ mod app {
         let tm = cx
             .local
             .verif_reporter
-            .acceptance_success(cx.local.src_data_buf, &request_id, 0, 0, &[])
+            .acceptance_success(cx.local.src_data_buf, &request_id, u14::ZERO, 0, &[])
             .expect("acceptance success failed");
         write_and_send(&tm);
 
         let tm = cx
             .local
             .verif_reporter
-            .start_success(cx.local.src_data_buf, &request_id, 0, 0, &[])
+            .start_success(cx.local.src_data_buf, &request_id, u14::ZERO, 0, &[])
             .expect("acceptance success failed");
         write_and_send(&tm);
 
@@ -310,7 +312,7 @@ mod app {
                 let tm = cx
                     .local
                     .verif_reporter
-                    .completion_success(cx.local.src_data_buf, &request_id, 0, 0, &[])
+                    .completion_success(cx.local.src_data_buf, &request_id, u14::ZERO, 0, &[])
                     .expect("completion success failed");
                 write_and_send(&tm);
             };
@@ -341,7 +343,7 @@ mod app {
                 let tm = cx
                     .local
                     .verif_reporter
-                    .completion_success(cx.local.src_data_buf, &request_id, 0, 0, &[])
+                    .completion_success(cx.local.src_data_buf, &request_id, u14::ZERO, 0, &[])
                     .expect("completion success failed");
                 write_and_send(&tm);
             }
@@ -351,7 +353,7 @@ mod app {
             let tm = cx
                 .local
                 .verif_reporter
-                .completion_success(cx.local.src_data_buf, &request_id, 0, 0, &[])
+                .completion_success(cx.local.src_data_buf, &request_id, u14::ZERO, 0, &[])
                 .expect("completion success failed");
             write_and_send(&tm);
         } else if pus_tc.service() == PusServiceId::MemoryManagement as u8 {
@@ -361,7 +363,7 @@ mod app {
                 .step_success(
                     cx.local.src_data_buf,
                     &request_id,
-                    0,
+                    u14::ZERO,
                     0,
                     &[],
                     EcssEnumU8::new(0),
@@ -411,7 +413,7 @@ mod app {
                         .completion_failure(
                             cx.local.src_data_buf,
                             &request_id,
-                            0,
+                            u14::ZERO,
                             0,
                             FailParams::new(&[], &EcssEnumU8::new(0), &[]),
                         )
@@ -419,7 +421,7 @@ mod app {
                 } else {
                     cx.local
                         .verif_reporter
-                        .completion_success(cx.local.src_data_buf, &request_id, 0, 0, &[])
+                        .completion_success(cx.local.src_data_buf, &request_id, u14::ZERO, 0, &[])
                         .expect("completion success failed")
                 };
                 write_and_send(&tm);

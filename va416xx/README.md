@@ -1,4 +1,4 @@
-[![build](https://github.com/us-irs/va416xx-rs/actions/workflows/ci.yml/badge.svg)](https://github.com/us-irs/va416xx-rs/actions/workflows/ci.yml)
+[![build](https://github.com/us-irs/vorago-rs/actions/workflows/va416xx.yml/badge.svg)](https://github.com/us-irs/vorago-rs/actions/workflows/va416xx.yml)
 
 Vorago VA416xx Rust Support
 =========
@@ -10,23 +10,23 @@ of devices.
 
 This workspace contains the following crates:
 
-- The [`va416xx`](https://egit.irs.uni-stuttgart.de/rust/va416xx-rs/src/branch/main/va416xx)
+- The [`va416xx`](https://egit.irs.uni-stuttgart.de/rust/vorago-rs/src/branch/main/va416xx/va416xx)
   PAC crate containing basic low-level register definition
-- The [`va416xx-hal`](https://egit.irs.uni-stuttgart.de/rust/va416xx-rs/src/branch/main/va416xx-hal)
+- The [`va416xx-hal`](https://egit.irs.uni-stuttgart.de/rust/vorago-rs/src/branch/main/va416xx/va416xx-hal)
   HAL crate containing higher-level abstractions on top of the PAC register crate.
-- The [`va416xx-embassy`](https://egit.irs.uni-stuttgart.de/rust/va416xx-rs/src/branch/main/va416xx-embassy)
-  crate containing support for running the embassy-rs RTOS.
-- The [`vorago-peb1`](https://egit.irs.uni-stuttgart.de/rust/va416xx-rs/src/branch/main/vorago-peb1)
+- The [`va416xx-embassy`](https://egit.irs.uni-stuttgart.de/rust/vorago-rs/src/branch/main/va416xx/va416xx-embassy)
+  crate containing support for running the embassy-rs asynchronous runtime.
+- The [`vorago-peb1`](https://egit.irs.uni-stuttgart.de/rust/vorago-rs/src/branch/main/va416xx/vorago-peb1)
   BSP crate containing support for the PEB1 development board.
 
 It also contains the following helper crates:
 
-- The [`bootloader`](https://egit.irs.uni-stuttgart.de/rust/va416xx-rs/src/branch/main/bootloader)
+- The [`bootloader`](https://egit.irs.uni-stuttgart.de/rust/vorago-rs/src/branch/main/va416xx/bootloader)
   crate contains a sample bootloader strongly based on the one provided by Vorago.
-- The [`flashloader`](https://egit.irs.uni-stuttgart.de/rust/va416xx-rs/src/branch/main/flashloader)
+- The [`flashloader`](https://egit.irs.uni-stuttgart.de/rust/vorago-rs/src/branch/main/va416xx/flashloader)
   crate contains a sample flashloader which is able to update the redundant images in the NVM which
   is compatible to the provided bootloader as well.
-- The [`examples`](https://egit.irs.uni-stuttgart.de/rust/va416xx-rs/src/branch/main/examples)
+- The [`examples`](https://egit.irs.uni-stuttgart.de/rust/vorago-rs/src/branch/main/va416xx/examples)
   folder contains various example applications crates using the HAL and the PAC.
   This folder also contains dedicated example applications using the
   [`RTIC`](https://rtic.rs/2/book/en/) and [`embassy`](https://github.com/embassy-rs/embassy)

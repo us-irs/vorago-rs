@@ -8,7 +8,7 @@ pub use lis2dh12;
 ///
 /// # Example
 ///
-/// - [PEB1 Accelerometer](https://egit.irs.uni-stuttgart.de/rust/va416xx-rs/src/branch/main/examples/simple/examples/peb1-accelerometer.rs)
+/// - [PEB1 Accelerometer](https://egit.irs.uni-stuttgart.de/rust/vorago-rs/src/branch/main/va416xx/examples/simple/examples/peb1-accelerometer.rs)
 pub mod accelerometer {
 
     use lis2dh12::{self, detect_i2c_addr, AddrDetectionError, Lis2dh12};

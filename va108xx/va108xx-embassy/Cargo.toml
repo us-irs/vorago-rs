@@ -4,15 +4,15 @@ version = "0.3.0"
 edition = "2021"
 authors = ["Robin Mueller <muellerr@irs.uni-stuttgart.de>"]
 description = "Embassy-rs support for the Vorago VA108xx family of microcontrollers"
-homepage = "https://egit.irs.uni-stuttgart.de/rust/va108xx-rs"
-repository = "https://egit.irs.uni-stuttgart.de/rust/va108xx-rs"
+homepage = "https://egit.irs.uni-stuttgart.de/rust/vorago-rs"
+repository = "https://egit.irs.uni-stuttgart.de/rust/vorago-rs"
 license = "Apache-2.0"
 keywords = ["no-std", "hal", "cortex-m", "vorago", "va108xx"]
 categories = ["aerospace", "embedded", "no-std", "hardware-support"]
 
 [dependencies]
-vorago-shared-hal = { version = "0.2", features = ["vor1x"] }
-va108xx-hal = { version = "0.12" }
+vorago-shared-hal = { version = "0.2", path = "../../vorago-shared-hal", features = ["vor1x"] }
+va108xx-hal = { version = "0.12", path = "../va108xx-hal" }
 
 [features]
 default = ["irq-oc30-oc31"]

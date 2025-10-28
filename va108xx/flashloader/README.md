@@ -7,7 +7,7 @@ called the `image-loader.py` which can be used to upload compiled images to the 
 application to write them to the NVM.
 
 Please note that the both the application and the image loader are tailored towards usage
-with the [bootloader provided by this repository](https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/src/branch/main/bootloader).
+with the [bootloader provided by this repository](https://egit.irs.uni-stuttgart.de/rust/vorago-rs/src/branch/main/va108xx/bootloader).
 
 The software can quickly be adapted to interface with a real primary on-board software instead of
 the Python script provided here to upload images because it uses a low-level CCSDS based packet

@@ -6,7 +6,7 @@
 //!
 //! ## Examples
 //!
-//! - [Blocking SPI example](https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/src/branch/main/examples/simple/examples/spi.rs)
-//! - [REB1 ADC example](https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/src/branch/main/vorago-reb1/examples/max11519-adc.rs)
-//! - [REB1 EEPROM library](https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/src/branch/main/vorago-reb1/src/m95m01.rs)
+//! - [Blocking SPI example](https://egit.irs.uni-stuttgart.de/rust/vorago-rs/src/branch/main/va108xx/examples/simple/examples/spi.rs)
+//! - [REB1 ADC example](https://egit.irs.uni-stuttgart.de/rust/vorago-rs/src/branch/main/va108xx/vorago-reb1/examples/max11519-adc.rs)
+//! - [REB1 EEPROM library](https://egit.irs.uni-stuttgart.de/rust/vorago-rs/src/branch/main/va108xx/vorago-reb1/src/m95m01.rs)
 pub use vorago_shared_hal::spi::*;

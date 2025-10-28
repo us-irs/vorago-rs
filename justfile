@@ -1,13 +1,14 @@
 all: check-all \
     build-all \
-    fmt-all \
+    check-fmt-all \
     clippy-all \
     docs-all
 
 check-all: check-va108xx check-va416xx
 build-all: build-va108xx build-va416xx
-fmt-all: fmt-va108xx fmt-va416xx
-clippy-all: clippy-va108xx clippy-va416xx
+check-fmt-all: check-fmt-va108xx check-fmt-va416xx
+fmt-all: fmt-va108xx fmt-va416xx fmt-shared-hal
+clippy-all: clippy-va108xx clippy-va416xx clippy-shared-hal
 docs-all: docs-va108xx docs-va416xx
 clean-all: clean-va108xx clean-va416xx
 
@@ -34,12 +35,24 @@ build-va416xx:
   cargo build --target thumbv7em-none-eabihf
 
 [working-directory: 'va108xx']
-fmt-va108xx:
+check-fmt-va108xx:
   cargo fmt --all -- --check
 
 [working-directory: 'va416xx']
-fmt-va416xx:
+check-fmt-va416xx:
   cargo fmt --all -- --check
+
+[working-directory: 'va108xx']
+fmt-va108xx:
+  cargo fmt
+
+[working-directory: 'va416xx']
+fmt-va416xx:
+  cargo fmt
+
+[working-directory: 'vorago-shared-hal']
+fmt-shared-hal:
+  cargo fmt
 
 [working-directory: 'va108xx']
 clippy-va108xx:
@@ -48,6 +61,11 @@ clippy-va108xx:
 [working-directory: 'va416xx']
 clippy-va416xx:
   cargo clippy --target thumbv7em-none-eabihf -- -D warnings
+
+[working-directory: 'vorago-shared-hal']
+clippy-shared-hal:
+  cargo clippy --target thumbv7em-none-eabihf --features "vor4x" -- -D warnings
+  cargo clippy --target thumbv6m-none-eabi --features "vor1x" -- -D warnings
 
 [working-directory: 'va108xx']
 docs-va108xx:

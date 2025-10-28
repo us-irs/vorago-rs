@@ -4,18 +4,18 @@ version = "0.12.0"
 authors = ["Robin Mueller <muellerr@irs.uni-stuttgart.de>"]
 edition = "2021"
 description = "HAL for the Vorago VA108xx family of microcontrollers"
-homepage = "https://egit.irs.uni-stuttgart.de/rust/va108xx-rs"
-repository = "https://egit.irs.uni-stuttgart.de/rust/va108xx-rs"
+homepage = "https://egit.irs.uni-stuttgart.de/rust/vorago-rs"
+repository = "https://egit.irs.uni-stuttgart.de/rust/vorago-rs"
 license = "Apache-2.0"
 keywords = ["no-std", "hal", "cortex-m", "vorago", "va108xx"]
 categories = ["aerospace", "embedded", "no-std", "hardware-support"]
 
 [dependencies]
 cortex-m = { version = "0.7", features = ["critical-section-single-core"]}
-vorago-shared-hal = { version = "0.2", features = ["vor1x"] }
+vorago-shared-hal = { version = "0.2", path = "../../vorago-shared-hal", features = ["vor1x"] }
 fugit = "0.3"
 thiserror = { version = "2", default-features = false }
-va108xx = { version = "0.6", default-features = false, features = ["critical-section", "defmt"] }
+va108xx = { version = "0.6", path = "../va108xx", default-features = false, features = ["critical-section", "defmt"] }
 defmt = { version = "1", optional = true }
 
 [target.'cfg(all(target_arch = "arm", target_os = "none"))'.dependencies]

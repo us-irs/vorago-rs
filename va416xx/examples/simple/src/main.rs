@@ -4,6 +4,8 @@
 
 use cortex_m_rt::entry;
 use panic_halt as _;
+// Need this for linking to work.
+use va416xx as _;
 
 #[entry]
 fn main() -> ! {

@@ -2,7 +2,7 @@
 //!
 //! ## Examples
 //!
-//! - [ADC example](https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/src/branch/main/vorago-reb1/examples/max11619-adc.rs)
+//! - [ADC example](https://egit.irs.uni-stuttgart.de/rust/vorago-rs/src/branch/main/va108xx/vorago-reb1/examples/max11619-adc.rs)
 use core::convert::Infallible;
 use embedded_hal::spi::SpiDevice;
 use max116xx_10bit::{

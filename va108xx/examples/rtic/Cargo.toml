@@ -5,7 +5,7 @@ edition = "2021"
 
 [dependencies]
 cortex-m = { version = "0.7", features = ["critical-section-single-core"] }
-embedded-io = "0.6"
+embedded-io = "0.7"
 defmt-rtt = "1"
 defmt = "1"
 panic-probe = { version = "1", features = ["defmt"] }

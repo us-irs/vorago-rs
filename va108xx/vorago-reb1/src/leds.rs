@@ -2,9 +2,9 @@
 //!
 //! ## Examples
 //!
-//! - [LED example](https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/src/branch/main/vorago-reb1/examples/blinky-leds.rs)
-//! - [Button Blinky using IRQs](https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/src/branch/main/vorago-reb1/examples/blinky-button-irq.rs)
-//! - [Button Blinky using IRQs and RTIC](https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/src/branch/main/vorago-reb1/examples/blinky-button-rtic.rs)
+//! - [LED example](https://egit.irs.uni-stuttgart.de/rust/vorago-rs/src/branch/main/va108xx/vorago-reb1/examples/blinky-leds.rs)
+//! - [Button Blinky using IRQs](https://egit.irs.uni-stuttgart.de/rust/vorago-rs/src/branch/main/va108xx/vorago-reb1/examples/blinky-button-irq.rs)
+//! - [Button Blinky using IRQs and RTIC](https://egit.irs.uni-stuttgart.de/rust/vorago-rs/src/branch/main/va108xx/vorago-reb1/examples/blinky-button-rtic.rs)
 use va108xx_hal::{
     gpio::{Output, PinState},
     pins::{Pa10, Pa6, Pa7, Pin},

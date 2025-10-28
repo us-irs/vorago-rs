@@ -6,15 +6,16 @@ edition = "2021"
 [dependencies]
 cortex-m = { version = "0.7", features = ["critical-section-single-core"]}
 cortex-m-rt = "0.7"
-embedded-io = "0.6"
+embedded-io = "0.7"
 defmt = "1"
 defmt-rtt = { version = "1" }
 panic-probe = { version = "1", features = ["print-defmt"] }
 num_enum = { version = "0.7", default-features = false }
-cobs = { version = "0.4", default-features = false }
-satrs = { version = "0.3.0-alpha.1", default-features = false }
+cobs = { version = "0.5", default-features = false }
+satrs = { version = "0.3.0-alpha.1", git = "https://egit.irs.uni-stuttgart.de/rust/sat-rs.git", default-features = false, features = ["defmt"] }
+arbitrary-int = "2"
 ringbuf = { version = "0.4.7", default-features = false, features = ["portable-atomic"] }
-spacepackets = { version = "0.15", default-features = false, features = ["defmt"] }
+# spacepackets = { version = "0.17", path = "https://egit.irs.uni-stuttgart.de/rust/spacepackets.git", default-features = false, features = ["defmt"] }
 # Even though we do not use this directly, we need to activate this feature explicitely
 # so that RTIC compiles because thumv6 does not have CAS operations natively.
 portable-atomic = {version = "1", features = ["unsafe-assume-single-core"]}

@@ -15,6 +15,6 @@
 //!
 //! ## Examples
 //!
-//! - [Blinky example](https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/src/branch/main/examples/simple/examples/blinky.rs)
-//! - [Async GPIO example](https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/src/branch/main/examples/embassy/src/bin/async-gpio.rs)
+//! - [Blinky example](https://egit.irs.uni-stuttgart.de/rust/vorago-rs/src/branch/main/va108xx/examples/simple/examples/blinky.rs)
+//! - [Async GPIO example](https://egit.irs.uni-stuttgart.de/rust/vorago-rs/src/branch/main/va108xx/examples/embassy/src/bin/async-gpio.rs)
 pub use vorago_shared_hal::gpio::*;

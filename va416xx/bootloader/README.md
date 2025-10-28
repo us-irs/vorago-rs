@@ -26,7 +26,7 @@ but does not scale that clock up. It also uses a word (4 bytes) instead of a hal
 and uses the ISO 3309 CRC32 standard checksum.
 
 This bootloader does not provide tools to flash the NVM memories by itself. Instead, you can use
-the [flashloader](https://egit.irs.uni-stuttgart.de/rust/va416xx-rs/src/branch/main/flashloader)
+the [flashloader](https://egit.irs.uni-stuttgart.de/rust/vorago-rs/src/branch/main/va416xx/flashloader)
 application to perform this task using a CCSDS interface via a UART.
 
 The bootloader performs the following steps:

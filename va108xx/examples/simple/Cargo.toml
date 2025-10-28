@@ -12,7 +12,7 @@ defmt = "1"
 panic-probe = { version = "1", features = ["defmt"] }
 embedded-hal = "1"
 embedded-hal-nb = "1"
-embedded-io = "0.6"
+embedded-io = "0.7"
 portable-atomic = { version = "1", features = ["unsafe-assume-single-core"] }
 
 [dependencies.va108xx-hal]

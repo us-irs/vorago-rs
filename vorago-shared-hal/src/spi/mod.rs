@@ -414,14 +414,14 @@ pub fn spi_clk_config_from_div(mut div: u16) -> Result<SpiClockConfig, SpiClockC
     if div == 0 {
         return Err(SpiClockConfigError::DivIsZero);
     }
-    if div % 2 != 0 {
+    if !div.is_multiple_of(2) {
         return Err(SpiClockConfigError::DivideValueNotEven);
     }
     let mut prescale_val = 0;
 
     // find largest (even) prescale value that divides into div
     for i in (2..=0xfe).rev().step_by(2) {
-        if div % i == 0 {
+        if div.is_multiple_of(i) {
             prescale_val = i;
             break;
         }
@@ -458,7 +458,7 @@ pub fn clk_div_for_target_clock(sys_clk: Hertz, spi_clk: Hertz) -> Option<u16> {
         raw_div
     };
 
-    if rounded_div % 2 != 0 {
+    if !rounded_div.is_multiple_of(2) {
         // Take slower clock conservatively.
         rounded_div += 1;
     }

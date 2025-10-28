@@ -41,12 +41,12 @@ your custom board.
 
 The hello world of embedded development is usually to blinky a LED. This example
 is contained within the
-[examples folder](https://egit.irs.uni-stuttgart.de/rust/va416xx-rs/src/branch/main/examples/simple/examples/blinky.rs).
+[examples folder](https://egit.irs.uni-stuttgart.de/rust/vorago-rs/src/branch/main/va416xx/examples/simple/examples/blinky.rs).
 
 1. Set up your Rust cross-compiler if you have not done so yet. See more in the [build chapter](#Building)
 2. Create a new binary crate with `cargo init`
 3. To ensure that `cargo build` cross-compiles, it is recommended to create a `.cargo/config.toml`
-   file. You can use [this](https://egit.irs.uni-stuttgart.de/rust/va416xx-rs/src/branch/main/.cargo/def-config.toml)
+   file. You can use [this](https://egit.irs.uni-stuttgart.de/rust/vorago-rs/src/branch/main/va416xx/.cargo/config.toml.template)
    sample file as a starting point.
 4. Copy the `memory.x` file into your project. This file contains information required by the linker.
 5. Copy the `blinky.rs` file to the `src/main.rs` file in your binary crate

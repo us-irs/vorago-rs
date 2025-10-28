@@ -29,9 +29,9 @@
 //!
 //! ## Examples
 //!
-//! [embassy example projects](https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/src/branch/main/examples/embassy)
+//! [embassy example projects](https://egit.irs.uni-stuttgart.de/rust/vorago-rs/src/branch/main/va108xx/examples/embassy)
 #![no_std]
-#![cfg_attr(docsrs, feature(doc_auto_cfg))]
+#![cfg_attr(docsrs, feature(doc_cfg))]
 
 #[cfg(feature = "irqs-in-lib")]
 use va108xx_hal::pac::{self, interrupt};

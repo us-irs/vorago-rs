@@ -1,6 +1,7 @@
 //! This is the **H**ardware **A**bstraction **L**ayer (HAL) for the VA416xx MCU family.
 //!
-//! It is an additional hardware abstraction on top of the [peripheral access API](https://egit.irs.uni-stuttgart.de/rust/va416xx-rs/src/branch/main/va416xx).
+//! It is an additional hardware abstraction on top of the
+//! [peripheral access API](https://egit.irs.uni-stuttgart.de/rust/vorago-rs/src/branch/main/va416xx/va416xx).
 //!
 //! It is the result of reading the datasheet for the device and encoding a type-safe layer over the
 //! raw PAC. This crate also implements traits specified by the

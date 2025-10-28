@@ -4,7 +4,7 @@
 # HAL for the Vorago VA108xx MCU family
 
 This repository contains the **H**ardware **A**bstraction **L**ayer (HAL), which is an additional
-hardware abstraction on top of the [peripheral access API](https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/src/branch/main/va108xx).
+hardware abstraction on top of the [peripheral access API](https://egit.irs.uni-stuttgart.de/rust/vorago-rs/src/branch/main/va108xx/va108xx).
 
 It is the result of reading the datasheet for the device and encoding a type-safe layer over the
 raw PAC. This crate also implements traits specified by the
@@ -33,7 +33,7 @@ your custom board.
 
 The hello world of embedded development is usually to blinky a LED. This example
 is contained within the
-[examples folder](https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/src/branch/main/examples/simple/examples/blinky.rs).
+[examples folder](https://egit.irs.uni-stuttgart.de/rust/vorago-rs/src/branch/main/va108xx/examples/simple/examples/blinky.rs).
 
 1. Set up your Rust cross-compiler if you have not done so yet. See more in the [build chapter](#Building)
 2. Create a new binary crate with `cargo init`

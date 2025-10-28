@@ -9,7 +9,7 @@
 //!
 //! # Examples
 //!
-//! - [UART example on the PEB1 board](https://egit.irs.uni-stuttgart.de/rust/va416xx-rs/src/branch/main/examples/simple/examples/uart.rs)
+//! - [UART example on the PEB1 board](https://egit.irs.uni-stuttgart.de/rust/vorago-rs/src/branch/main/va416xx/examples/simple/examples/uart.rs)
 #[cfg(not(feature = "va41628"))]
 use crate::adc::ADC_MAX_CLK;
 use crate::pac;

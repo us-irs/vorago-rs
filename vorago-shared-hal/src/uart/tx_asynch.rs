@@ -163,9 +163,10 @@ impl Future for TxFuture {
 impl Drop for TxFuture {
     fn drop(&mut self) {
         let mut reg_block = unsafe { self.id.steal_regs() };
-
-        disable_tx_interrupts(&mut reg_block);
-        disable_tx(&mut reg_block);
+        if !TX_DONE[self.id as usize].load(core::sync::atomic::Ordering::Relaxed) {
+            disable_tx_interrupts(&mut reg_block);
+            disable_tx(&mut reg_block);
+        }
     }
 }
 
@@ -204,5 +205,9 @@ impl Write for TxAsync {
     async fn write(&mut self, buf: &[u8]) -> Result<usize, Self::Error> {
         let fut = unsafe { TxFuture::new(&mut self.0, buf) };
         fut.await
+    }
+
+    async fn flush(&mut self) -> Result<(), Self::Error> {
+        Ok(())
     }
 }

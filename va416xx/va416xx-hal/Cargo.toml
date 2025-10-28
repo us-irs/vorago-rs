@@ -4,18 +4,18 @@ version = "0.6.0"
 authors = ["Robin Mueller <muellerr@irs.uni-stuttgart.de>"]
 edition = "2021"
 description = "HAL for the Vorago VA416xx family of MCUs"
-homepage = "https://egit.irs.uni-stuttgart.de/rust/va416xx-rs"
-repository = "https://egit.irs.uni-stuttgart.de/rust/va416xx-rs"
+homepage = "https://egit.irs.uni-stuttgart.de/rust/vorago-rs"
+repository = "https://egit.irs.uni-stuttgart.de/rust/vorago-rs"
 license = "Apache-2.0"
 keywords = ["no-std", "hal", "cortex-m", "vorago", "va416xx"]
 categories = ["embedded", "no-std", "hardware-support"]
 
 [dependencies]
 cortex-m = { version = "0.7", features = ["critical-section-single-core"] }
-va416xx = { version = "0.5", features = ["critical-section"], default-features = false }
+va416xx = { version = "0.5", path = "../va416xx", features = ["critical-section"], default-features = false }
 derive-mmio = "0.6.1"
 static_assertions = "1.1"
-vorago-shared-hal = { version = "0.2", features = ["vor4x"] }
+vorago-shared-hal = { version = "0.2", path = "../../vorago-shared-hal", features = ["vor4x"] }
 
 libm = "0.2"
 nb = "1"

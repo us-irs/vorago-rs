@@ -4,8 +4,8 @@ version = "0.9.0"
 authors = ["Robin Mueller <muellerr@irs.uni-stuttgart.de>"]
 edition = "2021"
 description = "Board Support Crate for the Vorago REB1 development board"
-homepage = "https://egit.irs.uni-stuttgart.de/rust/va108xx-rs"
-repository = "https://egit.irs.uni-stuttgart.de/rust/va108xx-rs"
+homepage = "https://egit.irs.uni-stuttgart.de/rust/vorago-rs"
+repository = "https://egit.irs.uni-stuttgart.de/rust/vorago-rs"
 license = "Apache-2.0"
 keywords = ["no-std", "reb1", "cortex-m", "vorago", "va108xx"]
 categories = ["aerospace", "embedded", "no-std", "hardware-support"]
@@ -19,7 +19,7 @@ bitbybit = "1.3"
 arbitrary-int = "2"
 max116xx-10bit = "0.3"
 
-va108xx-hal = { version = "0.12", features = ["rt"] }
+va108xx-hal = { version = "0.12", path = "../va108xx-hal", features = ["rt"] }
 
 [features]
 rt = ["va108xx-hal/rt"]
