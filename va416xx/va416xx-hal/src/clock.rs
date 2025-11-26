@@ -205,7 +205,7 @@ impl ClockConfigurator {
     /// This function can be used to utilize the XTAL_N clock input directly without the
     /// oscillator.
     ///
-    /// It sets the internal configuration to [ClkselSys::XtalN] and [RefClkSel::XtalN].
+    /// It sets the internal configuration to [ClockSelect::XtalN] and [ReferenceClockSelect::XtalN].
     #[inline]
     pub fn xtal_n_clk(mut self) -> Self {
         self.clksel_sys = ClockSelect::XtalN;
