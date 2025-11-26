@@ -358,7 +358,7 @@ mod app {
                     .push_slice(&cx.local.verif_buf[0..written_size]);
             });
         };
-        let request_id = VerificationReportCreator::read_request_id_from_tc(&pus_tc);
+        let request_id = cx.local.verif_reporter.read_request_id(&pus_tc);
         let tm = cx
             .local
             .verif_reporter
@@ -373,7 +373,7 @@ mod app {
             .expect("acceptance success failed");
         write_and_send(&tm);
 
-        if pus_tc.service() == PusServiceId::Action as u8 {
+        if pus_tc.service_type_id() == PusServiceId::Action as u8 {
             let mut corrupt_image = |base_addr: u32| {
                 // Safety: We only use this for NVM handling and we only do NVM
                 // handling here.
@@ -393,16 +393,17 @@ mod app {
                     .expect("completion success failed");
                 write_and_send(&tm);
             };
-            if pus_tc.subservice() == ActionId::CorruptImageA as u8 {
+            if pus_tc.message_subtype_id() == ActionId::CorruptImageA as u8 {
                 defmt::info!("corrupting App Image A");
                 corrupt_image(APP_A_START_ADDR);
             }
-            if pus_tc.subservice() == ActionId::CorruptImageB as u8 {
+            if pus_tc.message_subtype_id() == ActionId::CorruptImageB as u8 {
                 defmt::info!("corrupting App Image B");
                 corrupt_image(APP_B_START_ADDR);
             }
         }
-        if pus_tc.service() == PusServiceId::Test as u8 && pus_tc.subservice() == 1 {
+        if pus_tc.service_type_id() == PusServiceId::Test as u8 && pus_tc.message_subtype_id() == 1
+        {
             defmt::info!("received ping TC");
             let tm = cx
                 .local
@@ -410,7 +411,7 @@ mod app {
                 .completion_success(cx.local.src_data_buf, &request_id, u14::ZERO, 0, &[])
                 .expect("completion success failed");
             write_and_send(&tm);
-        } else if pus_tc.service() == PusServiceId::MemoryManagement as u8 {
+        } else if pus_tc.service_type_id() == PusServiceId::MemoryManagement as u8 {
             let tm = cx
                 .local
                 .verif_reporter
@@ -425,7 +426,7 @@ mod app {
                 .expect("step success failed");
             write_and_send(&tm);
             // Raw memory write TC
-            if pus_tc.subservice() == 2 {
+            if pus_tc.message_subtype_id() == 2 {
                 let app_data = pus_tc.app_data();
                 if app_data.len() < 10 {
                     defmt::warn!(

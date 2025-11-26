@@ -12,7 +12,7 @@ defmt-rtt = { version = "1" }
 panic-probe = { version = "1", features = ["print-defmt"] }
 num_enum = { version = "0.7", default-features = false }
 cobs = { version = "0.5", default-features = false }
-satrs = { version = "0.3.0-alpha.1", git = "https://egit.irs.uni-stuttgart.de/rust/sat-rs.git", default-features = false, features = ["defmt"] }
+satrs = { version = "0.3.0-alpha.3", default-features = false, features = ["defmt"] }
 arbitrary-int = "2"
 ringbuf = { version = "0.4.7", default-features = false, features = ["portable-atomic"] }
 # spacepackets = { version = "0.17", path = "https://egit.irs.uni-stuttgart.de/rust/spacepackets.git", default-features = false, features = ["defmt"] }
