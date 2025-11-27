@@ -26,7 +26,7 @@
 //! [crate::irq_router] module at the very least because that peripheral has confusing and/or
 //! faulty register reset values which might lead to weird bugs and glitches.
 #![no_std]
-#![cfg_attr(docsrs, feature(doc_auto_cfg))]
+#![cfg_attr(docsrs, feature(doc_cfg))]
 #[cfg(feature = "alloc")]
 extern crate alloc;
 #[cfg(test)]

@@ -1,6 +1,6 @@
 //! Board support crate for the VORAGO PEB1 board.
 #![no_std]
-#![cfg_attr(docsrs, feature(doc_auto_cfg))]
+#![cfg_attr(docsrs, feature(doc_cfg))]
 
 pub use lis2dh12;
 

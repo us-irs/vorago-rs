@@ -9,7 +9,7 @@ build-all: build-va108xx build-va416xx
 check-fmt-all: check-fmt-va108xx check-fmt-va416xx
 fmt-all: fmt-va108xx fmt-va416xx fmt-shared-hal
 clippy-all: clippy-va108xx clippy-va416xx clippy-shared-hal
-docs-all: docs-va108xx docs-va416xx
+docs-all: docs-va108xx docs-va416xx docs-shared-hal
 clean-all: clean-va108xx clean-va416xx
 
 [working-directory: 'va108xx']
@@ -70,14 +70,19 @@ clippy-shared-hal:
 [working-directory: 'va108xx']
 docs-va108xx:
   RUSTDOCFLAGS="--cfg docsrs --generate-link-to-definition -Z unstable-options" cargo +nightly doc -p va108xx --all-features
-  RUSTDOCFLAGS="--cfg docsrs --generate-link-to-definition -Z unstable-options" cargo +nightly doc -p va108xx-hal --all-features
-  RUSTDOCFLAGS="--cfg docsrs --generate-link-to-definition -Z unstable-options" cargo +nightly doc -p vorago-reb1
+  RUSTDOCFLAGS="--cfg docsrs --generate-link-to-definition -Z unstable-options" cargo +nightly doc -p va108xx-hal --all-features --no-deps
+  RUSTDOCFLAGS="--cfg docsrs --generate-link-to-definition -Z unstable-options" cargo +nightly doc -p vorago-reb1 --no-deps
 
 [working-directory: 'va416xx']
 docs-va416xx:
-  RUSTDOCFLAGS="--cfg docsrs --generate-link-to-definition -Z unstable-options" cargo +nightly doc -p vorago-peb1
-  RUSTDOCFLAGS="--cfg docsrs --generate-link-to-definition -Z unstable-options" cargo +nightly doc -p va416xx-hal --features va41630
   RUSTDOCFLAGS="--cfg docsrs --generate-link-to-definition -Z unstable-options" cargo +nightly doc -p va416xx
+  RUSTDOCFLAGS="--cfg docsrs --generate-link-to-definition -Z unstable-options" cargo +nightly doc -p va416xx-hal --features va41630 --no-deps
+  RUSTDOCFLAGS="--cfg docsrs --generate-link-to-definition -Z unstable-options" cargo +nightly doc -p vorago-peb1 --no-deps
+
+[working-directory: 'vorago-shared-hal']
+docs-shared-hal:
+  RUSTDOCFLAGS="--cfg docsrs --generate-link-to-definition -Z unstable-options" cargo +nightly doc --target thumbv7em-none-eabihf --features "vor4x, defmt" --no-deps
+  RUSTDOCFLAGS="--cfg docsrs --generate-link-to-definition -Z unstable-options" cargo +nightly doc --target thumbv6m-none-eabi --features "vor1x, defmt" --no-deps
 
 [working-directory: 'va108xx']
 clean-va108xx:

@@ -1,5 +1,14 @@
+//! This is the **H**ardware **A**bstraction **L**ayer (HAL) for the VA108xx MCU family.
+//!
+//! It is an additional hardware abstraction on top of the
+//! [peripheral access API](https://egit.irs.uni-stuttgart.de/rust/vorago-rs/src/branch/main/va108xx/va108xx).
+//!
+//! It is the result of reading the datasheet for the device and encoding a type-safe layer over the
+//! raw PAC. This crate also implements traits specified by the
+//! [embedded-hal](https://github.com/rust-embedded/embedded-hal) project, making it compatible with
+//! various drivers in the embedded rust ecosystem.
 #![no_std]
-#![cfg_attr(docsrs, feature(doc_auto_cfg))]
+#![cfg_attr(docsrs, feature(doc_cfg))]
 
 use gpio::Port;
 pub use va108xx;
