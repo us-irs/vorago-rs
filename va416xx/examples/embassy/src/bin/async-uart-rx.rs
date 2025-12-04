@@ -17,7 +17,6 @@ use panic_probe as _;
 // Import logger.
 use core::cell::RefCell;
 use defmt_rtt as _;
-use defmt_rtt as _;
 
 use critical_section::Mutex;
 use embassy_example::EXTCLK_FREQ;
@@ -63,7 +62,7 @@ async fn main(_spawner: Spawner) {
     let mut led = Output::new(portg.pg5, PinState::Low);
 
     let uarta =
-        uart::Uart::new(dp.uart0, portg.pg0, portg.pg1, &clocks, 115200.Hz().into()).unwrap();
+        uart::Uart::new_for_uart0(dp.uart0, portg.pg0, portg.pg1, &clocks, 115200.Hz().into());
 
     let (mut tx_uart_a, rx_uart_a) = uarta.split();
     let (prod_uart_a, cons_uart_a) = QUEUE_UART_A.take().split();

@@ -132,7 +132,7 @@ fn main() -> ! {
     Output::new(pinsa.pa16, PinState::Low);
 
     let hw_cs_id = configure_pin_as_hw_cs_pin(pinsa.pa17);
-    let spi = Spi::new(dp.spib, (sck, miso, mosi), spi_cfg).unwrap();
+    let spi = Spi::new_for_spi1(dp.spib, (sck, miso, mosi), spi_cfg);
 
     let delay_spi = CountdownTimer::new(dp.tim1, SYS_CLK);
     let spi_with_hwcs = SpiWithHwCs::new(spi, hw_cs_id, delay_spi);

@@ -167,14 +167,13 @@ mod app {
 
         let gpiog = PinsG::new(cx.device.portg);
 
-        let uart0 = Uart::new(
+        let uart0 = Uart::new_for_uart0(
             cx.device.uart0,
             gpiog.pg0,
             gpiog.pg1,
             &clocks,
             Hertz::from_raw(UART_BAUDRATE).into(),
-        )
-        .unwrap();
+        );
         let (tx, rx) = uart0.split();
 
         let verif_reporter = VerificationReportCreator::new(u11::new(0));

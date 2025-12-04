@@ -53,15 +53,14 @@ async fn main(_spawner: Spawner) {
     let tx = porta.pa9;
     let rx = porta.pa8;
 
-    let uarta = uart::Uart::new_with_interrupt(
+    let uarta = uart::Uart::new_with_interrupt_uart0(
         dp.uarta,
         tx,
         rx,
         50.MHz(),
         115200.Hz().into(),
         InterruptConfig::new(pac::Interrupt::OC2, true, true),
-    )
-    .unwrap();
+    );
     let (tx, _rx) = uarta.split();
     let mut async_tx = TxAsync::new(tx);
     let mut ticker = Ticker::every(Duration::from_secs(1));

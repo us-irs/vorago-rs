@@ -23,7 +23,7 @@ fn main() -> ! {
     defmt::println!("-- VA108xx PWM example application--");
     let dp = pac::Peripherals::take().unwrap();
     let pinsa = PinsA::new(dp.porta);
-    let mut pwm = pwm::PwmPin::new(pinsa.pa3, dp.tim3, 50.MHz(), 10.Hz()).unwrap();
+    let mut pwm = pwm::PwmPin::new_with_tim3(pinsa.pa3, dp.tim3, 50.MHz(), 10.Hz());
     let mut delay = CountdownTimer::new(dp.tim0, 50.MHz());
     let mut current_duty_cycle = 0.0;
     pwm.set_duty_cycle(get_duty_from_percent(current_duty_cycle))

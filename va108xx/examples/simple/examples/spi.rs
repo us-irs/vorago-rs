@@ -59,19 +59,19 @@ fn main() -> ! {
     let mut spi = match SPI_BUS_SEL {
         SpiBusSelect::SpiAPortA => {
             let (sck, mosi, miso) = (pinsa.pa31, pinsa.pa30, pinsa.pa29);
-            let mut spia = Spi::new(dp.spia, (sck, miso, mosi), spi_cfg).unwrap();
+            let mut spia = Spi::new_for_spi0(dp.spia, (sck, miso, mosi), spi_cfg);
             spia.set_fill_word(FILL_WORD);
             spia
         }
         SpiBusSelect::SpiAPortB => {
             let (sck, mosi, miso) = (pinsb.pb9, pinsb.pb8, pinsb.pb7);
-            let mut spia = Spi::new(dp.spia, (sck, miso, mosi), spi_cfg).unwrap();
+            let mut spia = Spi::new_for_spi0(dp.spia, (sck, miso, mosi), spi_cfg);
             spia.set_fill_word(FILL_WORD);
             spia
         }
         SpiBusSelect::SpiBPortB => {
             let (sck, mosi, miso) = (pinsb.pb5, pinsb.pb4, pinsb.pb3);
-            let mut spib = Spi::new(dp.spib, (sck, miso, mosi), spi_cfg).unwrap();
+            let mut spib = Spi::new_for_spi1(dp.spib, (sck, miso, mosi), spi_cfg);
             spib.set_fill_word(FILL_WORD);
             spib
         }

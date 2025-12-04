@@ -29,7 +29,7 @@ fn main() -> ! {
     let tx = gpioa.pa9;
     let rx = gpioa.pa8;
     let uart =
-        uart::Uart::new_without_interrupt(dp.uarta, tx, rx, 50.MHz(), 115200.Hz().into()).unwrap();
+        uart::Uart::new_without_interrupt_uart0(dp.uarta, tx, rx, 50.MHz(), 115200.Hz().into());
 
     let (mut tx, mut rx) = uart.split();
     writeln!(tx, "Hello World\r").unwrap();

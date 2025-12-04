@@ -1,4 +1,4 @@
-use super::{HwCsProvider, PinMiso, PinMosi, PinSck};
+use super::{HwCsProvider, PinMiso0, PinMiso1, PinMosi0, PinMosi1, PinSck0, PinSck1};
 use crate::FunctionSelect;
 use crate::gpio::{DynPinId, PinId};
 
@@ -12,28 +12,28 @@ use super::{Bank, HwChipSelectId};
 
 // SPIA
 
-impl PinSck for Pin<Pa31> {
+impl PinSck0 for Pin<Pa31> {
     const SPI_ID: Bank = Bank::Spi0;
     const FUN_SEL: FunctionSelect = FunctionSelect::Sel1;
 }
-impl PinMosi for Pin<Pa30> {
+impl PinMosi0 for Pin<Pa30> {
     const SPI_ID: Bank = Bank::Spi0;
     const FUN_SEL: FunctionSelect = FunctionSelect::Sel1;
 }
-impl PinMiso for Pin<Pa29> {
+impl PinMiso0 for Pin<Pa29> {
     const SPI_ID: Bank = Bank::Spi0;
     const FUN_SEL: FunctionSelect = FunctionSelect::Sel1;
 }
 
-impl PinSck for Pin<Pb9> {
+impl PinSck0 for Pin<Pb9> {
     const SPI_ID: Bank = Bank::Spi0;
     const FUN_SEL: FunctionSelect = FunctionSelect::Sel2;
 }
-impl PinMosi for Pin<Pb8> {
+impl PinMosi0 for Pin<Pb8> {
     const SPI_ID: Bank = Bank::Spi0;
     const FUN_SEL: FunctionSelect = FunctionSelect::Sel2;
 }
-impl PinMiso for Pin<Pb7> {
+impl PinMiso0 for Pin<Pb7> {
     const SPI_ID: Bank = Bank::Spi0;
     const FUN_SEL: FunctionSelect = FunctionSelect::Sel2;
 }
@@ -100,15 +100,15 @@ hw_cs_multi_pin!(
 
 // SPIB
 
-impl PinSck for Pin<Pa20> {
+impl PinSck1 for Pin<Pa20> {
     const SPI_ID: Bank = Bank::Spi1;
     const FUN_SEL: FunctionSelect = FunctionSelect::Sel2;
 }
-impl PinMosi for Pin<Pa19> {
+impl PinMosi1 for Pin<Pa19> {
     const SPI_ID: Bank = Bank::Spi1;
     const FUN_SEL: FunctionSelect = FunctionSelect::Sel2;
 }
-impl PinMiso for Pin<Pa18> {
+impl PinMiso1 for Pin<Pa18> {
     const SPI_ID: Bank = Bank::Spi1;
     const FUN_SEL: FunctionSelect = FunctionSelect::Sel2;
 }
@@ -117,28 +117,28 @@ pub type SpiBPortASck = Pin<Pa20>;
 pub type SpiBPortAMosi = Pin<Pa19>;
 pub type SpiBPortAMiso = Pin<Pa18>;
 
-impl PinSck for Pin<Pb19> {
+impl PinSck1 for Pin<Pb19> {
     const SPI_ID: Bank = Bank::Spi1;
     const FUN_SEL: FunctionSelect = FunctionSelect::Sel1;
 }
-impl PinMosi for Pin<Pb18> {
+impl PinMosi1 for Pin<Pb18> {
     const SPI_ID: Bank = Bank::Spi1;
     const FUN_SEL: FunctionSelect = FunctionSelect::Sel1;
 }
-impl PinMiso for Pin<Pb17> {
+impl PinMiso1 for Pin<Pb17> {
     const SPI_ID: Bank = Bank::Spi1;
     const FUN_SEL: FunctionSelect = FunctionSelect::Sel1;
 }
 
-impl PinSck for Pin<Pb5> {
+impl PinSck1 for Pin<Pb5> {
     const SPI_ID: Bank = Bank::Spi1;
     const FUN_SEL: FunctionSelect = FunctionSelect::Sel1;
 }
-impl PinMosi for Pin<Pb4> {
+impl PinMosi1 for Pin<Pb4> {
     const SPI_ID: Bank = Bank::Spi1;
     const FUN_SEL: FunctionSelect = FunctionSelect::Sel1;
 }
-impl PinMiso for Pin<Pb3> {
+impl PinMiso1 for Pin<Pb3> {
     const SPI_ID: Bank = Bank::Spi1;
     const FUN_SEL: FunctionSelect = FunctionSelect::Sel1;
 }

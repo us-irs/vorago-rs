@@ -1,9 +1,13 @@
-use super::{TimId, TimPin};
 use crate::FunctionSelect;
 use crate::pins::{
-    DynPinId, Pa0, Pa1, Pa2, Pa3, Pa4, Pa5, Pa6, Pa7, Pa8, Pa9, Pa10, Pa11, Pa12, Pa13, Pa14, Pa15,
-    Pa24, Pa25, Pa26, Pa27, Pa28, Pa29, Pa30, Pa31, Pb0, Pb1, Pb2, Pb3, Pb4, Pb5, Pb6, Pb10, Pb11,
-    Pb12, Pb13, Pb14, Pb15, Pb16, Pb17, Pb18, Pb19, Pb20, Pb21, Pb22, Pb23, Pin, PinId,
+    Pa0, Pa1, Pa2, Pa3, Pa4, Pa5, Pa6, Pa7, Pa8, Pa9, Pa10, Pa11, Pa12, Pa13, Pa14, Pa15, Pa24,
+    Pa25, Pa26, Pa27, Pa28, Pa29, Pa30, Pa31, Pb0, Pb1, Pb2, Pb3, Pb4, Pb5, Pb6, Pb10, Pb11, Pb12,
+    Pb13, Pb14, Pb15, Pb16, Pb17, Pb18, Pb19, Pb20, Pb21, Pb22, Pb23, PinId,
+};
+use crate::timer::{
+    Tim0Pin, Tim1Pin, Tim2Pin, Tim3Pin, Tim4Pin, Tim5Pin, Tim6Pin, Tim7Pin, Tim8Pin, Tim9Pin,
+    Tim10Pin, Tim11Pin, Tim12Pin, Tim13Pin, Tim14Pin, Tim15Pin, Tim16Pin, Tim17Pin, Tim18Pin,
+    Tim19Pin, Tim20Pin, Tim21Pin, Tim22Pin, Tim23Pin,
 };
 
 pin_and_tim!(Pa0, FunctionSelect::Sel1, 0);

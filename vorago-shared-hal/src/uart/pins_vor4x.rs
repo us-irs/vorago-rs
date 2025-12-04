@@ -6,93 +6,93 @@ use crate::{
     pins::{Pa2, Pa3, Pb14, Pb15, Pc4, Pc5, Pc14, Pd11, Pd12, Pe2, Pe3, Pf9, Pf12, Pf13, Pg0, Pg1},
 };
 
-use super::{Bank, RxPin, TxPin};
+use super::{Bank, RxPin0, RxPin1, RxPin2, TxPin0, TxPin1, TxPin2};
 
 // UART 0 pins
 
-impl TxPin for Pin<Pa2> {
+impl TxPin0 for Pin<Pa2> {
     const BANK: Bank = Bank::Uart0;
-    const FUN_SEL: FunctionSelect = FunctionSelect::Sel3;
+    const FUNC_SEL: FunctionSelect = FunctionSelect::Sel3;
 }
-impl RxPin for Pin<Pa3> {
+impl RxPin0 for Pin<Pa3> {
     const BANK: Bank = Bank::Uart0;
-    const FUN_SEL: FunctionSelect = FunctionSelect::Sel3;
-}
-
-impl TxPin for Pin<Pc4> {
-    const BANK: Bank = Bank::Uart0;
-    const FUN_SEL: FunctionSelect = FunctionSelect::Sel2;
-}
-impl RxPin for Pin<Pc5> {
-    const BANK: Bank = Bank::Uart0;
-    const FUN_SEL: FunctionSelect = FunctionSelect::Sel2;
+    const FUNC_SEL: FunctionSelect = FunctionSelect::Sel3;
 }
 
-impl TxPin for Pin<Pe2> {
+impl TxPin0 for Pin<Pc4> {
     const BANK: Bank = Bank::Uart0;
-    const FUN_SEL: FunctionSelect = FunctionSelect::Sel3;
+    const FUNC_SEL: FunctionSelect = FunctionSelect::Sel2;
 }
-impl RxPin for Pin<Pe3> {
+impl RxPin0 for Pin<Pc5> {
     const BANK: Bank = Bank::Uart0;
-    const FUN_SEL: FunctionSelect = FunctionSelect::Sel3;
+    const FUNC_SEL: FunctionSelect = FunctionSelect::Sel2;
 }
 
-impl TxPin for Pin<Pg0> {
+impl TxPin0 for Pin<Pe2> {
     const BANK: Bank = Bank::Uart0;
-    const FUN_SEL: FunctionSelect = FunctionSelect::Sel1;
+    const FUNC_SEL: FunctionSelect = FunctionSelect::Sel3;
 }
-impl RxPin for Pin<Pg1> {
+impl RxPin0 for Pin<Pe3> {
     const BANK: Bank = Bank::Uart0;
-    const FUN_SEL: FunctionSelect = FunctionSelect::Sel1;
+    const FUNC_SEL: FunctionSelect = FunctionSelect::Sel3;
+}
+
+impl TxPin0 for Pin<Pg0> {
+    const BANK: Bank = Bank::Uart0;
+    const FUNC_SEL: FunctionSelect = FunctionSelect::Sel1;
+}
+impl RxPin0 for Pin<Pg1> {
+    const BANK: Bank = Bank::Uart0;
+    const FUNC_SEL: FunctionSelect = FunctionSelect::Sel1;
 }
 
 // UART 1 pins
 
-impl TxPin for Pin<Pb14> {
+impl TxPin1 for Pin<Pb14> {
     const BANK: Bank = Bank::Uart1;
-    const FUN_SEL: FunctionSelect = FunctionSelect::Sel3;
+    const FUNC_SEL: FunctionSelect = FunctionSelect::Sel3;
 }
-impl RxPin for Pin<Pb15> {
+impl RxPin1 for Pin<Pb15> {
     const BANK: Bank = Bank::Uart1;
-    const FUN_SEL: FunctionSelect = FunctionSelect::Sel3;
-}
-
-impl TxPin for Pin<Pd11> {
-    const BANK: Bank = Bank::Uart1;
-    const FUN_SEL: FunctionSelect = FunctionSelect::Sel3;
-}
-impl RxPin for Pin<Pd12> {
-    const BANK: Bank = Bank::Uart1;
-    const FUN_SEL: FunctionSelect = FunctionSelect::Sel3;
+    const FUNC_SEL: FunctionSelect = FunctionSelect::Sel3;
 }
 
-impl TxPin for Pin<Pf12> {
+impl TxPin1 for Pin<Pd11> {
     const BANK: Bank = Bank::Uart1;
-    const FUN_SEL: FunctionSelect = FunctionSelect::Sel1;
+    const FUNC_SEL: FunctionSelect = FunctionSelect::Sel3;
 }
-impl RxPin for Pin<Pf13> {
+impl RxPin1 for Pin<Pd12> {
     const BANK: Bank = Bank::Uart1;
-    const FUN_SEL: FunctionSelect = FunctionSelect::Sel1;
+    const FUNC_SEL: FunctionSelect = FunctionSelect::Sel3;
+}
+
+impl TxPin1 for Pin<Pf12> {
+    const BANK: Bank = Bank::Uart1;
+    const FUNC_SEL: FunctionSelect = FunctionSelect::Sel1;
+}
+impl RxPin1 for Pin<Pf13> {
+    const BANK: Bank = Bank::Uart1;
+    const FUNC_SEL: FunctionSelect = FunctionSelect::Sel1;
 }
 
 // UART 2 pins
 
-impl TxPin for Pin<Pc14> {
+impl TxPin2 for Pin<Pc14> {
     const BANK: Bank = Bank::Uart2;
-    const FUN_SEL: FunctionSelect = FunctionSelect::Sel2;
+    const FUNC_SEL: FunctionSelect = FunctionSelect::Sel2;
 }
 #[cfg(not(feature = "va41628"))]
-impl RxPin for Pin<Pc15> {
+impl RxPin2 for Pin<Pc15> {
     const BANK: Bank = Bank::Uart2;
-    const FUN_SEL: FunctionSelect = FunctionSelect::Sel2;
+    const FUNC_SEL: FunctionSelect = FunctionSelect::Sel2;
 }
 
 #[cfg(not(feature = "va41628"))]
-impl TxPin for Pin<Pf8> {
+impl TxPin2 for Pin<Pf8> {
     const BANK: Bank = Bank::Uart2;
-    const FUN_SEL: FunctionSelect = FunctionSelect::Sel1;
+    const FUNC_SEL: FunctionSelect = FunctionSelect::Sel1;
 }
-impl RxPin for Pin<Pf9> {
+impl RxPin2 for Pin<Pf9> {
     const BANK: Bank = Bank::Uart2;
-    const FUN_SEL: FunctionSelect = FunctionSelect::Sel1;
+    const FUNC_SEL: FunctionSelect = FunctionSelect::Sel1;
 }

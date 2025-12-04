@@ -61,7 +61,7 @@ fn main() -> ! {
         spi_cfg = spi_cfg.loopback(true)
     }
     // Create SPI peripheral.
-    let mut spi0 = Spi::new(dp.spi0, (pins_b.pb15, pins_c.pc0, pins_c.pc1), spi_cfg).unwrap();
+    let mut spi0 = Spi::new_for_spi0(dp.spi0, (pins_b.pb15, pins_c.pc0, pins_c.pc1), spi_cfg);
     spi0.set_fill_word(FILL_WORD);
     loop {
         let tx_buf: [u8; 4] = [1, 2, 3, 0];

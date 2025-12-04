@@ -16,7 +16,12 @@ use core::convert::Infallible;
 pub mod regs;
 #[cfg(feature = "vor1x")]
 use crate::InterruptConfig;
-use crate::{FunctionSelect, gpio::IoPeriphPin, pins::AnyPin, sealed::Sealed};
+use crate::{
+    FunctionSelect,
+    gpio::{DynPinId, IoPeriphPin},
+    pins::AnyPin,
+    sealed::Sealed,
+};
 use arbitrary_int::{prelude::*, u6, u18};
 use fugit::RateExtU32;
 use regs::{ClockScale, Control, Data, Enable, FifoClear, InterruptClear, MmioUart};
@@ -47,13 +52,33 @@ pub use rx_asynch::*;
 // Type-Level support
 //==================================================================================================
 
-pub trait TxPin: AnyPin {
-    const BANK: Bank;
-    const FUN_SEL: FunctionSelect;
+pub trait TxPin0: AnyPin {
+    const BANK: Bank = Bank::Uart0;
+    const FUNC_SEL: FunctionSelect;
 }
-pub trait RxPin: AnyPin {
-    const BANK: Bank;
-    const FUN_SEL: FunctionSelect;
+pub trait RxPin0: AnyPin {
+    const BANK: Bank = Bank::Uart0;
+    const FUNC_SEL: FunctionSelect;
+}
+
+pub trait TxPin1: AnyPin {
+    const BANK: Bank = Bank::Uart1;
+    const FUNC_SEL: FunctionSelect;
+}
+pub trait RxPin1: AnyPin {
+    const BANK: Bank = Bank::Uart1;
+    const FUNC_SEL: FunctionSelect;
+}
+
+#[cfg(feature = "vor4x")]
+pub trait TxPin2: AnyPin {
+    const BANK: Bank = Bank::Uart2;
+    const FUNC_SEL: FunctionSelect;
+}
+#[cfg(feature = "vor4x")]
+pub trait RxPin2: AnyPin {
+    const BANK: Bank = Bank::Uart2;
+    const FUNC_SEL: FunctionSelect;
 }
 
 //==================================================================================================
@@ -319,8 +344,19 @@ pub struct BufferTooShortError {
 // UART peripheral wrapper
 //==================================================================================================
 
-pub trait UartInstance: Sealed {
-    const ID: Bank;
+pub trait Uart0Instance: Sealed {
+    const ID: Bank = Bank::Uart0;
+    const PERIPH_SEL: PeripheralSelect;
+}
+
+pub trait Uart1Instance: Sealed {
+    const ID: Bank = Bank::Uart1;
+    const PERIPH_SEL: PeripheralSelect;
+}
+
+#[cfg(feature = "vor4x")]
+pub trait Uart2Instance: Sealed {
+    const ID: Bank = Bank::Uart2;
     const PERIPH_SEL: PeripheralSelect;
 }
 
@@ -329,7 +365,7 @@ pub type Uart0 = pac::Uarta;
 #[cfg(feature = "vor4x")]
 pub type Uart0 = pac::Uart0;
 
-impl UartInstance for Uart0 {
+impl Uart0Instance for Uart0 {
     const ID: Bank = Bank::Uart0;
     const PERIPH_SEL: PeripheralSelect = PeripheralSelect::Uart0;
 }
@@ -340,24 +376,19 @@ pub type Uart1 = pac::Uartb;
 #[cfg(feature = "vor4x")]
 pub type Uart1 = pac::Uart1;
 
-impl UartInstance for Uart1 {
+impl Uart1Instance for Uart1 {
     const ID: Bank = Bank::Uart1;
     const PERIPH_SEL: PeripheralSelect = PeripheralSelect::Uart1;
 }
 impl Sealed for Uart1 {}
 
 #[cfg(feature = "vor4x")]
-impl UartInstance for pac::Uart2 {
+impl Uart2Instance for pac::Uart2 {
     const ID: Bank = Bank::Uart2;
     const PERIPH_SEL: PeripheralSelect = PeripheralSelect::Uart2;
 }
 #[cfg(feature = "vor4x")]
 impl Sealed for pac::Uart2 {}
-
-#[derive(Debug, thiserror::Error)]
-#[cfg_attr(feature = "defmt", derive(defmt::Format))]
-#[error("UART ID missmatch between peripheral and pins.")]
-pub struct UartIdMissmatchError;
 
 //==================================================================================================
 // UART implementation
@@ -372,27 +403,50 @@ pub struct Uart {
 impl Uart {
     cfg_if::cfg_if! {
         if #[cfg(feature = "vor1x")] {
-            /// Calls [Self::new] with the interrupt configuration to some valid value.
-            pub fn new_with_interrupt<UartPeriph: UartInstance, Tx: TxPin, Rx: RxPin>(
-                uart: UartPeriph,
+            /// Calls [Self::new_for_uart0] with the interrupt configuration to some valid value.
+            pub fn new_with_interrupt_uart0<Uart: Uart0Instance, Tx: TxPin0, Rx: RxPin0>(
+                uart: Uart,
                 tx_pin: Tx,
                 rx_pin: Rx,
                 sys_clk: Hertz,
                 config: Config,
                 irq_cfg: InterruptConfig,
-            ) -> Result<Self, UartIdMissmatchError> {
-                Self::new(uart, tx_pin, rx_pin, sys_clk, config, Some(irq_cfg))
+            ) -> Self {
+                Self::new_for_uart0(uart, tx_pin, rx_pin, sys_clk, config, Some(irq_cfg))
             }
 
-            /// Calls [Self::new] with the interrupt configuration to [None].
-            pub fn new_without_interrupt<UartPeriph: UartInstance, Tx: TxPin, Rx: RxPin>(
-                uart: UartPeriph,
+            /// Calls [Self::new_for_uart1] with the interrupt configuration to some valid value.
+            pub fn new_with_interrupt_uart1<Uart: Uart1Instance, Tx: TxPin1, Rx: RxPin1>(
+                uart: Uart,
                 tx_pin: Tx,
                 rx_pin: Rx,
                 sys_clk: Hertz,
                 config: Config,
-            ) -> Result<Self, UartIdMissmatchError> {
-                Self::new(uart, tx_pin, rx_pin, sys_clk, config, None)
+                irq_cfg: InterruptConfig,
+            ) -> Self {
+                Self::new_for_uart1(uart, tx_pin, rx_pin, sys_clk, config, Some(irq_cfg))
+            }
+
+            /// Calls [Self::new_for_uart0] with the interrupt configuration to [None].
+            pub fn new_without_interrupt_uart0<Uart: Uart0Instance, Tx: TxPin0, Rx: RxPin0>(
+                uart: Uart,
+                tx_pin: Tx,
+                rx_pin: Rx,
+                sys_clk: Hertz,
+                config: Config,
+            ) -> Self {
+                Self::new_for_uart0(uart, tx_pin, rx_pin, sys_clk, config, None)
+            }
+
+            /// Calls [Self::new_for_uart1] with the interrupt configuration to [None].
+            pub fn new_without_interrupt_uart1<Uart: Uart1Instance, Tx: TxPin1, Rx: RxPin1>(
+                uart: Uart,
+                tx_pin: Tx,
+                rx_pin: Rx,
+                sys_clk: Hertz,
+                config: Config,
+            ) -> Self {
+                Self::new_for_uart1(uart, tx_pin, rx_pin, sys_clk, config, None)
             }
 
             /// Create a new UART peripheral driver with an interrupt configuration.
@@ -407,18 +461,61 @@ impl Uart {
             /// - `irq_cfg`: Optional interrupt configuration. This should be a valid value if the plan
             ///   is to use TX or RX functionality relying on interrupts. If only the blocking API without
             ///   any interrupt support is used, this can be [None].
-            pub fn new<UartPeriph: UartInstance, Tx: TxPin, Rx: RxPin>(
-                uart: UartPeriph,
-                tx_pin: Tx,
-                rx_pin: Rx,
+            pub fn new_for_uart0<Uart: Uart0Instance, Tx: TxPin0, Rx: RxPin0>(
+                _uart: Uart,
+                _tx_pin: Tx,
+                _rx_pin: Rx,
                 sys_clk: Hertz,
                 config: Config,
                 opt_irq_cfg: Option<InterruptConfig>,
-            ) -> Result<Self, UartIdMissmatchError> {
-                Self::new_internal(uart, (tx_pin, rx_pin), sys_clk, config, opt_irq_cfg)
+            ) -> Self {
+                Self::new_internal(
+                    Uart::PERIPH_SEL,
+                    Uart::ID,
+                    Tx::ID,
+                    Tx::FUNC_SEL,
+                    Rx::ID,
+                    Rx::FUNC_SEL,
+                    sys_clk,
+                    config,
+                    opt_irq_cfg
+                )
+            }
+
+            /// Create a new UART peripheral driver with an interrupt configuration.
+            ///
+            /// # Arguments
+            ///
+            /// - `syscfg`: The system configuration register block
+            /// - `sys_clk`: The system clock frequency
+            /// - `uart`: The concrete UART peripheral instance.
+            /// - `pins`: UART TX and RX pin tuple.
+            /// - `config`: UART specific configuration parameters like baudrate.
+            /// - `irq_cfg`: Optional interrupt configuration. This should be a valid value if the plan
+            ///   is to use TX or RX functionality relying on interrupts. If only the blocking API without
+            ///   any interrupt support is used, this can be [None].
+            pub fn new_for_uart1<Uart: Uart1Instance, Tx: TxPin1, Rx: RxPin1>(
+                _uart: Uart,
+                _tx_pin: Tx,
+                _rx_pin: Rx,
+                sys_clk: Hertz,
+                config: Config,
+                opt_irq_cfg: Option<InterruptConfig>,
+            ) -> Self {
+                Self::new_internal(
+                    Uart::PERIPH_SEL,
+                    Uart::ID,
+                    Tx::ID,
+                    Tx::FUNC_SEL,
+                    Rx::ID,
+                    Rx::FUNC_SEL,
+                    sys_clk,
+                    config,
+                    opt_irq_cfg
+                )
             }
         } else if #[cfg(feature = "vor4x")] {
-            /// Create a new UART peripheral driver.
+            /// Create a new UART peripheral driver for UART 0.
             ///
             /// # Arguments
             ///
@@ -426,21 +523,95 @@ impl Uart {
             /// - `uart`: The concrete UART peripheral instance.
             /// - `pins`: UART TX and RX pin tuple.
             /// - `config`: UART specific configuration parameters like baudrate.
-            pub fn new<UartI: UartInstance, Tx: TxPin, Rx: RxPin>(
-                uart: UartI,
-                tx_pin: Tx,
-                rx_pin: Rx,
+            pub fn new_for_uart0<Uart: Uart0Instance, Tx: TxPin0, Rx: RxPin0>(
+                _uart: Uart,
+                _tx_pin: Tx,
+                _rx_pin: Rx,
                 clks: &Clocks,
                 config: Config,
-            ) -> Result<Self, UartIdMissmatchError> {
-                if UartI::ID == Bank::Uart2 {
-                    Self::new_internal(uart, (tx_pin, rx_pin), clks.apb1(), config)
+            ) -> Self {
+                let clk = if Uart::ID == Bank::Uart2 {
+                    clks.apb1()
                 } else {
-                    Self::new_internal(uart, (tx_pin, rx_pin), clks.apb2(), config)
-                }
+                    clks.apb2()
+                };
+                Self::new_internal(
+                    Uart::PERIPH_SEL,
+                    Uart::ID,
+                    Tx::ID,
+                    Tx::FUNC_SEL,
+                    Rx::ID,
+                    Rx::FUNC_SEL,
+                    clk,
+                    config
+                )
             }
 
-            /// Create a new UART peripheral driver given a reference clock.
+            /// Create a new UART peripheral driver for UART 1.
+            ///
+            /// # Arguments
+            ///
+            /// - `clks`: Frozen system clock configuration.
+            /// - `uart`: The concrete UART peripheral instance.
+            /// - `pins`: UART TX and RX pin tuple.
+            /// - `config`: UART specific configuration parameters like baudrate.
+            pub fn new_for_uart1<Uart: Uart1Instance, Tx: TxPin1, Rx: RxPin1>(
+                _uart: Uart,
+                _tx_pin: Tx,
+                _rx_pin: Rx,
+                clks: &Clocks,
+                config: Config,
+            ) -> Self {
+                let clk = if Uart::ID == Bank::Uart2 {
+                    clks.apb1()
+                } else {
+                    clks.apb2()
+                };
+                Self::new_internal(
+                    Uart::PERIPH_SEL,
+                    Uart::ID,
+                    Tx::ID,
+                    Tx::FUNC_SEL,
+                    Rx::ID,
+                    Rx::FUNC_SEL,
+                    clk,
+                    config
+                )
+            }
+
+            /// Create a new UART peripheral driver for UART 2.
+            ///
+            /// # Arguments
+            ///
+            /// - `clks`: Frozen system clock configuration.
+            /// - `uart`: The concrete UART peripheral instance.
+            /// - `pins`: UART TX and RX pin tuple.
+            /// - `config`: UART specific configuration parameters like baudrate.
+            pub fn new_for_uart2<Uart: Uart2Instance, Tx: TxPin2, Rx: RxPin2>(
+                _uart: Uart,
+                _tx_pin: Tx,
+                _rx_pin: Rx,
+                clks: &Clocks,
+                config: Config,
+            ) -> Self {
+                let clk = if Uart::ID == Bank::Uart2 {
+                    clks.apb1()
+                } else {
+                    clks.apb2()
+                };
+                Self::new_internal(
+                    Uart::PERIPH_SEL,
+                    Uart::ID,
+                    Tx::ID,
+                    Tx::FUNC_SEL,
+                    Rx::ID,
+                    Rx::FUNC_SEL,
+                    clk,
+                    config
+                )
+            }
+
+            /// Create a new UART peripheral driver given a reference clock with UART 0.
             ///
             /// # Arguments
             ///
@@ -448,33 +619,98 @@ impl Uart {
             /// - `uart`: The concrete UART peripheral instance.
             /// - `pins`: UART TX and RX pin tuple.
             /// - `config`: UART specific configuration parameters like baudrate.
-            pub fn new_with_ref_clk<Uart: UartInstance, Tx: TxPin, Rx: RxPin>(
-                uart: Uart,
-                tx_pin: Tx,
-                rx_pin: Rx,
+            pub fn new_with_ref_clk_uart0<Uart: Uart0Instance, Tx: TxPin0, Rx: RxPin0>(
+                _uart: Uart,
+                _tx_pin: Tx,
+                _rx_pin: Rx,
                 ref_clk: Hertz,
                 config: Config,
-            ) -> Result<Self, UartIdMissmatchError> {
-                Self::new_internal(uart,(tx_pin, rx_pin),ref_clk, config)
+            ) -> Self {
+                Self::new_internal(
+                    Uart::PERIPH_SEL,
+                    Uart::ID,
+                    Tx::ID,
+                    Tx::FUNC_SEL,
+                    Rx::ID,
+                    Rx::FUNC_SEL,
+                    ref_clk,
+                    config
+                )
+            }
+
+            /// Create a new UART peripheral driver given a reference clock with UART 1.
+            ///
+            /// # Arguments
+            ///
+            /// - `ref_clk`: APB1 clock for UART2, APB2 clock otherwise.
+            /// - `uart`: The concrete UART peripheral instance.
+            /// - `pins`: UART TX and RX pin tuple.
+            /// - `config`: UART specific configuration parameters like baudrate.
+            pub fn new_with_ref_clk_uart1<Uart: Uart1Instance, Tx: TxPin1, Rx: RxPin1>(
+                _uart: Uart,
+                _tx_pin: Tx,
+                _rx_pin: Rx,
+                ref_clk: Hertz,
+                config: Config,
+            ) -> Self {
+                Self::new_internal(
+                    Uart::PERIPH_SEL,
+                    Uart::ID,
+                    Tx::ID,
+                    Tx::FUNC_SEL,
+                    Rx::ID,
+                    Rx::FUNC_SEL,
+                    ref_clk,
+                    config
+                )
+            }
+
+            /// Create a new UART peripheral driver given a reference clock with UART 2.
+            ///
+            /// # Arguments
+            ///
+            /// - `ref_clk`: APB1 clock for UART2, APB2 clock otherwise.
+            /// - `uart`: The concrete UART peripheral instance.
+            /// - `pins`: UART TX and RX pin tuple.
+            /// - `config`: UART specific configuration parameters like baudrate.
+            pub fn new_with_ref_clk_uart2<Uart: Uart2Instance, Tx: TxPin2, Rx: RxPin2>(
+                _uart: Uart,
+                _tx_pin: Tx,
+                _rx_pin: Rx,
+                ref_clk: Hertz,
+                config: Config,
+            ) -> Self {
+                Self::new_internal(
+                    Uart::PERIPH_SEL,
+                    Uart::ID,
+                    Tx::ID,
+                    Tx::FUNC_SEL,
+                    Rx::ID,
+                    Rx::FUNC_SEL,
+                    ref_clk,
+                    config
+                )
             }
         }
     }
 
-    fn new_internal<UartI: UartInstance, TxPinI: TxPin, RxPinI: RxPin>(
-        _uart: UartI,
-        _pins: (TxPinI, RxPinI),
+    #[allow(clippy::too_many_arguments)]
+    fn new_internal(
+        periph_sel: PeripheralSelect,
+        uart_bank: Bank,
+        tx_pin_id: DynPinId,
+        tx_func_sel: FunctionSelect,
+        rx_pin_id: DynPinId,
+        rx_func_sel: FunctionSelect,
         ref_clk: Hertz,
         config: Config,
         #[cfg(feature = "vor1x")] opt_irq_cfg: Option<InterruptConfig>,
-    ) -> Result<Self, UartIdMissmatchError> {
-        if UartI::ID != TxPinI::BANK || UartI::ID != RxPinI::BANK {
-            return Err(UartIdMissmatchError);
-        }
-        IoPeriphPin::new(TxPinI::ID, TxPinI::FUN_SEL, None);
-        IoPeriphPin::new(RxPinI::ID, TxPinI::FUN_SEL, None);
-        enable_peripheral_clock(UartI::PERIPH_SEL);
+    ) -> Self {
+        IoPeriphPin::new(tx_pin_id, tx_func_sel, None);
+        IoPeriphPin::new(rx_pin_id, rx_func_sel, None);
+        enable_peripheral_clock(periph_sel);
 
-        let mut reg_block = regs::Uart::new_mmio(UartI::ID);
+        let mut reg_block = regs::Uart::new_mmio(uart_bank);
         let baud_multiplier = match config.baud8 {
             false => 16,
             true => 8,
@@ -529,7 +765,7 @@ impl Uart {
             if irq_cfg.route {
                 enable_peripheral_clock(PeripheralSelect::Irqsel);
                 unsafe { va108xx::Irqsel::steal() }
-                    .uart(UartI::ID as usize)
+                    .uart(uart_bank as usize)
                     .write(|w| unsafe { w.bits(irq_cfg.id as u32) });
             }
             if irq_cfg.enable_in_nvic {
@@ -538,10 +774,10 @@ impl Uart {
             }
         }
 
-        Ok(Uart {
-            tx: Tx::new(UartI::ID),
-            rx: Rx::new(UartI::ID),
-        })
+        Uart {
+            tx: Tx::new(uart_bank),
+            rx: Rx::new(uart_bank),
+        }
     }
 
     #[inline]

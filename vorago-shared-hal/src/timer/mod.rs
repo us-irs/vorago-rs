@@ -69,21 +69,54 @@ pub enum CascadeSelect {
 // Valid TIM and PIN combinations
 //==================================================================================================
 
-pub trait TimPin: AnyPin {
-    const PIN_ID: DynPinId;
-    const FUN_SEL: FunctionSelect;
-    const TIM_ID: TimId;
+macro_rules! define_tim_pin_traits {
+    ([$(($tim_name:ident, $index:expr)),* $(,)?]) => {
+        $(
+            pub trait $tim_name: AnyPin {
+                const PIN_ID: DynPinId;
+                const FUNC_SEL: FunctionSelect;
+                const TIM_ID: TimId = TimId::new_unchecked($index);
+            }
+        )*
+    };
 }
 
+define_tim_pin_traits!([
+    (Tim0Pin, 0),
+    (Tim1Pin, 1),
+    (Tim2Pin, 2),
+    (Tim3Pin, 3),
+    (Tim4Pin, 4),
+    (Tim5Pin, 5),
+    (Tim6Pin, 6),
+    (Tim7Pin, 7),
+    (Tim8Pin, 8),
+    (Tim9Pin, 9),
+    (Tim10Pin, 10),
+    (Tim11Pin, 11),
+    (Tim12Pin, 12),
+    (Tim13Pin, 13),
+    (Tim14Pin, 14),
+    (Tim15Pin, 15),
+    (Tim16Pin, 16),
+    (Tim17Pin, 17),
+    (Tim18Pin, 18),
+    (Tim19Pin, 19),
+    (Tim20Pin, 20),
+    (Tim21Pin, 21),
+    (Tim22Pin, 22),
+    (Tim23Pin, 23),
+]);
+
 pub trait TimInstance: Sealed {
-    // TIM ID ranging from 0 to 23 for 24 TIM peripherals
     const ID: TimId;
+
     #[cfg(feature = "vor4x")]
     const IRQ: va416xx::Interrupt;
 
     #[cfg(feature = "vor4x")]
     fn clock(clocks: &crate::clock::Clocks) -> Hertz {
-        if Self::ID.value() <= 15 {
+        if Self::ID.value() < 16 {
             clocks.apb1()
         } else {
             clocks.apb2()
@@ -91,91 +124,145 @@ pub trait TimInstance: Sealed {
     }
 }
 
+pub trait Tim0Instance: TimInstance {}
+pub trait Tim1Instance: TimInstance {}
+pub trait Tim2Instance: TimInstance {}
+pub trait Tim3Instance: TimInstance {}
+pub trait Tim4Instance: TimInstance {}
+pub trait Tim5Instance: TimInstance {}
+pub trait Tim6Instance: TimInstance {}
+pub trait Tim7Instance: TimInstance {}
+pub trait Tim8Instance: TimInstance {}
+pub trait Tim9Instance: TimInstance {}
+pub trait Tim10Instance: TimInstance {}
+pub trait Tim11Instance: TimInstance {}
+pub trait Tim12Instance: TimInstance {}
+pub trait Tim13Instance: TimInstance {}
+pub trait Tim14Instance: TimInstance {}
+pub trait Tim15Instance: TimInstance {}
+pub trait Tim16Instance: TimInstance {}
+pub trait Tim17Instance: TimInstance {}
+pub trait Tim18Instance: TimInstance {}
+pub trait Tim19Instance: TimInstance {}
+pub trait Tim20Instance: TimInstance {}
+pub trait Tim21Instance: TimInstance {}
+pub trait Tim22Instance: TimInstance {}
+pub trait Tim23Instance: TimInstance {}
+
 macro_rules! tim_marker {
-    ($TIMX:path, $ID:expr) => {
+    ($TIMX:path, $Trait:ident, $ID:expr) => {
+        impl Sealed for $TIMX {}
+
         impl TimInstance for $TIMX {
             const ID: TimId = TimId::new_unchecked($ID);
         }
 
-        impl Sealed for $TIMX {}
+        impl $Trait for $TIMX {}
     };
-    ($TIMX:path, $ID:expr, $IrqId:ident) => {
+    ($TIMX:path, $Trait:ident, $ID:expr, $IrqId:ident) => {
+        impl Sealed for $TIMX {}
+
         impl TimInstance for $TIMX {
             const ID: TimId = TimId::new_unchecked($ID);
             const IRQ: va416xx::Interrupt = va416xx::Interrupt::$IrqId;
         }
 
-        impl Sealed for $TIMX {}
+        impl $Trait for $TIMX {}
     };
 }
 
 cfg_if::cfg_if! {
     if #[cfg(feature = "vor1x")] {
-        tim_marker!(pac::Tim0, 0);
-        tim_marker!(pac::Tim1, 1);
-        tim_marker!(pac::Tim2, 2);
-        tim_marker!(pac::Tim3, 3);
-        tim_marker!(pac::Tim4, 4);
-        tim_marker!(pac::Tim5, 5);
-        tim_marker!(pac::Tim6, 6);
-        tim_marker!(pac::Tim7, 7);
-        tim_marker!(pac::Tim8, 8);
-        tim_marker!(pac::Tim9, 9);
-        tim_marker!(pac::Tim10, 10);
-        tim_marker!(pac::Tim11, 11);
-        tim_marker!(pac::Tim12, 12);
-        tim_marker!(pac::Tim13, 13);
-        tim_marker!(pac::Tim14, 14);
-        tim_marker!(pac::Tim15, 15);
-        tim_marker!(pac::Tim16, 16);
-        tim_marker!(pac::Tim17, 17);
-        tim_marker!(pac::Tim18, 18);
-        tim_marker!(pac::Tim19, 19);
-        tim_marker!(pac::Tim20, 20);
-        tim_marker!(pac::Tim21, 21);
-        tim_marker!(pac::Tim22, 22);
-        tim_marker!(pac::Tim23, 23);
+        tim_marker!(pac::Tim0, Tim0Instance, 0);
+        tim_marker!(pac::Tim1, Tim1Instance, 1);
+        tim_marker!(pac::Tim2, Tim2Instance, 2);
+        tim_marker!(pac::Tim3, Tim3Instance, 3);
+        tim_marker!(pac::Tim4, Tim4Instance, 4);
+        tim_marker!(pac::Tim5, Tim5Instance, 5);
+        tim_marker!(pac::Tim6, Tim6Instance, 6);
+        tim_marker!(pac::Tim7, Tim7Instance, 7);
+        tim_marker!(pac::Tim8, Tim8Instance, 8);
+        tim_marker!(pac::Tim9, Tim9Instance, 9);
+        tim_marker!(pac::Tim10, Tim10Instance, 10);
+        tim_marker!(pac::Tim11, Tim11Instance, 11);
+        tim_marker!(pac::Tim12, Tim12Instance, 12);
+        tim_marker!(pac::Tim13, Tim13Instance, 13);
+        tim_marker!(pac::Tim14, Tim14Instance, 14);
+        tim_marker!(pac::Tim15, Tim15Instance, 15);
+        tim_marker!(pac::Tim16, Tim16Instance, 16);
+        tim_marker!(pac::Tim17, Tim17Instance, 17);
+        tim_marker!(pac::Tim18, Tim18Instance, 18);
+        tim_marker!(pac::Tim19, Tim19Instance, 19);
+        tim_marker!(pac::Tim20, Tim20Instance, 20);
+        tim_marker!(pac::Tim21, Tim21Instance, 21);
+        tim_marker!(pac::Tim22, Tim22Instance, 22);
+        tim_marker!(pac::Tim23, Tim23Instance, 23);
     } else if #[cfg(feature = "vor4x")] {
-        tim_marker!(pac::Tim0, 0, TIM0);
-        tim_marker!(pac::Tim1, 1, TIM1);
-        tim_marker!(pac::Tim2, 2, TIM2);
-        tim_marker!(pac::Tim3, 3, TIM3);
-        tim_marker!(pac::Tim4, 4, TIM4);
-        tim_marker!(pac::Tim5, 5, TIM5);
-        tim_marker!(pac::Tim6, 6, TIM6);
-        tim_marker!(pac::Tim7, 7, TIM7);
-        tim_marker!(pac::Tim8, 8, TIM8);
-        tim_marker!(pac::Tim9, 9, TIM9);
-        tim_marker!(pac::Tim10, 10, TIM10);
-        tim_marker!(pac::Tim11, 11, TIM11);
-        tim_marker!(pac::Tim12, 12, TIM12);
-        tim_marker!(pac::Tim13, 13, TIM13);
-        tim_marker!(pac::Tim14, 14, TIM14);
-        tim_marker!(pac::Tim15, 15, TIM15);
-        tim_marker!(pac::Tim16, 16, TIM16);
-        tim_marker!(pac::Tim17, 17, TIM17);
-        tim_marker!(pac::Tim18, 18, TIM18);
-        tim_marker!(pac::Tim19, 19, TIM19);
-        tim_marker!(pac::Tim20, 20, TIM20);
-        tim_marker!(pac::Tim21, 21, TIM21);
-        tim_marker!(pac::Tim22, 22, TIM22);
-        tim_marker!(pac::Tim23, 23, TIM23);
+        tim_marker!(pac::Tim0, Tim0Instance, 0, TIM0);
+        tim_marker!(pac::Tim1, Tim1Instance, 1, TIM1);
+        tim_marker!(pac::Tim2, Tim2Instance, 2, TIM2);
+        tim_marker!(pac::Tim3, Tim3Instance, 3, TIM3);
+        tim_marker!(pac::Tim4, Tim4Instance, 4, TIM4);
+        tim_marker!(pac::Tim5, Tim5Instance, 5, TIM5);
+        tim_marker!(pac::Tim6, Tim6Instance, 6, TIM6);
+        tim_marker!(pac::Tim7, Tim7Instance, 7, TIM7);
+        tim_marker!(pac::Tim8, Tim8Instance, 8, TIM8);
+        tim_marker!(pac::Tim9, Tim9Instance, 9, TIM9);
+        tim_marker!(pac::Tim10, Tim10Instance, 10, TIM10);
+        tim_marker!(pac::Tim11, Tim11Instance, 11, TIM11);
+        tim_marker!(pac::Tim12, Tim12Instance, 12, TIM12);
+        tim_marker!(pac::Tim13, Tim13Instance, 13, TIM13);
+        tim_marker!(pac::Tim14, Tim14Instance, 14, TIM14);
+        tim_marker!(pac::Tim15, Tim15Instance, 15, TIM15);
+        tim_marker!(pac::Tim16, Tim16Instance, 16, TIM16);
+        tim_marker!(pac::Tim17, Tim17Instance, 17, TIM17);
+        tim_marker!(pac::Tim18, Tim18Instance, 18, TIM18);
+        tim_marker!(pac::Tim19, Tim19Instance, 19, TIM19);
+        tim_marker!(pac::Tim20, Tim20Instance, 20, TIM20);
+        tim_marker!(pac::Tim21, Tim21Instance, 21, TIM21);
+        tim_marker!(pac::Tim22, Tim22Instance, 22, TIM22);
+        tim_marker!(pac::Tim23, Tim23Instance, 23, TIM23);
     }
 }
 
-pub trait ValidTimAndPin<Pin: TimPin, Tim: TimInstance>: Sealed {}
+pub trait ValidTimAndPin0<Pin: Tim0Pin, Tim: Tim0Instance>: Sealed {}
+pub trait ValidTimAndPin1<Pin: Tim1Pin, Tim: Tim1Instance>: Sealed {}
+pub trait ValidTimAndPin2<Pin: Tim2Pin, Tim: Tim2Instance>: Sealed {}
+pub trait ValidTimAndPin3<Pin: Tim3Pin, Tim: Tim3Instance>: Sealed {}
+pub trait ValidTimAndPin4<Pin: Tim4Pin, Tim: Tim4Instance>: Sealed {}
+pub trait ValidTimAndPin5<Pin: Tim5Pin, Tim: Tim5Instance>: Sealed {}
+pub trait ValidTimAndPin6<Pin: Tim6Pin, Tim: Tim6Instance>: Sealed {}
+pub trait ValidTimAndPin7<Pin: Tim7Pin, Tim: Tim7Instance>: Sealed {}
+pub trait ValidTimAndPin8<Pin: Tim8Pin, Tim: Tim8Instance>: Sealed {}
+pub trait ValidTimAndPin9<Pin: Tim9Pin, Tim: Tim9Instance>: Sealed {}
+pub trait ValidTimAndPin10<Pin: Tim10Pin, Tim: Tim10Instance>: Sealed {}
+pub trait ValidTimAndPin11<Pin: Tim11Pin, Tim: Tim11Instance>: Sealed {}
+pub trait ValidTimAndPin12<Pin: Tim12Pin, Tim: Tim12Instance>: Sealed {}
+pub trait ValidTimAndPin13<Pin: Tim13Pin, Tim: Tim13Instance>: Sealed {}
+pub trait ValidTimAndPin14<Pin: Tim14Pin, Tim: Tim14Instance>: Sealed {}
+pub trait ValidTimAndPin15<Pin: Tim15Pin, Tim: Tim15Instance>: Sealed {}
+pub trait ValidTimAndPin16<Pin: Tim16Pin, Tim: Tim16Instance>: Sealed {}
+pub trait ValidTimAndPin17<Pin: Tim17Pin, Tim: Tim17Instance>: Sealed {}
+pub trait ValidTimAndPin18<Pin: Tim18Pin, Tim: Tim18Instance>: Sealed {}
+pub trait ValidTimAndPin19<Pin: Tim19Pin, Tim: Tim19Instance>: Sealed {}
+pub trait ValidTimAndPin20<Pin: Tim20Pin, Tim: Tim20Instance>: Sealed {}
+pub trait ValidTimAndPin21<Pin: Tim21Pin, Tim: Tim21Instance>: Sealed {}
+pub trait ValidTimAndPin22<Pin: Tim22Pin, Tim: Tim22Instance>: Sealed {}
+pub trait ValidTimAndPin23<Pin: Tim23Pin, Tim: Tim23Instance>: Sealed {}
 
 #[macro_use]
 mod macros {
     macro_rules! pin_and_tim {
         ($Px:ident, $FunSel:path, $ID:expr) => {
-            impl TimPin for Pin<$Px>
-            where
-                $Px: PinId,
-            {
-                const PIN_ID: DynPinId = $Px::ID;
-                const FUN_SEL: FunctionSelect = $FunSel;
-                const TIM_ID: TimId = TimId::new_unchecked($ID);
+            paste::paste! {
+                impl [<Tim $ID Pin>] for crate::pins::Pin<$Px>
+                where
+                    $Px: crate::pins::PinId,
+                {
+                    const PIN_ID: crate::pins::DynPinId = $Px::ID;
+                    const FUNC_SEL: crate::FunctionSelect = $FunSel;
+                    const TIM_ID: crate::timer::TimId = crate::timer::TimId::new_unchecked($ID);
+                }
             }
         };
     }

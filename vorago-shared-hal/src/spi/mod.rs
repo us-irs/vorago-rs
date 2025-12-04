@@ -23,18 +23,48 @@ pub fn configure_pin_as_hw_cs_pin<P: AnyPin + HwCsProvider>(_pin: P) -> HwChipSe
 // Pins and traits.
 //==================================================================================================
 
-pub trait PinSck: AnyPin {
-    const SPI_ID: Bank;
+pub trait PinSck0: AnyPin {
+    const SPI_ID: Bank = Bank::Spi0;
     const FUN_SEL: FunctionSelect;
 }
 
-pub trait PinMosi: AnyPin {
-    const SPI_ID: Bank;
+pub trait PinMosi0: AnyPin {
+    const SPI_ID: Bank = Bank::Spi0;
     const FUN_SEL: FunctionSelect;
 }
 
-pub trait PinMiso: AnyPin {
-    const SPI_ID: Bank;
+pub trait PinMiso0: AnyPin {
+    const SPI_ID: Bank = Bank::Spi0;
+    const FUN_SEL: FunctionSelect;
+}
+
+pub trait PinSck1: AnyPin {
+    const SPI_ID: Bank = Bank::Spi1;
+    const FUN_SEL: FunctionSelect;
+}
+
+pub trait PinMosi1: AnyPin {
+    const SPI_ID: Bank = Bank::Spi1;
+    const FUN_SEL: FunctionSelect;
+}
+
+pub trait PinMiso1: AnyPin {
+    const SPI_ID: Bank = Bank::Spi1;
+    const FUN_SEL: FunctionSelect;
+}
+
+pub trait PinSck2: AnyPin {
+    const SPI_ID: Bank = Bank::Spi2;
+    const FUN_SEL: FunctionSelect;
+}
+
+pub trait PinMosi2: AnyPin {
+    const SPI_ID: Bank = Bank::Spi2;
+    const FUN_SEL: FunctionSelect;
+}
+
+pub trait PinMiso2: AnyPin {
+    const SPI_ID: Bank = Bank::Spi2;
     const FUN_SEL: FunctionSelect;
 }
 
@@ -115,10 +145,24 @@ pub const BMSKIPDATA_MASK: u32 = 1 << 30;
 
 pub const DEFAULT_CLK_DIV: u16 = 2;
 
-/// Common trait implemented by all PAC peripheral access structures. The register block
-/// format is the same for all SPI blocks.
-pub trait SpiInstance: Sealed {
-    const ID: Bank;
+pub trait Spi0Instance: Sealed {
+    const ID: Bank = Bank::Spi0;
+    const PERIPH_SEL: PeripheralSelect;
+}
+
+pub trait Spi1Instance: Sealed {
+    const ID: Bank = Bank::Spi1;
+    const PERIPH_SEL: PeripheralSelect;
+}
+
+pub trait Spi2Instance: Sealed {
+    const ID: Bank = Bank::Spi2;
+    const PERIPH_SEL: PeripheralSelect;
+}
+
+#[cfg(feature = "vor4x")]
+pub trait Spi3Instance: Sealed {
+    const ID: Bank = Bank::Spi3;
     const PERIPH_SEL: PeripheralSelect;
 }
 
@@ -127,7 +171,7 @@ pub type Spi0 = pac::Spia;
 #[cfg(feature = "vor4x")]
 pub type Spi0 = pac::Spi0;
 
-impl SpiInstance for Spi0 {
+impl Spi0Instance for Spi0 {
     const ID: Bank = Bank::Spi0;
     const PERIPH_SEL: PeripheralSelect = PeripheralSelect::Spi0;
 }
@@ -138,7 +182,7 @@ pub type Spi1 = pac::Spib;
 #[cfg(feature = "vor4x")]
 pub type Spi1 = pac::Spi1;
 
-impl SpiInstance for Spi1 {
+impl Spi1Instance for Spi1 {
     const ID: Bank = Bank::Spi1;
     const PERIPH_SEL: PeripheralSelect = PeripheralSelect::Spi1;
 }
@@ -149,14 +193,14 @@ pub type Spi2 = pac::Spic;
 #[cfg(feature = "vor4x")]
 pub type Spi2 = pac::Spi2;
 
-impl SpiInstance for Spi2 {
+impl Spi2Instance for Spi2 {
     const ID: Bank = Bank::Spi2;
     const PERIPH_SEL: PeripheralSelect = PeripheralSelect::Spi2;
 }
 impl Sealed for Spi2 {}
 
 #[cfg(feature = "vor4x")]
-impl SpiInstance for pac::Spi3 {
+impl Spi3Instance for pac::Spi3 {
     const ID: Bank = Bank::Spi3;
     const PERIPH_SEL: PeripheralSelect = PeripheralSelect::Spi3;
 }
@@ -468,10 +512,6 @@ pub fn clk_div_for_target_clock(sys_clk: Hertz, spi_clk: Hertz) -> Option<u16> {
     Some(rounded_div as u16)
 }
 
-#[derive(Debug, thiserror::Error)]
-#[error("peripheral or peripheral pin ID is not consistent")]
-pub struct SpiIdMissmatchError;
-
 /// SPI peripheral driver structure.
 pub struct Spi<Word = u8> {
     id: Bank,
@@ -494,22 +534,23 @@ where
     ///
     /// * `spi` - SPI bus to use
     /// * `spi_cfg` - Configuration specific to the SPI bus
-    pub fn new_for_rom<SpiI: SpiInstance>(
-        spi: SpiI,
-        spi_cfg: SpiConfig,
-    ) -> Result<Self, SpiIdMissmatchError> {
-        #[cfg(feature = "vor1x")]
-        if SpiI::ID != Bank::Spi2 {
-            return Err(SpiIdMissmatchError);
-        }
-        #[cfg(feature = "vor4x")]
-        if SpiI::ID != Bank::Spi3 {
-            return Err(SpiIdMissmatchError);
-        }
-        Ok(Self::new_generic(spi, spi_cfg))
+    #[cfg(feature = "vor1x")]
+    pub fn new_for_rom<Spi: Spi2Instance>(_spi: Spi, spi_cfg: SpiConfig) -> Self {
+        Self::new_generic(Spi::ID, Spi::PERIPH_SEL, spi_cfg)
     }
 
-    /// Create a new SPI peripheral driver.
+    /// Create a new SPI struct for using SPI with the fixed ROM SPI pins.
+    ///
+    /// ## Arguments
+    ///
+    /// * `spi` - SPI bus to use
+    /// * `spi_cfg` - Configuration specific to the SPI bus
+    #[cfg(feature = "vor4x")]
+    pub fn new_for_rom<Spi: Spi3Instance>(_spi: Spi, spi_cfg: SpiConfig) -> Self {
+        Self::new_generic(Spi::ID, Spi::PERIPH_SEL, spi_cfg)
+    }
+
+    /// Create a new SPI peripheral driver for SPI 0.
     ///
     /// ## Arguments
     ///
@@ -517,23 +558,58 @@ where
     /// * `pins` - Pins to be used for SPI transactions. These pins are consumed
     ///   to ensure the pins can not be used for other purposes anymore
     /// * `spi_cfg` - Configuration specific to the SPI bus
-    pub fn new<SpiI: SpiInstance, Sck: PinSck, Miso: PinMiso, Mosi: PinMosi>(
-        spi: SpiI,
+    pub fn new_for_spi0<Spi: Spi0Instance, Sck: PinSck0, Miso: PinMiso0, Mosi: PinMosi0>(
+        _spi: Spi,
         _pins: (Sck, Miso, Mosi),
         spi_cfg: SpiConfig,
-    ) -> Result<Self, SpiIdMissmatchError> {
-        if SpiI::ID != Sck::SPI_ID || SpiI::ID != Miso::SPI_ID || SpiI::ID != Mosi::SPI_ID {
-            return Err(SpiIdMissmatchError);
-        }
+    ) -> Self {
         IoPeriphPin::new(Sck::ID, Sck::FUN_SEL, None);
         IoPeriphPin::new(Miso::ID, Miso::FUN_SEL, None);
         IoPeriphPin::new(Mosi::ID, Mosi::FUN_SEL, None);
-        Ok(Self::new_generic(spi, spi_cfg))
+        Self::new_generic(Spi::ID, Spi::PERIPH_SEL, spi_cfg)
     }
 
-    pub fn new_generic<SpiI: SpiInstance>(_spi: SpiI, spi_cfg: SpiConfig) -> Self {
-        enable_peripheral_clock(SpiI::PERIPH_SEL);
-        let mut regs = regs::Spi::new_mmio(SpiI::ID);
+    /// Create a new SPI peripheral driver for SPI 1.
+    ///
+    /// ## Arguments
+    ///
+    /// * `spi` - SPI bus to use
+    /// * `pins` - Pins to be used for SPI transactions. These pins are consumed
+    ///   to ensure the pins can not be used for other purposes anymore
+    /// * `spi_cfg` - Configuration specific to the SPI bus
+    pub fn new_for_spi1<Spi: Spi1Instance, Sck: PinSck1, Miso: PinMiso1, Mosi: PinMosi1>(
+        _spi: Spi,
+        _pins: (Sck, Miso, Mosi),
+        spi_cfg: SpiConfig,
+    ) -> Self {
+        IoPeriphPin::new(Sck::ID, Sck::FUN_SEL, None);
+        IoPeriphPin::new(Miso::ID, Miso::FUN_SEL, None);
+        IoPeriphPin::new(Mosi::ID, Mosi::FUN_SEL, None);
+        Self::new_generic(Spi::ID, Spi::PERIPH_SEL, spi_cfg)
+    }
+
+    /// Create a new SPI peripheral driver for SPI 2.
+    ///
+    /// ## Arguments
+    ///
+    /// * `spi` - SPI bus to use
+    /// * `pins` - Pins to be used for SPI transactions. These pins are consumed
+    ///   to ensure the pins can not be used for other purposes anymore
+    /// * `spi_cfg` - Configuration specific to the SPI bus
+    pub fn new_for_spi2<Spi: Spi2Instance, Sck: PinSck2, Miso: PinMiso2, Mosi: PinMosi2>(
+        _spi: Spi,
+        _pins: (Sck, Miso, Mosi),
+        spi_cfg: SpiConfig,
+    ) -> Self {
+        IoPeriphPin::new(Sck::ID, Sck::FUN_SEL, None);
+        IoPeriphPin::new(Miso::ID, Miso::FUN_SEL, None);
+        IoPeriphPin::new(Mosi::ID, Mosi::FUN_SEL, None);
+        Self::new_generic(Spi::ID, Spi::PERIPH_SEL, spi_cfg)
+    }
+
+    pub fn new_generic(spi_sel: Bank, periph_sel: PeripheralSelect, spi_cfg: SpiConfig) -> Self {
+        enable_peripheral_clock(periph_sel);
+        let mut regs = regs::Spi::new_mmio(spi_sel);
         let (cpo_bit, cph_bit) = mode_to_cpo_cph_bit(spi_cfg.init_mode);
         regs.write_ctrl0(
             regs::Control0::builder()
@@ -571,8 +647,8 @@ where
             value
         });
         Spi {
-            id: SpiI::ID,
-            regs: regs::Spi::new_mmio(SpiI::ID),
+            id: spi_sel,
+            regs: regs::Spi::new_mmio(spi_sel),
             cfg: spi_cfg,
             fill_word: Default::default(),
             bmstall: spi_cfg.bmstall,

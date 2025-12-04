@@ -61,7 +61,7 @@ async fn main(_spawner: Spawner) {
     let mut led = Output::new(pinsg.pg5, PinState::Low);
 
     let uarta =
-        uart::Uart::new(dp.uart0, pinsg.pg0, pinsg.pg1, &clocks, 115200.Hz().into()).unwrap();
+        uart::Uart::new_for_uart0(dp.uart0, pinsg.pg0, pinsg.pg1, &clocks, 115200.Hz().into());
     let (tx, _rx) = uarta.split();
     let mut async_tx = TxAsync::new(tx);
     let mut ticker = Ticker::every(Duration::from_secs(1));
