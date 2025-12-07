@@ -778,12 +778,11 @@ where
         }
     }
 
-    fn transfer_preparation(&mut self, words: &[Word]) -> Result<(), Infallible> {
+    fn transfer_preparation(&mut self, words: &[Word]) {
         if words.is_empty() {
-            return Ok(());
+            return;
         }
         self.flush_internal();
-        Ok(())
     }
 
     // The FIFO can hold a guaranteed amount of data, so we can pump it on transfer
@@ -844,6 +843,112 @@ where
         }
         current_write_idx
     }
+
+    pub fn read(&mut self, words: &mut [Word]) {
+        self.transfer_preparation(words);
+        let mut current_read_idx = 0;
+        let mut current_write_idx = self.initial_send_fifo_pumping_with_fill_words(words.len());
+        loop {
+            if current_read_idx < words.len() {
+                words[current_read_idx] = (nb::block!(self.read_fifo()).unwrap() & Word::MASK)
+                    .try_into()
+                    .unwrap();
+                current_read_idx += 1;
+            }
+            if current_write_idx < words.len() {
+                if current_write_idx == words.len() - 1 && self.bmstall {
+                    nb::block!(self.write_fifo(self.fill_word.into() | BMSTART_BMSTOP_MASK))
+                        .unwrap();
+                } else {
+                    nb::block!(self.write_fifo(self.fill_word.into())).unwrap();
+                }
+                current_write_idx += 1;
+            }
+            if current_read_idx >= words.len() && current_write_idx >= words.len() {
+                break;
+            }
+        }
+    }
+
+    pub fn write(&mut self, words: &[Word]) {
+        self.transfer_preparation(words);
+        let mut current_write_idx = self.initial_send_fifo_pumping_with_words(words);
+        while current_write_idx < words.len() {
+            if current_write_idx == words.len() - 1 && self.bmstall {
+                nb::block!(self.write_fifo(words[current_write_idx].into() | BMSTART_BMSTOP_MASK))
+                    .unwrap();
+            } else {
+                nb::block!(self.write_fifo(words[current_write_idx].into())).unwrap();
+            }
+            current_write_idx += 1;
+            // Ignore received words.
+            if self.regs.read_status().rx_not_empty() {
+                self.clear_rx_fifo();
+            }
+        }
+    }
+
+    pub fn transfer(&mut self, read: &mut [Word], write: &[Word]) {
+        self.transfer_preparation(write);
+        let mut current_read_idx = 0;
+        let mut current_write_idx = self.initial_send_fifo_pumping_with_words(write);
+        let max_idx = core::cmp::max(read.len(), write.len());
+        while current_read_idx < read.len() || current_write_idx < write.len() {
+            if current_write_idx < max_idx {
+                if current_write_idx == write.len() - 1 && self.bmstall {
+                    nb::block!(
+                        self.write_fifo(write[current_write_idx].into() | BMSTART_BMSTOP_MASK)
+                    )
+                    .unwrap();
+                } else if current_write_idx < write.len() {
+                    nb::block!(self.write_fifo(write[current_write_idx].into())).unwrap();
+                } else {
+                    nb::block!(self.write_fifo(0)).unwrap();
+                }
+                current_write_idx += 1;
+            }
+            if current_read_idx < max_idx {
+                if current_read_idx < read.len() {
+                    read[current_read_idx] = (nb::block!(self.read_fifo()).unwrap() & Word::MASK)
+                        .try_into()
+                        .unwrap();
+                } else {
+                    nb::block!(self.read_fifo()).unwrap();
+                }
+                current_read_idx += 1;
+            }
+        }
+    }
+
+    pub fn transfer_in_place(&mut self, words: &mut [Word]) {
+        self.transfer_preparation(words);
+        let mut current_read_idx = 0;
+        let mut current_write_idx = self.initial_send_fifo_pumping_with_words(words);
+
+        while current_read_idx < words.len() || current_write_idx < words.len() {
+            if current_write_idx < words.len() {
+                if current_write_idx == words.len() - 1 && self.bmstall {
+                    nb::block!(
+                        self.write_fifo(words[current_write_idx].into() | BMSTART_BMSTOP_MASK)
+                    )
+                    .unwrap();
+                } else {
+                    nb::block!(self.write_fifo(words[current_write_idx].into())).unwrap();
+                }
+                current_write_idx += 1;
+            }
+            if current_read_idx < words.len() && current_read_idx < current_write_idx {
+                words[current_read_idx] = (nb::block!(self.read_fifo()).unwrap() & Word::MASK)
+                    .try_into()
+                    .unwrap();
+                current_read_idx += 1;
+            }
+        }
+    }
+
+    pub fn flush(&mut self) {
+        self.flush_internal();
+    }
 }
 
 impl<W: SpiWord> SpiLowLevel for Spi<W>
@@ -887,110 +992,27 @@ where
     <Word as TryFrom<u32>>::Error: core::fmt::Debug,
 {
     fn read(&mut self, words: &mut [Word]) -> Result<(), Self::Error> {
-        self.transfer_preparation(words)?;
-        let mut current_read_idx = 0;
-        let mut current_write_idx = self.initial_send_fifo_pumping_with_fill_words(words.len());
-        loop {
-            if current_read_idx < words.len() {
-                words[current_read_idx] = (nb::block!(self.read_fifo())? & Word::MASK)
-                    .try_into()
-                    .unwrap();
-                current_read_idx += 1;
-            }
-            if current_write_idx < words.len() {
-                if current_write_idx == words.len() - 1 && self.bmstall {
-                    nb::block!(self.write_fifo(self.fill_word.into() | BMSTART_BMSTOP_MASK))?;
-                } else {
-                    nb::block!(self.write_fifo(self.fill_word.into()))?;
-                }
-                current_write_idx += 1;
-            }
-            if current_read_idx >= words.len() && current_write_idx >= words.len() {
-                break;
-            }
-        }
+        self.read(words);
         Ok(())
     }
 
     fn write(&mut self, words: &[Word]) -> Result<(), Self::Error> {
-        self.transfer_preparation(words)?;
-        let mut current_write_idx = self.initial_send_fifo_pumping_with_words(words);
-        while current_write_idx < words.len() {
-            if current_write_idx == words.len() - 1 && self.bmstall {
-                nb::block!(self.write_fifo(words[current_write_idx].into() | BMSTART_BMSTOP_MASK))?;
-            } else {
-                nb::block!(self.write_fifo(words[current_write_idx].into()))?;
-            }
-            current_write_idx += 1;
-            // Ignore received words.
-            if self.regs.read_status().rx_not_empty() {
-                self.clear_rx_fifo();
-            }
-        }
+        self.write(words);
         Ok(())
     }
 
     fn transfer(&mut self, read: &mut [Word], write: &[Word]) -> Result<(), Self::Error> {
-        self.transfer_preparation(write)?;
-        let mut current_read_idx = 0;
-        let mut current_write_idx = self.initial_send_fifo_pumping_with_words(write);
-        let max_idx = core::cmp::max(read.len(), write.len());
-        while current_read_idx < read.len() || current_write_idx < write.len() {
-            if current_write_idx < max_idx {
-                if current_write_idx == write.len() - 1 && self.bmstall {
-                    nb::block!(
-                        self.write_fifo(write[current_write_idx].into() | BMSTART_BMSTOP_MASK)
-                    )?;
-                } else if current_write_idx < write.len() {
-                    nb::block!(self.write_fifo(write[current_write_idx].into()))?;
-                } else {
-                    nb::block!(self.write_fifo(0))?;
-                }
-                current_write_idx += 1;
-            }
-            if current_read_idx < max_idx {
-                if current_read_idx < read.len() {
-                    read[current_read_idx] = (nb::block!(self.read_fifo())? & Word::MASK)
-                        .try_into()
-                        .unwrap();
-                } else {
-                    nb::block!(self.read_fifo()).unwrap();
-                }
-                current_read_idx += 1;
-            }
-        }
-
+        self.transfer(read, write);
         Ok(())
     }
 
     fn transfer_in_place(&mut self, words: &mut [Word]) -> Result<(), Self::Error> {
-        self.transfer_preparation(words)?;
-        let mut current_read_idx = 0;
-        let mut current_write_idx = self.initial_send_fifo_pumping_with_words(words);
-
-        while current_read_idx < words.len() || current_write_idx < words.len() {
-            if current_write_idx < words.len() {
-                if current_write_idx == words.len() - 1 && self.bmstall {
-                    nb::block!(
-                        self.write_fifo(words[current_write_idx].into() | BMSTART_BMSTOP_MASK)
-                    )?;
-                } else {
-                    nb::block!(self.write_fifo(words[current_write_idx].into()))?;
-                }
-                current_write_idx += 1;
-            }
-            if current_read_idx < words.len() && current_read_idx < current_write_idx {
-                words[current_read_idx] = (nb::block!(self.read_fifo())? & Word::MASK)
-                    .try_into()
-                    .unwrap();
-                current_read_idx += 1;
-            }
-        }
+        self.transfer_in_place(words);
         Ok(())
     }
 
     fn flush(&mut self) -> Result<(), Self::Error> {
-        self.flush_internal();
+        self.flush();
         Ok(())
     }
 }

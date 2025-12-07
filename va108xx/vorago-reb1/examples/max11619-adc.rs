@@ -8,7 +8,7 @@
 use core::convert::Infallible;
 
 use cortex_m_rt::entry;
-use embedded_hal::spi::{SpiBus, SpiDevice, MODE_0};
+use embedded_hal::spi::{SpiDevice, MODE_0};
 use embedded_hal::{delay::DelayNs, spi};
 use max116xx_10bit::VoltageRefMode;
 use max116xx_10bit::{AveragingConversions, AveragingResults};
@@ -86,14 +86,10 @@ impl<Delay: DelayNs> SpiDevice for SpiWithHwCs<Delay> {
         self.inner.cfg_hw_cs(self.hw_cs_id);
         for operation in operations {
             match operation {
-                spi::Operation::Read(buf) => self.inner.read(buf).ok().unwrap(),
-                spi::Operation::Write(buf) => self.inner.write(buf).ok().unwrap(),
-                spi::Operation::Transfer(read, write) => {
-                    self.inner.transfer(read, write).ok().unwrap()
-                }
-                spi::Operation::TransferInPlace(buf) => {
-                    self.inner.transfer_in_place(buf).ok().unwrap()
-                }
+                spi::Operation::Read(buf) => self.inner.read(buf),
+                spi::Operation::Write(buf) => self.inner.write(buf),
+                spi::Operation::Transfer(read, write) => self.inner.transfer(read, write),
+                spi::Operation::TransferInPlace(buf) => self.inner.transfer_in_place(buf),
                 spi::Operation::DelayNs(delay) => self.delay_provider.delay_ns(*delay),
             };
         }

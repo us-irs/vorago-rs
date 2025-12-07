@@ -20,7 +20,7 @@ fn main() -> ! {
     let mut delay = CountdownTimer::new(dp.tim0, CLOCK_FREQ);
     let clk_config = SpiClockConfig::new(2, 4);
     let mut nvm = M95M01::new(dp.spic, clk_config);
-    let status_reg = nvm.read_status_reg().expect("reading status reg failed");
+    let status_reg = nvm.read_status_reg();
     if status_reg.zero_segment().value() == 0b111 {
         panic!("status register unexpected values");
     }
@@ -31,26 +31,26 @@ fn main() -> ! {
     for (idx, val) in write_buf.iter_mut().enumerate() {
         *val = ((idx as u16) % (u8::MAX as u16 + 1)) as u8;
     }
-    nvm.read(0, &mut orig_content).unwrap();
+    nvm.read(0, &mut orig_content);
 
     nvm.write_page(0, 0, &[1, 2, 3, 4]).unwrap();
-    nvm.read(0, &mut read_buf[0..4]).unwrap();
+    nvm.read(0, &mut read_buf[0..4]);
 
     // Read the whole content. Write will internally be split across two page bounaries.
-    nvm.write(0, &write_buf).unwrap();
+    nvm.write(0, &write_buf);
     // Memory can be read in one go.
-    nvm.read(0, &mut read_buf).unwrap();
+    nvm.read(0, &mut read_buf);
     assert_eq!(&read_buf, &write_buf);
-    assert!(nvm.verify(0, &write_buf).unwrap());
+    assert!(nvm.verify(0, &write_buf));
     read_buf.fill(0);
 
     // Write along page boundary
-    nvm.write(PAGE_SIZE - 2, &write_buf[0..8]).unwrap();
-    nvm.read(PAGE_SIZE - 2, &mut read_buf[0..8]).unwrap();
+    nvm.write(PAGE_SIZE - 2, &write_buf[0..8]);
+    nvm.read(PAGE_SIZE - 2, &mut read_buf[0..8]);
     assert_eq!(&read_buf[0..8], &write_buf[0..8]);
-    assert!(nvm.verify(PAGE_SIZE - 2, &write_buf[0..8]).unwrap());
+    assert!(nvm.verify(PAGE_SIZE - 2, &write_buf[0..8]));
 
-    nvm.write(0, &orig_content).unwrap();
+    nvm.write(0, &orig_content);
     loop {
         delay.delay_ms(500);
     }

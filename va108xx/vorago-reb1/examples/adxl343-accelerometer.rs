@@ -6,7 +6,7 @@
 #![no_std]
 use cortex_m_rt::entry;
 use embedded_hal::delay::DelayNs;
-use embedded_hal::spi::{SpiBus, MODE_3};
+use embedded_hal::spi::MODE_3;
 use panic_rtt_target as _;
 use rtt_target::{rprintln, rtt_init_print};
 use va108xx_hal::gpio::{Output, PinState};
@@ -51,14 +51,12 @@ fn main() -> ! {
 
     let mut tx_rx_buf: [u8; 3] = [0; 3];
     tx_rx_buf[0] = READ_MASK | DEVID_REG;
-    spi.transfer_in_place(&mut tx_rx_buf[0..2])
-        .expect("Reading DEVID register failed");
+    spi.transfer_in_place(&mut tx_rx_buf[0..2]);
     rprintln!("DEVID register: {}", tx_rx_buf[1]);
 
     tx_rx_buf[0] = POWER_CTL_REG;
     tx_rx_buf[1] = PWR_MEASUREMENT_MODE_MASK;
-    spi.write(&tx_rx_buf[0..2])
-        .expect("Enabling measurement mode failed");
+    spi.write(&tx_rx_buf[0..2]);
 
     loop {
         delay.delay_ms(500);
