@@ -1,13 +1,22 @@
 use core::convert::Infallible;
 use core::marker::PhantomData;
 
-use crate::gpio::IoPeriphPin;
+use crate::gpio::{DynPinId, IoPeriphPin};
 use crate::timer::enable_tim_clk;
 use crate::timer::regs::{EnableControl, StatusSelect};
-use crate::{PeripheralSelect, enable_peripheral_clock};
+use crate::{FunctionSelect, PeripheralSelect, enable_peripheral_clock};
 
 use crate::time::Hertz;
-use crate::timer::{self, TimId, TimInstance, TimPin};
+use crate::timer::{self, TimId};
+use crate::timer::{
+    Tim0Instance, Tim0Pin, Tim1Instance, Tim1Pin, Tim2Instance, Tim2Pin, Tim3Instance, Tim3Pin,
+    Tim4Instance, Tim4Pin, Tim5Instance, Tim5Pin, Tim6Instance, Tim6Pin, Tim7Instance, Tim7Pin,
+    Tim8Instance, Tim8Pin, Tim9Instance, Tim9Pin, Tim10Instance, Tim10Pin, Tim11Instance, Tim11Pin,
+    Tim12Instance, Tim12Pin, Tim13Instance, Tim13Pin, Tim14Instance, Tim14Pin, Tim15Instance,
+    Tim15Pin, Tim16Instance, Tim16Pin, Tim17Instance, Tim17Pin, Tim18Instance, Tim18Pin,
+    Tim19Instance, Tim19Pin, Tim20Instance, Tim20Pin, Tim21Instance, Tim21Pin, Tim22Instance,
+    Tim22Pin, Tim23Instance, Tim23Pin,
+};
 
 const DUTY_MAX: u16 = u16::MAX;
 
@@ -17,14 +26,6 @@ pub enum PwmA {}
 #[derive(Debug)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum PwmB {}
-
-#[derive(Debug, thiserror::Error)]
-#[cfg_attr(feature = "defmt", derive(defmt::Format))]
-#[error("pin tim ID {pin_tim:?} and timer tim id {tim_id:?} do not match")]
-pub struct TimMissmatchError {
-    pin_tim: TimId,
-    tim_id: TimId,
-}
 
 //==================================================================================================
 // PWM pin
@@ -44,25 +45,79 @@ pub struct PwmPin<Mode = PwmA> {
     mode: PhantomData<Mode>,
 }
 
+macro_rules! impl_pwm_new_methods {
+    (
+        $(
+            ($tim_name:ident, $pin_trait:ident, $instance_trait:ident)
+        ),*
+        $(,)?
+    ) => {
+        paste::paste! {
+            $(
+                #[doc = concat!("Create a new PWM pin using ", stringify!($tim_name))]
+                pub fn [<new_with_ $tim_name:lower>] <Pin: $pin_trait, Tim: $instance_trait>(
+                    _pin: Pin,
+                    _tim: Tim,
+                    #[cfg(feature = "vor1x")] sys_clk: Hertz,
+                    #[cfg(feature = "vor4x")] clks: &crate::clock::Clocks,
+                    initial_frequency: Hertz,
+                ) -> Self {
+                    Self::new(
+                        Pin::PIN_ID,
+                        Pin::FUNC_SEL,
+                        Tim::ID,
+                        #[cfg(feature = "vor1x")]
+                        sys_clk,
+                        #[cfg(feature = "vor4x")]
+                        clks,
+                        initial_frequency,
+                    )
+                }
+            )*
+        }
+    };
+}
+
 impl<Mode> PwmPin<Mode> {
-    /// Create a new PWM pin
-    pub fn new<Pin: TimPin, Tim: TimInstance>(
-        _pin: Pin,
-        _tim: Tim,
+    impl_pwm_new_methods! {
+        (Tim0,  Tim0Pin,  Tim0Instance),
+        (Tim1,  Tim1Pin,  Tim1Instance),
+        (Tim2,  Tim2Pin,  Tim2Instance),
+        (Tim3,  Tim3Pin,  Tim3Instance),
+        (Tim4,  Tim4Pin,  Tim4Instance),
+        (Tim5,  Tim5Pin,  Tim5Instance),
+        (Tim6,  Tim6Pin,  Tim6Instance),
+        (Tim7,  Tim7Pin,  Tim7Instance),
+        (Tim8,  Tim8Pin,  Tim8Instance),
+        (Tim9,  Tim9Pin,  Tim9Instance),
+        (Tim10, Tim10Pin, Tim10Instance),
+        (Tim11, Tim11Pin, Tim11Instance),
+        (Tim12, Tim12Pin, Tim12Instance),
+        (Tim13, Tim13Pin, Tim13Instance),
+        (Tim14, Tim14Pin, Tim14Instance),
+        (Tim15, Tim15Pin, Tim15Instance),
+        (Tim16, Tim16Pin, Tim16Instance),
+        (Tim17, Tim17Pin, Tim17Instance),
+        (Tim18, Tim18Pin, Tim18Instance),
+        (Tim19, Tim19Pin, Tim19Instance),
+        (Tim20, Tim20Pin, Tim20Instance),
+        (Tim21, Tim21Pin, Tim21Instance),
+        (Tim22, Tim22Pin, Tim22Instance),
+        (Tim23, Tim23Pin, Tim23Instance),
+    }
+
+    fn new(
+        pin_id: DynPinId,
+        func_sel: FunctionSelect,
+        tim_id: TimId,
         #[cfg(feature = "vor1x")] sys_clk: Hertz,
         #[cfg(feature = "vor4x")] clks: &crate::clock::Clocks,
         initial_frequency: Hertz,
-    ) -> Result<Self, TimMissmatchError> {
-        if Pin::TIM_ID != Tim::ID {
-            return Err(TimMissmatchError {
-                pin_tim: Pin::TIM_ID,
-                tim_id: Tim::ID,
-            });
-        }
-        IoPeriphPin::new(Pin::PIN_ID, Pin::FUN_SEL, None);
+    ) -> Self {
+        IoPeriphPin::new(pin_id, func_sel, None);
         let mut pin = PwmPin {
-            tim_id: Tim::ID,
-            regs: timer::regs::Timer::new_mmio(Tim::ID),
+            tim_id,
+            regs: timer::regs::Timer::new_mmio(tim_id),
             current_duty: 0,
             current_lower_limit: 0,
             current_period: initial_frequency,
@@ -78,10 +133,10 @@ impl<Mode> PwmPin<Mode> {
         #[cfg(feature = "vor1x")]
         enable_peripheral_clock(PeripheralSelect::Gpio);
         enable_peripheral_clock(PeripheralSelect::IoConfig);
-        enable_tim_clk(Tim::ID);
+        enable_tim_clk(tim_id);
         pin.enable_pwm_a();
         pin.set_period(initial_frequency);
-        Ok(pin)
+        pin
     }
 
     #[inline]

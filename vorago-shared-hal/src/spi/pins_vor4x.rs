@@ -11,19 +11,22 @@ use crate::{
 #[cfg(not(feature = "va41628"))]
 use crate::pins::{Pb5, Pb6, Pb7, Pb8, Pb9, Pb10, Pb11, Pe10, Pe11, Pf2, Pf3, Pf4, Pf5, Pf6, Pf7};
 
-use super::{Bank, HwChipSelectId, HwCsProvider, PinMiso, PinMosi, PinSck};
+use super::{
+    Bank, HwChipSelectId, HwCsProvider, PinMiso0, PinMiso1, PinMiso2, PinMosi0, PinMosi1, PinMosi2,
+    PinSck0, PinSck1, PinSck2,
+};
 
 // SPI0
 
-impl PinSck for Pin<Pb15> {
+impl PinSck0 for Pin<Pb15> {
     const SPI_ID: Bank = Bank::Spi0;
     const FUN_SEL: FunctionSelect = FunctionSelect::Sel1;
 }
-impl PinMosi for Pin<Pc1> {
+impl PinMosi0 for Pin<Pc1> {
     const SPI_ID: Bank = Bank::Spi0;
     const FUN_SEL: FunctionSelect = FunctionSelect::Sel1;
 }
-impl PinMiso for Pin<Pc0> {
+impl PinMiso0 for Pin<Pc0> {
     const SPI_ID: Bank = Bank::Spi0;
     const FUN_SEL: FunctionSelect = FunctionSelect::Sel1;
 }
@@ -44,68 +47,68 @@ hw_cs_pins!(
 // SPI1
 
 #[cfg(not(feature = "va41628"))]
-impl PinSck for Pin<Pb8> {
+impl PinSck1 for Pin<Pb8> {
     const SPI_ID: Bank = Bank::Spi1;
     const FUN_SEL: FunctionSelect = FunctionSelect::Sel3;
 }
 #[cfg(not(feature = "va41628"))]
-impl PinMosi for Pin<Pb10> {
+impl PinMosi1 for Pin<Pb10> {
     const SPI_ID: Bank = Bank::Spi1;
     const FUN_SEL: FunctionSelect = FunctionSelect::Sel3;
 }
 #[cfg(not(feature = "va41628"))]
-impl PinMiso for Pin<Pb9> {
+impl PinMiso1 for Pin<Pb9> {
     const SPI_ID: Bank = Bank::Spi1;
     const FUN_SEL: FunctionSelect = FunctionSelect::Sel3;
 }
 
-impl PinSck for Pin<Pc9> {
+impl PinSck1 for Pin<Pc9> {
     const SPI_ID: Bank = Bank::Spi1;
     const FUN_SEL: FunctionSelect = FunctionSelect::Sel2;
 }
-impl PinMosi for Pin<Pc11> {
+impl PinMosi1 for Pin<Pc11> {
     const SPI_ID: Bank = Bank::Spi1;
     const FUN_SEL: FunctionSelect = FunctionSelect::Sel2;
 }
-impl PinMiso for Pin<Pc10> {
+impl PinMiso1 for Pin<Pc10> {
     const SPI_ID: Bank = Bank::Spi1;
     const FUN_SEL: FunctionSelect = FunctionSelect::Sel2;
 }
 
-impl PinSck for Pin<Pe13> {
+impl PinSck1 for Pin<Pe13> {
     const SPI_ID: Bank = Bank::Spi1;
     const FUN_SEL: FunctionSelect = FunctionSelect::Sel2;
 }
-impl PinMosi for Pin<Pe15> {
+impl PinMosi1 for Pin<Pe15> {
     const SPI_ID: Bank = Bank::Spi1;
     const FUN_SEL: FunctionSelect = FunctionSelect::Sel2;
 }
-impl PinMiso for Pin<Pe14> {
+impl PinMiso1 for Pin<Pe14> {
     const SPI_ID: Bank = Bank::Spi1;
     const FUN_SEL: FunctionSelect = FunctionSelect::Sel2;
 }
 
 #[cfg(not(feature = "va41628"))]
-impl PinSck for Pin<Pf3> {
+impl PinSck1 for Pin<Pf3> {
     const SPI_ID: Bank = Bank::Spi1;
     const FUN_SEL: FunctionSelect = FunctionSelect::Sel1;
 }
 #[cfg(not(feature = "va41628"))]
-impl PinMosi for Pin<Pf5> {
+impl PinMosi1 for Pin<Pf5> {
     const SPI_ID: Bank = Bank::Spi1;
     const FUN_SEL: FunctionSelect = FunctionSelect::Sel1;
 }
 #[cfg(not(feature = "va41628"))]
-impl PinMiso for Pin<Pf4> {
+impl PinMiso1 for Pin<Pf4> {
     const SPI_ID: Bank = Bank::Spi1;
     const FUN_SEL: FunctionSelect = FunctionSelect::Sel1;
 }
 
-impl PinSck for Pin<Pg3> {
+impl PinSck1 for Pin<Pg3> {
     const SPI_ID: Bank = Bank::Spi1;
     const FUN_SEL: FunctionSelect = FunctionSelect::Sel2;
 }
-impl PinMiso for Pin<Pg4> {
+impl PinMiso1 for Pin<Pg4> {
     const SPI_ID: Bank = Bank::Spi1;
     const FUN_SEL: FunctionSelect = FunctionSelect::Sel2;
 }
@@ -149,31 +152,31 @@ hw_cs_multi_pin!(
 
 // SPI2
 
-impl PinSck for Pin<Pa5> {
+impl PinSck2 for Pin<Pa5> {
     const SPI_ID: Bank = Bank::Spi2;
     const FUN_SEL: FunctionSelect = FunctionSelect::Sel2;
 }
-impl PinMosi for Pin<Pa7> {
+impl PinMosi2 for Pin<Pa7> {
     const SPI_ID: Bank = Bank::Spi2;
     const FUN_SEL: FunctionSelect = FunctionSelect::Sel2;
 }
-impl PinMiso for Pin<Pa6> {
+impl PinMiso2 for Pin<Pa6> {
     const SPI_ID: Bank = Bank::Spi2;
     const FUN_SEL: FunctionSelect = FunctionSelect::Sel2;
 }
 
 #[cfg(not(feature = "va41628"))]
-impl PinSck for Pin<Pf5> {
+impl PinSck2 for Pin<Pf5> {
     const SPI_ID: Bank = Bank::Spi2;
     const FUN_SEL: FunctionSelect = FunctionSelect::Sel2;
 }
 #[cfg(not(feature = "va41628"))]
-impl PinMosi for Pin<Pf7> {
+impl PinMosi2 for Pin<Pf7> {
     const SPI_ID: Bank = Bank::Spi2;
     const FUN_SEL: FunctionSelect = FunctionSelect::Sel2;
 }
 #[cfg(not(feature = "va41628"))]
-impl PinMiso for Pin<Pf6> {
+impl PinMiso2 for Pin<Pf6> {
     const SPI_ID: Bank = Bank::Spi2;
     const FUN_SEL: FunctionSelect = FunctionSelect::Sel2;
 }

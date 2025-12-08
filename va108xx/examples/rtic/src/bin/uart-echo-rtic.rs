@@ -53,15 +53,14 @@ mod app {
         let tx = gpioa.pa9;
         let rx = gpioa.pa8;
 
-        let irq_uart = uart::Uart::new_with_interrupt(
+        let irq_uart = uart::Uart::new_with_interrupt_uart0(
             dp.uarta,
             tx,
             rx,
             SYSCLK_FREQ,
             115200.Hz().into(),
             InterruptConfig::new(pac::Interrupt::OC3, true, true),
-        )
-        .unwrap();
+        );
         let (tx, rx) = irq_uart.split();
         let mut rx = rx.into_rx_with_irq();
 

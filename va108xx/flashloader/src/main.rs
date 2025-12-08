@@ -116,15 +116,14 @@ mod app {
         let tx = gpioa.pa9;
         let rx = gpioa.pa8;
 
-        let irq_uart = uart::Uart::new_with_interrupt(
+        let irq_uart = uart::Uart::new_with_interrupt_uart0(
             dp.uarta,
             tx,
             rx,
             SYSCLK_FREQ,
             UART_BAUDRATE.Hz().into(),
             InterruptConfig::new(pac::Interrupt::OC0, true, true),
-        )
-        .unwrap();
+        );
         let (tx, rx) = irq_uart.split();
         // Unwrap is okay, we explicitely set the interrupt ID.
         let mut rx = rx.into_rx_with_irq();

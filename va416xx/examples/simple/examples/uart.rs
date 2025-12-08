@@ -30,14 +30,13 @@ fn main() -> ! {
 
     let gpiog = PinsG::new(dp.portg);
 
-    let uart0 = uart::Uart::new(
+    let uart0 = uart::Uart::new_for_uart0(
         dp.uart0,
         gpiog.pg0,
         gpiog.pg1,
         &clocks,
         Hertz::from_raw(115200).into(),
-    )
-    .unwrap();
+    );
     let (mut tx, mut rx) = uart0.split();
     writeln!(tx, "Hello World\n\r").unwrap();
     loop {

@@ -1,14 +1,19 @@
-use super::{FunctionSelect, TimId, TimPin};
+use super::FunctionSelect;
 use crate::pins::{
-    DynPinId, Pa0, Pa1, Pa2, Pa3, Pa4, Pa5, Pa6, Pa7, Pa8, Pa10, Pa11, Pa12, Pa13, Pa14, Pa15, Pb0,
-    Pb1, Pb2, Pb3, Pb4, Pb12, Pb13, Pb14, Pb15, Pc0, Pc1, Pd10, Pd11, Pd12, Pd13, Pd14, Pd15, Pe0,
-    Pe1, Pe2, Pe3, Pe4, Pe5, Pe6, Pe7, Pe8, Pe9, Pe12, Pe13, Pe14, Pe15, Pf0, Pf1, Pf9, Pf11, Pf12,
-    Pf13, Pf14, Pf15, Pg0, Pg1, Pg2, Pg3, Pg6, Pin, PinId,
+    Pa0, Pa1, Pa2, Pa3, Pa4, Pa5, Pa6, Pa7, Pa8, Pa10, Pa11, Pa12, Pa13, Pa14, Pa15, Pb0, Pb1, Pb2,
+    Pb3, Pb4, Pb12, Pb13, Pb14, Pb15, Pc0, Pc1, Pd10, Pd11, Pd12, Pd13, Pd14, Pd15, Pe0, Pe1, Pe2,
+    Pe3, Pe4, Pe5, Pe6, Pe7, Pe8, Pe9, Pe12, Pe13, Pe14, Pe15, Pf0, Pf1, Pf9, Pf11, Pf12, Pf13,
+    Pf14, Pf15, Pg0, Pg1, Pg2, Pg3, Pg6, PinId,
 };
 #[cfg(not(feature = "va41628"))]
 use crate::pins::{
     Pb5, Pb6, Pb7, Pb8, Pb9, Pb10, Pb11, Pd0, Pd1, Pd2, Pd3, Pd4, Pd5, Pd6, Pd7, Pd8, Pd9, Pe10,
     Pe11, Pf2, Pf3, Pf4, Pf5, Pf6, Pf7, Pf8, Pf10,
+};
+use crate::timer::{
+    Tim0Pin, Tim1Pin, Tim2Pin, Tim3Pin, Tim4Pin, Tim5Pin, Tim6Pin, Tim7Pin, Tim8Pin, Tim9Pin,
+    Tim10Pin, Tim11Pin, Tim12Pin, Tim13Pin, Tim14Pin, Tim15Pin, Tim16Pin, Tim17Pin, Tim18Pin,
+    Tim19Pin, Tim20Pin, Tim21Pin, Tim22Pin, Tim23Pin,
 };
 
 pin_and_tim!(Pa0, FunctionSelect::Sel1, 0);

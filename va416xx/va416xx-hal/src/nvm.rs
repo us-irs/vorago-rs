@@ -6,15 +6,14 @@
 //!
 //! - [Flashloader application](https://egit.irs.uni-stuttgart.de/rust/vorago-rs/src/branch/main/va416xx/flashloader)
 use embedded_hal::spi::MODE_0;
+use vorago_shared_hal::spi::Spi3Instance as _;
 use vorago_shared_hal::{
     disable_peripheral_clock, enable_peripheral_clock, reset_peripheral_for_cycles,
 };
 
 use crate::clock::Clocks;
 use crate::pac;
-use crate::spi::{
-    mode_to_cpo_cph_bit, spi_clk_config_from_div, SpiInstance, SpiWord, BMSTART_BMSTOP_MASK,
-};
+use crate::spi::{mode_to_cpo_cph_bit, spi_clk_config_from_div, SpiWord, BMSTART_BMSTOP_MASK};
 
 const NVM_CLOCK_DIV: u16 = 2;
 

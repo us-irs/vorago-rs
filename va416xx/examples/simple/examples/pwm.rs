@@ -32,7 +32,7 @@ fn main() -> ! {
         .unwrap();
 
     let pinsg = PinsG::new(dp.portg);
-    let mut pwm = PwmPin::new(pinsg.pg2, dp.tim9, &clocks, 10.Hz()).unwrap();
+    let mut pwm = PwmPin::new_with_tim9(pinsg.pg2, dp.tim9, &clocks, 10.Hz());
     let mut delay_timer = CountdownTimer::new(dp.tim0, &clocks);
     let mut current_duty_cycle = 0.0;
     pwm.set_duty_cycle(get_duty_from_percent(current_duty_cycle))

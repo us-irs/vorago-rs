@@ -64,7 +64,7 @@ pub struct PageBoundaryExceededError;
 
 impl M95M01 {
     pub fn new(spi: pac::Spic, clk_config: SpiClockConfig) -> Self {
-        let spi = RomSpi::new_for_rom(spi, SpiConfig::default().clk_cfg(clk_config)).unwrap();
+        let spi = RomSpi::new_for_rom(spi, SpiConfig::default().clk_cfg(clk_config));
         let mut spi_dev = Self { spi };
         spi_dev.clear_block_protection().unwrap();
         spi_dev

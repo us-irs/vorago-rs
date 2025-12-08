@@ -65,28 +65,26 @@ async fn main(spawner: Spawner) {
     let tx_uart_a = porta.pa9;
     let rx_uart_a = porta.pa8;
 
-    let uarta = uart::Uart::new_with_interrupt(
+    let uarta = uart::Uart::new_with_interrupt_uart0(
         dp.uarta,
         tx_uart_a,
         rx_uart_a,
         50.MHz(),
         115200.Hz().into(),
         InterruptConfig::new(pac::Interrupt::OC2, true, true),
-    )
-    .unwrap();
+    );
 
     let tx_uart_b = porta.pa3;
     let rx_uart_b = porta.pa2;
 
-    let uartb = uart::Uart::new_with_interrupt(
+    let uartb = uart::Uart::new_with_interrupt_uart1(
         dp.uartb,
         tx_uart_b,
         rx_uart_b,
         50.MHz(),
         115200.Hz().into(),
         InterruptConfig::new(pac::Interrupt::OC3, true, true),
-    )
-    .unwrap();
+    );
     let (mut tx_uart_a, rx_uart_a) = uarta.split();
     let (tx_uart_b, rx_uart_b) = uartb.split();
     let (prod_uart_a, cons_uart_a) = QUEUE_UART_A.take().split();
