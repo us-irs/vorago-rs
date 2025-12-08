@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [unreleased]
 
+### Added
+
+### Changed
+
+- Added `RxWithInterrupt::steal`.
+- Improved type level support for resource management for SPI, PWM, UART.
+
 ## [v0.2.0] 2025-09-03
 
 Renamed to `vorago-shared-hal`
