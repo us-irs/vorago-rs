@@ -1306,6 +1306,18 @@ impl RxWithInterrupt {
         Self(rx)
     }
 
+    /// Steal the RX peripheral with interrupt support for the given UART bank.
+    ///
+    /// Can be useful to retrieve an instance in an interrupt if this instance is not used in the
+    /// main thread after initialization time.
+    ///
+    /// # Safety
+    ///
+    /// Circumvents the HAL ownership and safety guarantees.
+    pub unsafe fn steal(id: Bank) -> Self {
+        Self(unsafe { Rx::steal(id) })
+    }
+
     /// This function should be called once at initialization time if the regular
     /// [Self::on_interrupt] is used to read the UART receiver to enable and start the receiver.
     pub fn start(&mut self) {
