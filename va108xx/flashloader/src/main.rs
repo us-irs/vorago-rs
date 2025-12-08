@@ -299,15 +299,9 @@ mod app {
         if pus_tc.service_type_id() == PusServiceId::Action as u8 {
             let mut corrupt_image = |base_addr: u32| {
                 let mut buf = [0u8; 4];
-                cx.local
-                    .nvm
-                    .read(base_addr as usize + 32, &mut buf)
-                    .expect("reading from NVM failed");
+                cx.local.nvm.read(base_addr as usize + 32, &mut buf);
                 buf[0] += 1;
-                cx.local
-                    .nvm
-                    .write(base_addr as usize + 32, &buf)
-                    .expect("writing to NVM failed");
+                cx.local.nvm.write(base_addr as usize + 32, &buf);
                 let tm = cx
                     .local
                     .verif_reporter
@@ -337,8 +331,7 @@ mod app {
                 );
                 cx.local
                     .nvm
-                    .write(PREFERRED_SLOT_OFFSET as usize, &[pus_tc.app_data()[0]])
-                    .expect("writing to NVM failed");
+                    .write(PREFERRED_SLOT_OFFSET as usize, &[pus_tc.app_data()[0]]);
                 let tm = cx
                     .local
                     .verif_reporter
@@ -397,16 +390,8 @@ mod app {
                 }
                 let data = &app_data[10..10 + data_len as usize];
                 defmt::info!("writing {} bytes at offset {} to NVM", data_len, offset);
-                cx.local
-                    .nvm
-                    .write(offset as usize, data)
-                    .expect("writing to NVM failed");
-                let tm = if !cx
-                    .local
-                    .nvm
-                    .verify(offset as usize, data)
-                    .expect("NVM verification failed")
-                {
+                cx.local.nvm.write(offset as usize, data);
+                let tm = if !cx.local.nvm.verify(offset as usize, data) {
                     defmt::warn!("verification of data written to NVM failed");
                     cx.local
                         .verif_reporter

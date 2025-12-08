@@ -84,15 +84,15 @@ pub struct NvmWrapper(pub M95M01);
 
 // Newtype pattern. We could now more easily swap the used NVM type.
 impl NvmInterface for NvmWrapper {
-    fn write(&mut self, address: usize, data: &[u8]) -> Result<(), core::convert::Infallible> {
+    fn write(&mut self, address: usize, data: &[u8]) {
         self.0.write(address, data)
     }
 
-    fn read(&mut self, address: usize, buf: &mut [u8]) -> Result<(), core::convert::Infallible> {
+    fn read(&mut self, address: usize, buf: &mut [u8]) {
         self.0.read(address, buf)
     }
 
-    fn verify(&mut self, address: usize, data: &[u8]) -> Result<bool, core::convert::Infallible> {
+    fn verify(&mut self, address: usize, data: &[u8]) -> bool {
         self.0.verify(address, data)
     }
 }
@@ -125,30 +125,20 @@ fn main() -> ! {
         digest.update(bootloader_data);
         let bootloader_crc = digest.finalize();
 
-        nvm.write(0x0, &first_four_bytes)
-            .expect("writing to NVM failed");
-        nvm.write(0x4, bootloader_data)
-            .expect("writing to NVM failed");
-        if let Err(e) = nvm.verify(0x0, &first_four_bytes) {
-            if DEFMT_PRINTOUT {
-                defmt::error!("verification of self-flash to NVM failed: {:?}", e);
-            }
+        nvm.write(0x0, &first_four_bytes);
+        nvm.write(0x4, bootloader_data);
+        if !nvm.verify(0x0, &first_four_bytes) && DEFMT_PRINTOUT {
+            defmt::error!("verification of self-flash to NVM failed");
         }
-        if let Err(e) = nvm.verify(0x4, bootloader_data) {
-            if DEFMT_PRINTOUT {
-                defmt::error!("verification of self-flash to NVM failed: {:?}", e);
-            }
+        if !nvm.verify(0x4, bootloader_data) && DEFMT_PRINTOUT {
+            defmt::error!("verification of self-flash to NVM failed");
         }
 
-        nvm.write(BOOTLOADER_CRC_ADDR as usize, &bootloader_crc.to_be_bytes())
-            .expect("writing CRC failed");
-        if let Err(e) = nvm.verify(BOOTLOADER_CRC_ADDR as usize, &bootloader_crc.to_be_bytes()) {
-            if DEFMT_PRINTOUT {
-                defmt::error!(
-                    "error: CRC verification for bootloader self-flash failed: {:?}",
-                    e
-                );
-            }
+        nvm.write(BOOTLOADER_CRC_ADDR as usize, &bootloader_crc.to_be_bytes());
+        if !nvm.verify(BOOTLOADER_CRC_ADDR as usize, &bootloader_crc.to_be_bytes())
+            && DEFMT_PRINTOUT
+        {
+            defmt::error!("error: CRC verification for bootloader self-flash failed",);
         }
     }
 
@@ -158,8 +148,7 @@ fn main() -> ! {
     check_own_crc(&dp.sysconfig, &cp, &mut nvm, &mut timer);
 
     let mut preferred_app_raw = [0; 1];
-    nvm.read(PREFERRED_SLOT_OFFSET as usize, &mut preferred_app_raw)
-        .expect("reading preferred slot failed");
+    nvm.read(PREFERRED_SLOT_OFFSET as usize, &mut preferred_app_raw);
     let preferred_app = AppSel::try_from(preferred_app_raw[0]).unwrap_or(AppSel::A);
     let other_app = if preferred_app == AppSel::A {
         AppSel::B
@@ -207,8 +196,7 @@ fn check_own_crc(
             defmt::info!("BL CRC blank - prog new CRC");
         }
         // Blank CRC, write it to NVM.
-        nvm.write(BOOTLOADER_CRC_ADDR as usize, &crc_calc.to_be_bytes())
-            .expect("writing CRC failed");
+        nvm.write(BOOTLOADER_CRC_ADDR as usize, &crc_calc.to_be_bytes());
         // The Vorago bootloader resets here. I am not sure why this is done but I think it is
         // necessary because somehow the boot will not work if we just continue as usual.
         // cortex_m::peripheral::SCB::sys_reset();

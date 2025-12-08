@@ -4,7 +4,7 @@
 use cortex_m_rt::entry;
 use embedded_hal::{
     delay::DelayNs,
-    spi::{Mode, SpiBus, MODE_0},
+    spi::{Mode, MODE_0},
 };
 // Import panic provider.
 use panic_probe as _;
@@ -107,14 +107,14 @@ fn main() -> ! {
     loop {
         let mut reply_buf: [u8; 8] = [0; 8];
         // Can't really verify correct reply here.
-        spi.write(&[0x42]).expect("write failed");
+        spi.write(&[0x42]);
         // Because of the loopback mode, we should get back the fill word here.
-        spi.read(&mut reply_buf[0..1]).unwrap();
+        spi.read(&mut reply_buf[0..1]);
         assert_eq!(reply_buf[0], FILL_WORD);
         delay.delay_ms(500_u32);
 
         let tx_buf: [u8; 3] = [0x01, 0x02, 0x03];
-        spi.transfer(&mut reply_buf[0..3], &tx_buf).unwrap();
+        spi.transfer(&mut reply_buf[0..3], &tx_buf);
         assert_eq!(tx_buf, reply_buf[0..3]);
         defmt::info!(
             "Received reply: {}, {}, {}",
@@ -125,7 +125,7 @@ fn main() -> ! {
         delay.delay_ms(500_u32);
 
         let mut tx_rx_buf: [u8; 3] = [0x03, 0x02, 0x01];
-        spi.transfer_in_place(&mut tx_rx_buf).unwrap();
+        spi.transfer_in_place(&mut tx_rx_buf);
         defmt::info!(
             "Received reply: {}, {}, {}",
             tx_rx_buf[0],

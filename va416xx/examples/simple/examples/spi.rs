@@ -10,7 +10,7 @@ use panic_probe as _;
 use defmt_rtt as _;
 
 use cortex_m_rt::entry;
-use embedded_hal::spi::{Mode, SpiBus, MODE_0};
+use embedded_hal::spi::{Mode, MODE_0};
 use simple_examples::peb1;
 use va416xx_hal::clock::ClockConfigurator;
 use va416xx_hal::spi::{Spi, SpiClockConfig};
@@ -67,20 +67,18 @@ fn main() -> ! {
         let tx_buf: [u8; 4] = [1, 2, 3, 0];
         let mut rx_buf: [u8; 4] = [0; 4];
         // Can't really verify correct behaviour here. Just verify nothing crazy happens or it hangs up.
-        spi0.write(&[0x42, 0x43]).expect("write failed");
+        spi0.write(&[0x42, 0x43]);
 
         // Can't really verify correct behaviour here. Just verify nothing crazy happens or it hangs up.
-        spi0.read(&mut rx_buf[0..2]).unwrap();
+        spi0.read(&mut rx_buf[0..2]);
 
         // If the pins are tied together, we should received exactly what we send.
 
         let mut inplace_buf = tx_buf;
-        spi0.transfer_in_place(&mut inplace_buf)
-            .expect("SPI transfer_in_place failed");
+        spi0.transfer_in_place(&mut inplace_buf);
         assert_eq!([1, 2, 3, 0], inplace_buf);
 
-        spi0.transfer(&mut rx_buf, &tx_buf)
-            .expect("SPI transfer failed");
+        spi0.transfer(&mut rx_buf, &tx_buf);
         assert_eq!(rx_buf, [1, 2, 3, 0]);
         delay.delay_ms(500);
     }
