@@ -19,7 +19,6 @@ use defmt_rtt as _;
 use embassy_example::EXTCLK_FREQ;
 use embassy_executor::Spawner;
 use embassy_time::{Duration, Instant, Ticker};
-use embedded_io_async::Write;
 use va416xx_hal::{
     clock::ClockConfigurator,
     gpio::{Output, PinState},
@@ -69,8 +68,8 @@ async fn main(_spawner: Spawner) {
     loop {
         defmt::println!("Current time: {}", Instant::now().as_secs());
         led.toggle();
-        let _written = async_tx
-            .write(STR_LIST[idx].as_bytes())
+        async_tx
+            .write_all(STR_LIST[idx].as_bytes())
             .await
             .expect("writing failed");
         idx += 1;

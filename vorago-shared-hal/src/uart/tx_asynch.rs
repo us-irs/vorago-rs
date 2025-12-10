@@ -177,6 +177,27 @@ impl TxAsync {
         Self(tx)
     }
 
+    /// Write a buffer asynchronously.
+    ///
+    /// This implementation is not side effect free, and a started future might have already
+    /// written part of the passed buffer.
+    pub async fn write(&mut self, buf: &[u8]) -> Result<usize, TxOverrunError> {
+        let fut = unsafe { TxFuture::new(&mut self.0, buf) };
+        fut.await
+    }
+
+    /// Write an entire buffer into this writer.
+    ///
+    /// This function calls `write()` in a loop until exactly `buf.len()` bytes have
+    /// been written, waiting if needed.
+    ///
+    /// This function is not side-effect-free on cancel (AKA "cancel-safe"), i.e. if you cancel (drop) a returned
+    /// future that hasn't completed yet, some bytes might have already been written.
+    pub async fn write_all(&mut self, buf: &[u8]) -> Result<(), TxOverrunError> {
+        let fut = <Self as embedded_io_async::Write>::write_all(self, buf);
+        fut.await
+    }
+
     pub fn release(self) -> Tx {
         self.0
     }
@@ -203,8 +224,7 @@ impl Write for TxAsync {
     /// This implementation is not side effect free, and a started future might have already
     /// written part of the passed buffer.
     async fn write(&mut self, buf: &[u8]) -> Result<usize, Self::Error> {
-        let fut = unsafe { TxFuture::new(&mut self.0, buf) };
-        fut.await
+        self.write(buf).await
     }
 
     async fn flush(&mut self) -> Result<(), Self::Error> {
