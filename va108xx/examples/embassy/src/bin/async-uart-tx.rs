@@ -15,7 +15,6 @@ use embassy_example as _;
 
 use embassy_executor::Spawner;
 use embassy_time::{Duration, Instant, Ticker};
-use embedded_io_async::Write;
 use va108xx_hal::{
     gpio::{Output, PinState},
     pac::{self, interrupt},
@@ -70,8 +69,8 @@ async fn main(_spawner: Spawner) {
         led0.toggle();
         led1.toggle();
         led2.toggle();
-        let _written = async_tx
-            .write(STR_LIST[idx].as_bytes())
+        async_tx
+            .write_all(STR_LIST[idx].as_bytes())
             .await
             .expect("writing failed");
         idx += 1;
