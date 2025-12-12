@@ -37,6 +37,14 @@ impl Output {
     }
 
     #[inline]
+    pub fn set_state(&mut self, state: PinState) {
+        match state {
+            PinState::Low => self.set_low(),
+            PinState::High => self.set_high(),
+        }
+    }
+
+    #[inline]
     pub fn set_low(&mut self) {
         self.0.set_low();
     }
@@ -267,6 +275,14 @@ impl Flex {
             return;
         }
         self.ll.set_high();
+    }
+
+    #[inline]
+    pub fn set_state(&mut self, state: PinState) {
+        match state {
+            PinState::Low => self.set_low(),
+            PinState::High => self.set_high(),
+        }
     }
 }
 
