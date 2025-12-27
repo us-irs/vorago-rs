@@ -2,9 +2,9 @@ use crate::{
     FunctionSelect,
     gpio::{DynPinId, Pin, PinId},
     pins::{
-        Pa0, Pa1, Pa2, Pa3, Pa4, Pa5, Pa6, Pa7, Pa8, Pa9, Pb0, Pb1, Pb2, Pb3, Pb4, Pb12, Pb13,
-        Pb14, Pb15, Pc0, Pc1, Pc7, Pc8, Pc9, Pc10, Pc11, Pe5, Pe6, Pe7, Pe8, Pe9, Pe12, Pe13, Pe14,
-        Pe15, Pf0, Pf1, Pg2, Pg3, Pg4,
+        AnyPin, Pa0, Pa1, Pa2, Pa3, Pa4, Pa5, Pa6, Pa7, Pa8, Pa9, Pb0, Pb1, Pb2, Pb3, Pb4, Pb12,
+        Pb13, Pb14, Pb15, Pc0, Pc1, Pc7, Pc8, Pc9, Pc10, Pc11, Pe5, Pe6, Pe7, Pe8, Pe9, Pe12, Pe13,
+        Pe14, Pe15, Pf0, Pf1, Pg2, Pg3, Pg4,
     },
 };
 

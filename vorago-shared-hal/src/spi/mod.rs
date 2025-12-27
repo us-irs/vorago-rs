@@ -104,6 +104,10 @@ mod macros {
 
             impl crate::sealed::Sealed for $name {}
 
+            impl AnyPin for $name {
+                const ID: DynPinId = <$pin_id as PinId>::ID;
+            }
+
             impl HwCsProvider for $name {
                 const PIN_ID: DynPinId = <$pin_id as PinId>::ID;
                 const SPI_ID: Bank = $spi_id;

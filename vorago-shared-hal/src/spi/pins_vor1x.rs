@@ -1,6 +1,7 @@
 use super::{HwCsProvider, PinMiso0, PinMiso1, PinMosi0, PinMosi1, PinSck0, PinSck1};
 use crate::FunctionSelect;
 use crate::gpio::{DynPinId, PinId};
+use crate::pins::AnyPin;
 
 use crate::pins::{
     Pa10, Pa11, Pa12, Pa13, Pa14, Pa15, Pa16, Pa17, Pa18, Pa19, Pa20, Pa21, Pa22, Pa23, Pa24, Pa25,
@@ -143,7 +144,6 @@ impl PinMiso1 for Pin<Pb3> {
     const FUN_SEL: FunctionSelect = FunctionSelect::Sel1;
 }
 
-// TODO: Need to deal with these duplications..
 hw_cs_pins!(
     Bank::Spi1,
     (Pb16, FunctionSelect::Sel1, HwChipSelectId::Id0),
