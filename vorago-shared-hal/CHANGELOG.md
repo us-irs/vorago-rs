@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 - Added `RxWithInterrupt::steal`.
 - Improved type level support for resource management for SPI, PWM, UART.
+- Removed HW CS pin provider implementation for PA23, PA22 and PA21, which are multi HW CS pins.
 
 ## [v0.2.0] 2025-09-03
 

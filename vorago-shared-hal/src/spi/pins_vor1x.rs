@@ -158,9 +158,6 @@ hw_cs_pins!(
     (Pa12, FunctionSelect::Sel2, HwChipSelectId::Id5),
     (Pa11, FunctionSelect::Sel2, HwChipSelectId::Id6),
     (Pa10, FunctionSelect::Sel2, HwChipSelectId::Id7),
-    (Pa23, FunctionSelect::Sel2, HwChipSelectId::Id5),
-    (Pa22, FunctionSelect::Sel2, HwChipSelectId::Id6),
-    (Pa21, FunctionSelect::Sel2, HwChipSelectId::Id7),
 );
 
 hw_cs_multi_pin!(
