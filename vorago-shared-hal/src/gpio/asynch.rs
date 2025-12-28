@@ -6,6 +6,7 @@
 //! which must be provided for async support to work. However, it provides the
 //! [on_interrupt_for_async_gpio_for_port] generic interrupt handler. This should be called in all
 //! IRQ functions which handle any GPIO interrupts with the corresponding [Port] argument.
+#![deny(missing_docs)]
 use core::future::Future;
 
 use embassy_sync::waitqueue::AtomicWaker;
@@ -97,6 +98,14 @@ fn pin_group_to_waker_and_edge_detection_group(
 pub fn on_interrupt_for_async_gpio_for_port(port: Port) {
     on_interrupt_for_async_gpio_for_port_generic(port);
 }
+
+/// Generic interrupt handler for GPIO interrupts on a specific port to support async functionalities
+///
+/// This function should be called in all interrupt handlers which handle any GPIO interrupts
+/// matching the [Port] argument.
+/// The handler will wake the corresponding wakers for the pins that triggered an interrupts
+/// as well as update the static edge detection structures. This allows the pin future to complete
+/// complete async operations.
 #[cfg(feature = "vor4x")]
 pub fn on_interrupt_for_async_gpio_for_port(
     port: Port,
@@ -152,6 +161,7 @@ pub struct InputPinFuture {
 }
 
 impl InputPinFuture {
+    /// Create a new input pin future from mutable reference to an [Input] pin.
     #[cfg(feature = "vor1x")]
     pub fn new_with_input_pin(pin: &mut Input, irq: pac::Interrupt, edge: InterruptEdge) -> Self {
         let (waker_group, edge_detection_group) =
@@ -166,6 +176,8 @@ impl InputPinFuture {
             edge_detection_group,
         }
     }
+
+    /// Create a new input pin future from mutable reference to an [Input] pin.
     #[cfg(feature = "vor4x")]
     pub fn new_with_input_pin(
         pin: &mut Input,
@@ -208,6 +220,7 @@ impl Future for InputPinFuture {
     }
 }
 
+/// Input pin which has additional asynchronous support.
 pub struct InputPinAsync {
     pin: Input,
     #[cfg(feature = "vor1x")]
@@ -225,6 +238,13 @@ impl InputPinAsync {
     pub fn new(pin: Input, irq: va108xx::Interrupt) -> Self {
         Self { pin, irq }
     }
+
+    /// Create a new asynchronous input pin from an [Input] pin. The interrupt ID to be used must be
+    /// passed as well and is used to route and enable the interrupt.
+    ///
+    /// Please note that the interrupt handler itself must be provided by the user and the
+    /// generic [on_interrupt_for_async_gpio_for_port] function must be called inside that function
+    /// for the asynchronous functionality to work.
     #[cfg(feature = "vor4x")]
     pub fn new(pin: Input) -> Result<Self, PortDoesNotSupportInterrupts> {
         if pin.id().port() == Port::G {
@@ -248,6 +268,30 @@ impl InputPinAsync {
             return;
         }
         fut.await;
+    }
+
+    /// Check whether pin is high.
+    #[inline]
+    pub fn is_high(&self) -> bool {
+        self.pin.is_high()
+    }
+
+    /// Check whether pin is low.
+    #[inline]
+    pub fn is_low(&self) -> bool {
+        self.pin.is_low()
+    }
+
+    /// Shared access to [Input] pin.
+    #[inline]
+    pub fn inner(&self) -> &Input {
+        &self.pin
+    }
+
+    /// Mutable access to [Input] pin.
+    #[inline]
+    pub fn inner_mut(&mut self) -> &mut Input {
+        &mut self.pin
     }
 
     /// Asynchronously wait until the pin is low.
@@ -296,6 +340,8 @@ impl InputPinAsync {
             .await;
     }
 
+    /// Release the contained [Input] pin.
+    #[inline]
     pub fn release(self) -> Input {
         self.pin
     }
@@ -329,5 +375,15 @@ impl Wait for InputPinAsync {
     async fn wait_for_any_edge(&mut self) -> Result<(), Self::Error> {
         self.wait_for_any_edge().await;
         Ok(())
+    }
+}
+
+impl embedded_hal::digital::InputPin for InputPinAsync {
+    fn is_low(&mut self) -> Result<bool, Self::Error> {
+        Ok(self.inner().is_low())
+    }
+
+    fn is_high(&mut self) -> Result<bool, Self::Error> {
+        Ok(self.inner().is_high())
     }
 }
