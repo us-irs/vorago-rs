@@ -4,7 +4,7 @@
 //! The RX structure also has a dedicated [RxWithInterrupt] variant which allows reading the receiver
 //! using interrupts.
 //!
-//! The [rx_asynch] and [tx_asynch] modules provide an asynchronous non-blocking API for the UART
+//! The [rx_async] and [tx_async] modules provide an asynchronous non-blocking API for the UART
 //! peripheral.
 //!
 //! ## Examples
@@ -42,11 +42,11 @@ use va108xx as pac;
 #[cfg(feature = "vor4x")]
 use va416xx as pac;
 
-pub mod tx_asynch;
-pub use tx_asynch::*;
+pub mod tx_async;
+pub use tx_async::*;
 
-pub mod rx_asynch;
-pub use rx_asynch::*;
+pub mod rx_async;
+pub use rx_async::*;
 
 //==================================================================================================
 // Type-Level support
