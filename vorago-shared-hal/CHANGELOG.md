@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Added
 
+- Add `is_high` and `is_low` for `InputPinAsync`.
+- Add `InputPin` impl for `InputPinAsync`.
+
 ### Changed
 
 - Added `RxWithInterrupt::steal`.
@@ -20,6 +23,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 - Removed HW CS pin provider implementation for PA23, PA22 and PA21, which are multi HW CS pins.
 - Added missing `AnyPin` trait impl for Multi HW CS pins.
+- Expose inner `Input` pin for `InputPinAsync`.
 
 ## [v0.2.0] 2025-09-03
 
