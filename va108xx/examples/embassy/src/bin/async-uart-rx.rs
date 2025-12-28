@@ -30,7 +30,7 @@ use va108xx_hal::{
     prelude::*,
     uart::{
         self, on_interrupt_rx_overwriting,
-        rx_asynch::{on_interrupt_rx, RxAsync},
+        rx_async::{on_interrupt_rx, RxAsync},
         Bank, RxAsyncOverwriting, Tx,
     },
     InterruptConfig,

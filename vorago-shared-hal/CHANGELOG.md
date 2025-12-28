@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 - Added `RxWithInterrupt::steal`.
 - Improved type level support for resource management for SPI, PWM, UART.
+- Renamed `tx_asynch` and `rx_asynch` module name to `*_async`
 
 ### Fixed
 

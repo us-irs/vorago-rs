@@ -28,7 +28,7 @@ use va416xx_hal::{
     time::Hertz,
     uart::{
         self,
-        tx_asynch::{on_interrupt_tx, TxAsync},
+        tx_async::{on_interrupt_tx, TxAsync},
         Bank,
     },
 };
