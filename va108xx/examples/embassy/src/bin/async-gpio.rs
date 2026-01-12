@@ -11,7 +11,6 @@ use embassy_executor::Spawner;
 use embassy_sync::channel::{Receiver, Sender};
 use embassy_sync::{blocking_mutex::raw::ThreadModeRawMutex, channel::Channel};
 use embassy_time::{Duration, Instant, Timer};
-use embedded_hal_async::digital::Wait;
 use va108xx_hal::gpio::asynch::{on_interrupt_for_async_gpio_for_port, InputPinAsync};
 use va108xx_hal::gpio::{Input, Output, PinState, Port};
 use va108xx_hal::pins::{PinsA, PinsB};
@@ -72,8 +71,8 @@ async fn main(spawner: Spawner) {
     let out_pb22 = Output::new(portb.pb22, PinState::Low);
     let in_pb23 = Input::new_floating(portb.pb23);
 
-    let in_pa1_async = InputPinAsync::new(in_pa1, pac::Interrupt::OC10);
-    let in_pb23_async = InputPinAsync::new(in_pb23, PB22_TO_PB23_IRQ);
+    let mut in_pa1_async = InputPinAsync::new(in_pa1, pac::Interrupt::OC10);
+    let mut in_pb23_async = InputPinAsync::new(in_pb23, PB22_TO_PB23_IRQ);
 
     spawner
         .spawn(output_task(
@@ -91,12 +90,16 @@ async fn main(spawner: Spawner) {
         .unwrap();
 
     if CHECK_PA0_TO_PA1 {
-        check_pin_to_pin_async_ops("PA0 to PA1", CHANNEL_PA0_PA1.sender(), in_pa1_async).await;
+        check_pin_to_pin_async_ops("PA0 to PA1", CHANNEL_PA0_PA1.sender(), &mut in_pa1_async).await;
         defmt::info!("Example PA0 to PA1 done");
     }
     if CHECK_PB22_TO_PB23 {
-        check_pin_to_pin_async_ops("PB22 to PB23", CHANNEL_PB22_TO_PB23.sender(), in_pb23_async)
-            .await;
+        check_pin_to_pin_async_ops(
+            "PB22 to PB23",
+            CHANNEL_PB22_TO_PB23.sender(),
+            &mut in_pb23_async,
+        )
+        .await;
         defmt::info!("Example PB22 to PB23 done");
     }
 
@@ -107,10 +110,10 @@ async fn main(spawner: Spawner) {
     }
 }
 
-async fn check_pin_to_pin_async_ops(
+async fn check_wait_for_high(
     ctx: &'static str,
     sender: Sender<'static, ThreadModeRawMutex, GpioCmd, 3>,
-    mut async_input: impl Wait,
+    async_input: &mut InputPinAsync,
 ) {
     defmt::info!(
         "{}: sending SetHigh command ({} ms)",
@@ -118,39 +121,57 @@ async fn check_pin_to_pin_async_ops(
         Instant::now().as_millis()
     );
     sender.send(GpioCmd::new(GpioCmdType::SetHigh, 20)).await;
-    async_input.wait_for_high().await.unwrap();
+    async_input.wait_for_high().await;
     defmt::info!(
         "{}: Input pin is high now ({} ms)",
         ctx,
         Instant::now().as_millis()
     );
+}
 
+async fn check_wait_for_low(
+    ctx: &'static str,
+    sender: Sender<'static, ThreadModeRawMutex, GpioCmd, 3>,
+    async_input: &mut InputPinAsync,
+) {
     defmt::info!(
         "{}: sending SetLow command ({} ms)",
         ctx,
         Instant::now().as_millis()
     );
     sender.send(GpioCmd::new(GpioCmdType::SetLow, 20)).await;
-    async_input.wait_for_low().await.unwrap();
+    async_input.wait_for_low().await;
     defmt::info!(
         "{}: Input pin is low now ({} ms)",
         ctx,
         Instant::now().as_millis()
     );
+}
 
+async fn check_wait_for_rising_edge(
+    ctx: &'static str,
+    sender: Sender<'static, ThreadModeRawMutex, GpioCmd, 3>,
+    async_input: &mut InputPinAsync,
+) {
     defmt::info!(
         "{}: sending RisingEdge command ({} ms)",
         ctx,
         Instant::now().as_millis()
     );
     sender.send(GpioCmd::new(GpioCmdType::RisingEdge, 20)).await;
-    async_input.wait_for_rising_edge().await.unwrap();
+    async_input.wait_for_rising_edge().await;
     defmt::info!(
         "{}: input pin had rising edge ({} ms)",
         ctx,
         Instant::now().as_millis()
     );
+}
 
+async fn check_wait_for_falling_edge(
+    ctx: &'static str,
+    sender: Sender<'static, ThreadModeRawMutex, GpioCmd, 3>,
+    async_input: &mut InputPinAsync,
+) {
     defmt::info!(
         "{}: sending Falling command ({} ms)",
         ctx,
@@ -159,13 +180,19 @@ async fn check_pin_to_pin_async_ops(
     sender
         .send(GpioCmd::new(GpioCmdType::FallingEdge, 20))
         .await;
-    async_input.wait_for_falling_edge().await.unwrap();
+    async_input.wait_for_falling_edge().await;
     defmt::info!(
         "{}: input pin had a falling edge ({} ms)",
         ctx,
         Instant::now().as_millis()
     );
+}
 
+async fn check_wait_for_any_edge_with_falling_edge(
+    ctx: &'static str,
+    sender: Sender<'static, ThreadModeRawMutex, GpioCmd, 3>,
+    async_input: &mut InputPinAsync,
+) {
     defmt::info!(
         "{}: sending Falling command ({} ms)",
         ctx,
@@ -174,25 +201,44 @@ async fn check_pin_to_pin_async_ops(
     sender
         .send(GpioCmd::new(GpioCmdType::FallingEdge, 20))
         .await;
-    async_input.wait_for_any_edge().await.unwrap();
+    async_input.wait_for_any_edge().await;
     defmt::info!(
         "{}: input pin had a falling (any) edge ({} ms)",
         ctx,
         Instant::now().as_millis()
     );
+}
 
+async fn check_wait_for_any_edge_with_rising_edge(
+    ctx: &'static str,
+    sender: Sender<'static, ThreadModeRawMutex, GpioCmd, 3>,
+    async_input: &mut InputPinAsync,
+) {
     defmt::info!(
         "{}: sending Falling command ({} ms)",
         ctx,
         Instant::now().as_millis()
     );
     sender.send(GpioCmd::new(GpioCmdType::RisingEdge, 20)).await;
-    async_input.wait_for_any_edge().await.unwrap();
+    async_input.wait_for_any_edge().await;
     defmt::info!(
         "{}: input pin had a rising (any) edge ({} ms)",
         ctx,
         Instant::now().as_millis()
     );
+}
+
+async fn check_pin_to_pin_async_ops(
+    ctx: &'static str,
+    sender: Sender<'static, ThreadModeRawMutex, GpioCmd, 3>,
+    async_input: &mut InputPinAsync,
+) {
+    check_wait_for_high(ctx, sender, async_input).await;
+    check_wait_for_low(ctx, sender, async_input).await;
+    check_wait_for_rising_edge(ctx, sender, async_input).await;
+    check_wait_for_falling_edge(ctx, sender, async_input).await;
+    check_wait_for_any_edge_with_falling_edge(ctx, sender, async_input).await;
+    check_wait_for_any_edge_with_rising_edge(ctx, sender, async_input).await;
 }
 
 #[embassy_executor::task(pool_size = 2)]
