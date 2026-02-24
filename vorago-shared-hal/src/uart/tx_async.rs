@@ -25,6 +25,12 @@ static TX_CONTEXTS: [Mutex<RefCell<TxContext>>; 2] =
 static TX_DONE: [AtomicBool; 2] = [const { AtomicBool::new(false) }; 2];
 const EMPTY_SLICE: &[u8] = &[];
 
+#[inline]
+fn tx_is_drained(tx: &Tx) -> bool {
+    let tx_status = tx.regs.read_tx_status();
+    tx.regs.read_state().tx_fifo().value() == 0 && !tx_status.tx_busy()
+}
+
 /// This is a generic interrupt handler to handle asynchronous UART TX operations for a given
 /// UART bank.
 ///
@@ -178,15 +184,23 @@ pub struct TxFlushFuture {
 
 impl TxFlushFuture {
     pub fn new(tx: &mut Tx) -> Self {
-        TX_DONE[tx.id as usize].store(false, core::sync::atomic::Ordering::Relaxed);
+        let tx_idx = tx.id as usize;
+        TX_DONE[tx_idx].store(false, core::sync::atomic::Ordering::Relaxed);
         tx.disable_interrupts();
 
         critical_section::with(|cs| {
-            let context_ref = TX_CONTEXTS[tx.id as usize].borrow(cs);
+            let context_ref = TX_CONTEXTS[tx_idx].borrow(cs);
             let mut context = context_ref.borrow_mut();
             unsafe { context.slice.set(EMPTY_SLICE) };
             context.progress = 0;
+        });
 
+        if tx_is_drained(tx) {
+            TX_DONE[tx_idx].store(true, core::sync::atomic::Ordering::Relaxed);
+            return Self { id: tx.id };
+        }
+
+        critical_section::with(|_cs| {
             // Ensure those are enabled inside a critical section at the same time. Can lead to
             // weird glitches otherwise.
             tx.enable_interrupts(
@@ -195,6 +209,10 @@ impl TxFlushFuture {
             );
             tx.enable();
         });
+
+        if tx_is_drained(tx) {
+            TX_DONE[tx_idx].store(true, core::sync::atomic::Ordering::Relaxed);
+        }
 
         Self { id: tx.id }
     }
