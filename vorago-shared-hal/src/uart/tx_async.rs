@@ -262,6 +262,9 @@ impl TxAsync {
     }
 
     pub async fn flush(&mut self) -> Result<(), TxOverrunError> {
+        if tx_is_drained(&self.0) {
+            return Ok(());
+        }
         let fut = TxFlushFuture::new(&mut self.0);
         fut.await
     }
