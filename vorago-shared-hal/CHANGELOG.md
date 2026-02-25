@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### Changed
 
 - Added `RxWithInterrupt::steal`.
+- Renamed UART `Data` register `value` field to `data`
 - Improved type level support for resource management for SPI, PWM, UART.
 - Renamed `tx_asynch` and `rx_asynch` module name to `*_async`
 

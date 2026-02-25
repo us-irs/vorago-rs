@@ -147,7 +147,7 @@ pub fn on_interrupt_rx_async_heapless_queue_overwriting(
         // If this interrupt bit is set, the trigger level is available at the very least.
         // Read everything as fast as possible
         for _ in 0..available_bytes {
-            let byte = uart_regs.read_data().value();
+            let byte = uart_regs.read_data().data();
             if !prod.ready() {
                 queue_overflow = true;
                 critical_section::with(|cs| {
@@ -164,7 +164,7 @@ pub fn on_interrupt_rx_async_heapless_queue_overwriting(
     if irq_status.rx_timeout() {
         while uart_regs.read_rx_status().data_available() {
             // While there is data in the FIFO, write it into the reception buffer
-            let byte = uart_regs.read_data().value();
+            let byte = uart_regs.read_data().data();
             if !prod.ready() {
                 queue_overflow = true;
                 critical_section::with(|cs| {
@@ -215,7 +215,7 @@ pub fn on_interrupt_rx_async_heapless_queue(
         // If this interrupt bit is set, the trigger level is available at the very least.
         // Read everything as fast as possible
         for _ in 0..available_bytes {
-            let byte = uart_regs.read_data().value();
+            let byte = uart_regs.read_data().data();
             if !prod.ready() {
                 queue_overflow = true;
             }
@@ -228,7 +228,7 @@ pub fn on_interrupt_rx_async_heapless_queue(
     if irq_status.rx_timeout() {
         while uart_regs.read_rx_status().data_available() {
             // While there is data in the FIFO, write it into the reception buffer
-            let byte = uart_regs.read_data().value();
+            let byte = uart_regs.read_data().data();
             if !prod.ready() {
                 queue_overflow = true;
             }
