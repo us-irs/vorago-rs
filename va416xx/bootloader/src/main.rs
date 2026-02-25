@@ -86,8 +86,8 @@ pub struct OptWdt(Option<Wdt>);
 
 impl WdtInterface for OptWdt {
     fn feed(&self) {
-        if self.0.is_some() {
-            self.0.as_ref().unwrap().feed();
+        if let Some(wdt) = &self.0 {
+            wdt.feed();
         }
     }
 }
