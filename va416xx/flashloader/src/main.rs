@@ -46,8 +46,8 @@ pub struct OptWdt(Option<Wdt>);
 
 impl WdtInterface for OptWdt {
     fn feed(&self) {
-        if self.0.is_some() {
-            self.0.as_ref().unwrap().feed();
+        if let Some(wdt) = &self.0 {
+            wdt.feed();
         }
     }
 }
@@ -344,8 +344,8 @@ mod app {
 
     fn handle_valid_pus_tc(cx: &mut pus_tc_handler::Context) {
         let pus_tc = PusTcReader::new(cx.local.tc_buf);
-        if pus_tc.is_err() {
-            defmt::warn!("PUS TC error: {}", pus_tc.unwrap_err());
+        if let Err(e) = pus_tc {
+            defmt::warn!("PUS TC error: {}", e);
             return;
         }
         let pus_tc = pus_tc.unwrap();
