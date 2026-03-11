@@ -110,8 +110,8 @@ fn main() -> ! {
     let mut nvm = M95M01::new(dp.spic, clk_config);
 
     if FLASH_SELF {
-        let mut first_four_bytes: [u8; 4] = [0; 4];
-        read_four_bytes_at_addr_zero(&mut first_four_bytes);
+        #[allow(clippy::zero_ptr)]
+        let first_four_bytes = unsafe { core::ptr::read_volatile(0x0 as *const u32) }.to_ne_bytes();
         let bootloader_data = {
             unsafe {
                 &*core::ptr::slice_from_raw_parts(
@@ -180,8 +180,8 @@ fn check_own_crc(
     // I'd prefer to use [core::slice::from_raw_parts], but that is problematic
     // because the address of the bootloader is 0x0, so the NULL check fails and the functions
     // panics.
-    let mut first_four_bytes: [u8; 4] = [0; 4];
-    read_four_bytes_at_addr_zero(&mut first_four_bytes);
+    #[allow(clippy::zero_ptr)]
+    let first_four_bytes = unsafe { core::ptr::read_volatile(0x0 as *const u32) }.to_ne_bytes();
     let mut digest = CRC_ALGO.digest();
     digest.update(&first_four_bytes);
     digest.update(unsafe {
@@ -214,19 +214,6 @@ fn check_own_crc(
     }
 }
 
-// Reading from address 0x0 is problematic in Rust.
-// See https://users.rust-lang.org/t/reading-from-physical-address-0x0/117408/5.
-// This solution falls back to assembler to deal with this.
-fn read_four_bytes_at_addr_zero(buf: &mut [u8; 4]) {
-    unsafe {
-        core::arch::asm!(
-            "ldr r0, [{0}]",    // Load 4 bytes from src into r0 register
-            "str r0, [{1}]",    // Store r0 register into first_four_bytes
-            in(reg) BOOTLOADER_START_ADDR as *const u8,         // Input: src pointer (0x0)
-            in(reg) buf as *mut [u8; 4],  // Input: destination pointer
-        );
-    }
-}
 fn check_app_crc(app_sel: AppSel) -> bool {
     if DEBUG_PRINTOUTS && DEFMT_PRINTOUT {
         defmt::info!("Checking image {:?}", app_sel);
