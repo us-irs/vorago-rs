@@ -11,7 +11,7 @@ license = "Apache-2.0"
 cortex-m = { version = "0.7" }
 cfg-if = "1"
 derive-mmio = "0.6"
-bitbybit = "1.3"
+bitbybit = "2"
 arbitrary-int = "2"
 static_assertions = "1.1"
 nb = "1"

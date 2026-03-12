@@ -56,12 +56,12 @@ impl Bank {
     }
 }
 
-#[bitbybit::bitfield(u32, debug, defmt_bitfields(feature = "defmt"))]
+#[bitbybit::bitfield(u32, default = 0x0, debug, defmt_bitfields(feature = "defmt"))]
 pub struct Data {
     #[bit(15, rw)]
     dparity: bool,
     #[bits(0..=7, rw)]
-    value: u8,
+    data: u8,
 }
 
 #[bitbybit::bitfield(u32, default = 0x0, debug, defmt_bitfields(feature = "defmt"))]

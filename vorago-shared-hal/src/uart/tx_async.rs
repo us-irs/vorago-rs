@@ -23,7 +23,6 @@ static TX_CONTEXTS: [Mutex<RefCell<TxContext>>; 2] =
 // Completion flag. Kept outside of the context structure as an atomic to avoid
 // critical section.
 static TX_DONE: [AtomicBool; 2] = [const { AtomicBool::new(false) }; 2];
-const EMPTY_SLICE: &[u8] = &[];
 
 #[inline]
 fn tx_is_drained(tx: &Tx) -> bool {
@@ -55,8 +54,7 @@ pub fn on_interrupt_tx(bank: Bank) {
     // Safety: We documented that the user provided slice must outlive the future, so we convert
     // the raw pointer back to the slice here.
     let slice = unsafe { context.slice.get().unwrap() };
-    let tx_fifo_empty = uart.read_state().tx_fifo().value() == 0;
-    if context.progress >= slice.len() && tx_fifo_empty && !tx_status.tx_busy() {
+    if context.progress >= slice.len() && !tx_status.tx_busy() {
         uart.modify_irq_enabled(|mut value| {
             value.set_tx(false);
             value.set_tx_empty(false);
@@ -178,66 +176,16 @@ impl Drop for TxFuture {
     }
 }
 
-pub struct TxFlushFuture {
-    id: Bank,
-}
-
-impl TxFlushFuture {
-    pub fn new(tx: &mut Tx) -> Self {
-        let tx_idx = tx.id as usize;
-        TX_DONE[tx_idx].store(false, core::sync::atomic::Ordering::Relaxed);
-        tx.disable_interrupts();
-
-        critical_section::with(|cs| {
-            let context_ref = TX_CONTEXTS[tx_idx].borrow(cs);
-            let mut context = context_ref.borrow_mut();
-            unsafe { context.slice.set(EMPTY_SLICE) };
-            context.progress = 0;
-        });
-
-        if tx_is_drained(tx) {
-            TX_DONE[tx_idx].store(true, core::sync::atomic::Ordering::Relaxed);
-            return Self { id: tx.id };
-        }
-
-        critical_section::with(|_cs| {
-            // Ensure those are enabled inside a critical section at the same time. Can lead to
-            // weird glitches otherwise.
-            tx.enable_interrupts(
-                #[cfg(feature = "vor4x")]
-                true,
-            );
-            tx.enable();
-        });
-
-        if tx_is_drained(tx) {
-            TX_DONE[tx_idx].store(true, core::sync::atomic::Ordering::Relaxed);
-        }
-
-        Self { id: tx.id }
-    }
-}
-
-impl Future for TxFlushFuture {
-    type Output = Result<(), TxOverrunError>;
-
-    fn poll(
-        self: core::pin::Pin<&mut Self>,
-        cx: &mut core::task::Context<'_>,
-    ) -> core::task::Poll<Self::Output> {
-        UART_TX_WAKERS[self.id as usize].register(cx.waker());
-        if TX_DONE[self.id as usize].swap(false, core::sync::atomic::Ordering::Relaxed) {
-            return core::task::Poll::Ready(Ok(()));
-        }
-        core::task::Poll::Pending
-    }
-}
-
 pub struct TxAsync(Tx);
 
 impl TxAsync {
     pub fn new(tx: Tx) -> Self {
         Self(tx)
+    }
+
+    #[inline]
+    pub fn inner(&mut self) -> &mut Tx {
+        &mut self.0
     }
 
     /// Write a buffer asynchronously.
@@ -262,8 +210,8 @@ impl TxAsync {
     }
 
     pub async fn flush(&mut self) -> Result<(), TxOverrunError> {
-        let fut = TxFlushFuture::new(&mut self.0);
-        fut.await
+        while !tx_is_drained(&self.0) {}
+        Ok(())
     }
 
     pub fn release(self) -> Tx {
