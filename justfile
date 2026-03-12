@@ -1,16 +1,16 @@
 all: check \
     build \
     check-fmt \
-    clippy-all \
-    docs-all
+    clippy \
+    docs
 
 check: check-va108xx check-va416xx
 build: build-va108xx build-va416xx
 check-fmt: check-fmt-va108xx check-fmt-va416xx
 fmt: fmt-va108xx fmt-va416xx fmt-shared-hal
-clippy-all: clippy-va108xx clippy-va416xx clippy-shared-hal
-docs-all: docs-va108xx docs-va416xx docs-shared-hal
-clean-all: clean-va108xx clean-va416xx
+clippy: clippy-va108xx clippy-va416xx clippy-shared-hal
+docs: docs-va108xx docs-va416xx docs-shared-hal
+clean: clean-va108xx clean-va416xx
 
 [working-directory: 'va108xx']
 check-va108xx:
