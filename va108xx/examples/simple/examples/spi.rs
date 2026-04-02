@@ -87,7 +87,7 @@ fn main() -> ! {
                 bmstall: true,
                 hw_cs: None,
             };
-            spi.cfg_transfer(&transfer_cfg);
+            spi.configure_transfer(&transfer_cfg);
         }
         SpiBusSelect::SpiBPortB => {
             let hw_cs_pin = configure_pin_as_hw_cs_pin(pinsb.pb2);
@@ -99,7 +99,7 @@ fn main() -> ! {
                 bmstall: true,
                 hw_cs: Some(hw_cs_pin),
             };
-            spi.cfg_transfer(&transfer_cfg);
+            spi.configure_transfer(&transfer_cfg);
         }
     }
 

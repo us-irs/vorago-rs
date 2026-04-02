@@ -47,7 +47,7 @@ fn main() -> ! {
         .mode(MODE_3)
         .slave_output_disable(true);
     let mut spi = Spi::new_for_spi1(dp.spib, (sck, miso, mosi), spi_cfg);
-    spi.cfg_hw_cs(hw_cs_id);
+    spi.configure_hw_cs(hw_cs_id);
 
     let mut tx_rx_buf: [u8; 3] = [0; 3];
     tx_rx_buf[0] = READ_MASK | DEVID_REG;
