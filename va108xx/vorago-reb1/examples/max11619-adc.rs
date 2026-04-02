@@ -83,7 +83,7 @@ impl<Delay: DelayNs> SpiDevice for SpiWithHwCs<Delay> {
     ) -> Result<(), Self::Error> {
         // Only the HW CS is configured here. This is not really necessary, but showcases
         // that we could scale this multiple SPI devices.
-        self.inner.cfg_hw_cs(self.hw_cs_id);
+        self.inner.configure_hw_cs(self.hw_cs_id);
         for operation in operations {
             match operation {
                 spi::Operation::Read(buf) => self.inner.read(buf),
@@ -93,7 +93,7 @@ impl<Delay: DelayNs> SpiDevice for SpiWithHwCs<Delay> {
                 spi::Operation::DelayNs(delay) => self.delay_provider.delay_ns(*delay),
             };
         }
-        self.inner.cfg_hw_cs_disable();
+        self.inner.disable_hw_cs();
         Ok(())
     }
 }

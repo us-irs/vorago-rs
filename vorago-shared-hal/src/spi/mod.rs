@@ -676,14 +676,14 @@ where
     }
 
     #[inline]
-    pub fn cfg_clock_from_div(&mut self, div: u16) -> Result<(), SpiClockConfigError> {
+    pub fn configure_clock_from_div(&mut self, div: u16) -> Result<(), SpiClockConfigError> {
         let val = spi_clk_config_from_div(div)?;
         self.cfg_clock(val);
         Ok(())
     }
 
     #[inline]
-    pub fn cfg_mode(&mut self, mode: Mode) {
+    pub fn configure_mode(&mut self, mode: Mode) {
         let (cpo_bit, cph_bit) = mode_to_cpo_cph_bit(mode);
         self.regs.modify_ctrl0(|mut value| {
             value.set_spo(cpo_bit);
@@ -718,7 +718,7 @@ where
     }
 
     #[inline]
-    pub fn perid(&self) -> u32 {
+    pub fn peripheral_id(&self) -> u32 {
         self.regs.read_perid()
     }
 
@@ -728,7 +728,7 @@ where
     /// by using the [configure_pin_as_hw_cs_pin] function which also returns the
     /// corresponding [HwChipSelectId].
     #[inline]
-    pub fn cfg_hw_cs(&mut self, hw_cs: HwChipSelectId) {
+    pub fn configure_hw_cs(&mut self, hw_cs: HwChipSelectId) {
         self.regs.modify_ctrl1(|mut value| {
             value.set_sod(false);
             value.set_ss(hw_cs);
@@ -739,7 +739,7 @@ where
     /// Disables the hardware chip select functionality. This can be used when performing
     /// external chip select handling, for example with GPIO pins.
     #[inline]
-    pub fn cfg_hw_cs_disable(&mut self) {
+    pub fn disable_hw_cs(&mut self) {
         self.regs.modify_ctrl1(|mut value| {
             value.set_sod(true);
             value
@@ -749,12 +749,12 @@ where
     /// Utility function to configure all relevant transfer parameters in one go.
     /// This is useful if multiple devices with different clock and mode configurations
     /// are connected to one bus.
-    pub fn cfg_transfer(&mut self, transfer_cfg: &TransferConfig) {
+    pub fn configure_transfer(&mut self, transfer_cfg: &TransferConfig) {
         if let Some(trans_clk_div) = transfer_cfg.clk_cfg {
             self.cfg_clock(trans_clk_div);
         }
         if let Some(mode) = transfer_cfg.mode {
-            self.cfg_mode(mode);
+            self.configure_mode(mode);
         }
         self.blockmode = transfer_cfg.blockmode;
         self.regs.modify_ctrl1(|mut value| {
@@ -1055,5 +1055,41 @@ impl From<Spi<u16>> for Spi<u8> {
             bmstall: old_spi.bmstall,
             word: PhantomData,
         }
+    }
+}
+
+/// This abstraction which can be used to map a hardware chip select pin
+/// to [embedded_hal::digital::OutputPin]. This is useful for creating physical chip select
+/// pins required by the [embedded_hal_bus](https://docs.rs/embedded-hal-bus/latest/embedded_hal_bus/)
+/// API.
+pub struct HwCsPin {
+    regs: regs::MmioSpi<'static>,
+    id: HwChipSelectId,
+}
+
+impl HwCsPin {
+    pub fn new<P: HwCsProvider + AnyPin>(pin: P) -> Self {
+        configure_pin_as_hw_cs_pin(pin);
+        Self {
+            regs: unsafe { P::SPI_ID.steal_regs() },
+            id: P::CS_ID,
+        }
+    }
+}
+
+impl embedded_hal::digital::ErrorType for HwCsPin {
+    type Error = Infallible;
+}
+
+impl embedded_hal::digital::OutputPin for HwCsPin {
+    fn set_low(&mut self) -> Result<(), Self::Error> {
+        self.regs
+            .modify_ctrl1(|value| value.with_sod(false).with_ss(self.id));
+        Ok(())
+    }
+
+    fn set_high(&mut self) -> Result<(), Self::Error> {
+        self.regs.modify_ctrl1(|value| value.with_sod(true));
+        Ok(())
     }
 }

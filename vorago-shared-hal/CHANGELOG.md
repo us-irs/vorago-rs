@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 - Add `is_high` and `is_low` for `InputPinAsync`.
 - Add `InputPin` impl for `InputPinAsync`.
+- `HwCsPin` in SPI module for easer usage of HW CS pins as `Output` CS pins
 
 ### Changed
 
@@ -19,6 +20,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Renamed UART `Data` register `value` field to `data`
 - Improved type level support for resource management for SPI, PWM, UART.
 - Renamed `tx_asynch` and `rx_asynch` module name to `*_async`
+- Naming improvements in SPI module: replaced `cfg` by `config*`
 
 ### Fixed
 
