@@ -15,7 +15,7 @@ cortex-m = { version = "0.7", features = ["critical-section-single-core"]}
 vorago-shared-hal = { version = "0.2", path = "../../vorago-shared-hal", features = ["vor1x"] }
 fugit = "0.3"
 thiserror = { version = "2", default-features = false }
-va108xx = { version = "0.6", path = "../va108xx", default-features = false, features = ["critical-section", "defmt"] }
+va108xx = { version = "0.6", path = "../va108xx", default-features = false, features = ["critical-section"] }
 defmt = { version = "1", optional = true }
 
 [target.'cfg(all(target_arch = "arm", target_os = "none"))'.dependencies]
@@ -26,7 +26,7 @@ portable-atomic = "1"
 [features]
 default = ["rt"]
 rt = ["va108xx/rt"]
-defmt = ["dep:defmt", "vorago-shared-hal/defmt"]
+defmt = ["dep:defmt", "vorago-shared-hal/defmt", "va108xx/defmt"]
 
 [package.metadata.docs.rs]
 all-features = true
