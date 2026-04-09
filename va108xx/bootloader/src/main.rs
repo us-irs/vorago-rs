@@ -181,7 +181,8 @@ fn check_own_crc(
     // because the address of the bootloader is 0x0, so the NULL check fails and the functions
     // panics.
     #[allow(clippy::zero_ptr)]
-    let first_four_bytes = unsafe { core::ptr::read_volatile(0x0 as *const u32) }.to_ne_bytes();
+    let first_four_bytes =
+        unsafe { core::ptr::read_volatile(BOOTLOADER_START_ADDR as *const u32) }.to_ne_bytes();
     let mut digest = CRC_ALGO.digest();
     digest.update(&first_four_bytes);
     digest.update(unsafe {
@@ -270,14 +271,10 @@ fn boot_app(
         APP_B_START_ADDR
     };
     unsafe {
-        // First 4 bytes done with inline assembly, writing to the physical address 0x0 can not
-        // be done without it. See https://users.rust-lang.org/t/reading-from-physical-address-0x0/117408/2.
-        let first_four_bytes = core::ptr::read(base_addr as *const u32);
-        core::arch::asm!(
-            "str {0}, [{1}]",
-            in(reg)  first_four_bytes,  // Input: App vector table.
-            in(reg) BOOTLOADER_START_ADDR as *mut u32,  // Input: destination pointer
-        );
+        let first_four_bytes = core::ptr::read_volatile(base_addr as *const u32);
+        #[allow(clippy::zero_ptr)]
+        core::ptr::write_volatile(BOOTLOADER_START_ADDR as *mut u32, first_four_bytes);
+
         core::slice::from_raw_parts_mut(
             (BOOTLOADER_START_ADDR + 4) as *mut u8,
             (VECTOR_TABLE_LEN - 4) as usize,
