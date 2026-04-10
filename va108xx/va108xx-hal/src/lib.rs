@@ -7,6 +7,9 @@
 //! raw PAC. This crate also implements traits specified by the
 //! [embedded-hal](https://github.com/rust-embedded/embedded-hal) project, making it compatible with
 //! various drivers in the embedded rust ecosystem.
+//!
+//! The [examples folder](https://github.com/us-irs/vorago-rs/tree/main/va108xx/examples) contains
+//! various example applications using the HAL.
 #![no_std]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 

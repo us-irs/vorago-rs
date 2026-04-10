@@ -88,7 +88,7 @@ work yet.
 After installation, you can run the following command
 
 ```sh
-probe-rs run --chip VA416xx_RAM --protocol jtag target/thumbv7em-none-eabihf/debug/examples/blinky
+probe-rs run --chip VA416xx_RAM --protocol jtag target/thumbv7em-none-eabihf/debug/blinky
 ```
 
 to flash and run the blinky program on the RAM. There is also a `VA416xx` chip target

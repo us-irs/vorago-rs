@@ -90,14 +90,21 @@ work yet.
 After installation, you can run the following command
 
 ```sh
-probe-rs run --chip VA108xx_RAM --protocol jtag target/thumbv6m-none-eabi/debug/examples/blinky
+probe-rs run --chip VA108xx_RAM --protocol jtag target/thumbv6m-none-eabi/debug/blinky
 ```
 
 to flash and run the blinky program on the RAM. There is also a `VA108xx` chip target
-available for persistent flashing.
+available for persistent flashing (see note below!).
 
-Runner configuration is available in the `.cargo/def-config.toml` file to use `probe-rs` for
+Runner configuration is available in the `.cargo/config.toml.template` file to use `probe-rs` for
 convenience. `probe-rs` is also able to process and display `defmt` strings directly.
+
+Special note on the `VA108xx` target: This target allows flashing the NVM, but doing a soft reset
+with a tool like `probe-rs` can only perform a soft reset where the code already running in RAM
+is reset.  If you want to immediately run the code flashed to the NVM and get `defmt` printouts,
+use `probe-rs download` to flash to NVM, then flash a binary which issues the system reset
+(e.g. the `reset` app inside the example folder), and then attach with `probe-rs attach`, passing
+the image downloaded to NVM to the attach command.
 
 ### Using VS Code
 

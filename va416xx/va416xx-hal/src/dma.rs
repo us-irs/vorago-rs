@@ -1,8 +1,4 @@
 //! API for the DMA peripheral
-//!
-//! ## Examples
-//!
-//! - [Simple DMA example](https://egit.irs.uni-stuttgart.de/rust/vorago-rs/src/branch/main/va416xx/examples/simple/examples/dma.rs)
 use arbitrary_int::{u10, u3};
 use vorago_shared_hal::{enable_peripheral_clock, reset_peripheral_for_cycles, PeripheralSelect};
 

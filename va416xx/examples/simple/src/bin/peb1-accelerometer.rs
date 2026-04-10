@@ -15,7 +15,6 @@ use va416xx_hal::{
     clock::ClockConfigurator,
     i2c,
     pac::{self},
-    prelude::*,
     timer::CountdownTimer,
 };
 use vorago_peb1::lis2dh12::{self, detect_i2c_addr, FullScale, Odr};
@@ -29,7 +28,7 @@ const DISPLAY_MODE: DisplayMode = DisplayMode::Normalized;
 
 #[entry]
 fn main() -> ! {
-    let mut dp = pac::Peripherals::take().unwrap();
+    let dp = pac::Peripherals::take().unwrap();
     defmt::println!("-- Vorago PEB1 accelerometer example --");
     // Use the external clock connected to XTAL_N.
     let clocks = ClockConfigurator::new(dp.clkgen)

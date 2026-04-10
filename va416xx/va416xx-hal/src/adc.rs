@@ -1,9 +1,4 @@
 //! Analog to Digital Converter (ADC) driver.
-//!
-//! ## Examples
-//!
-//! - [ADC and DAC example](https://github.com/us-irs/vorago-rs/blob/main/va416xx/examples/simple/examples/dac-adc.rs)
-//! - [ADC](https://github.com/us-irs/vorago-rs/blob/main/va416xx/examples/simple/examples/adc.rs)
 use core::marker::PhantomData;
 
 use crate::clock::Clocks;

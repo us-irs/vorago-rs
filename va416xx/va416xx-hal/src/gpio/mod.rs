@@ -12,9 +12,4 @@
 //!
 //! The [crate::pins] module exposes singletons to access the [Pin]s required by this module
 //! in a type-safe way.
-//!
-//! # Examples
-//!
-//! - [Blinky example](https://egit.irs.uni-stuttgart.de/rust/vorago-rs/src/branch/main/va416xx/examples/simple/examples/blinky.rs)
-//! - [Async GPIO example](https://egit.irs.uni-stuttgart.de/rust/vorago-rs/src/branch/main/va416xx/examples/embassy/src/bin/async-gpio.rs)
 pub use vorago_shared_hal::gpio::*;
