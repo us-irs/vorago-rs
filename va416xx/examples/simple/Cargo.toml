@@ -22,23 +22,9 @@ va416xx = { version = "0.5", path = "../../va416xx" }
 
 [dependencies.vorago-peb1]
 path = "../../vorago-peb1"
-optional = true
 
 [features]
 default = ["va41630"]
-va41630 = ["va416xx-hal/va41630", "has-adc-dac"]
-va41629 = ["va416xx-hal/va41629", "has-adc-dac"]
+va41630 = ["va416xx-hal/va41630"]
+va41629 = ["va416xx-hal/va41629"]
 va41628 = ["va416xx-hal/va41628"]
-has-adc-dac = []
-
-[[example]]
-name = "peb1-accelerometer"
-required-features = ["vorago-peb1"]
-
-[[example]]
-name = "dac-adc"
-required-features = ["has-adc-dac"]
-
-[[example]]
-name = "adc"
-required-features = ["has-adc-dac"]

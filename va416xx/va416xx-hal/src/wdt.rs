@@ -1,8 +1,4 @@
 //! # API for the Watchdog peripheral
-//!
-//! ## Examples
-//!
-//! - [Watchdog simple example](https://egit.irs.uni-stuttgart.de/rust/vorago-rs/src/branch/main/va416xx/examples/simple/examples/wdt.rs)
 use vorago_shared_hal::{enable_peripheral_clock, reset_peripheral_for_cycles, PeripheralSelect};
 
 use crate::time::Hertz;

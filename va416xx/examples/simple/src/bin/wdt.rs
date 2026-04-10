@@ -49,7 +49,7 @@ fn main() -> ! {
     let mut counter: u32 = 0;
     loop {
         counter = counter.wrapping_add(1);
-        if counter % log_divisor == 0 {
+        if counter.is_multiple_of(log_divisor) {
             defmt::info!("wdt example main loop alive");
         }
         if TEST_MODE != TestMode::AllowReset {

@@ -25,6 +25,9 @@
 //! with interrupts, it is strongly recommended to set up the IRQ router with the
 //! [crate::irq_router] module at the very least because that peripheral has confusing and/or
 //! faulty register reset values which might lead to weird bugs and glitches.
+//!
+//! The [examples folder](https://github.com/us-irs/vorago-rs/tree/main/va416xx/examples) contains
+//! various example applications using the HAL.
 #![no_std]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 #[cfg(feature = "alloc")]
