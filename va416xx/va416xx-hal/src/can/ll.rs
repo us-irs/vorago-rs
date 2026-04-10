@@ -81,7 +81,7 @@ impl CanChannelLowLevel {
     }
 
     #[inline]
-    pub fn read_state(&self) -> Result<BufferState, u8> {
+    pub fn read_state(&self) -> Result<BufferState, u4> {
         self.msg_buf.read_stat_ctrl().state()
     }
 

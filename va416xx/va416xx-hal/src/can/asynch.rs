@@ -3,6 +3,8 @@ use core::{
     sync::atomic::{AtomicU8, Ordering},
 };
 
+use arbitrary_int::u4;
+
 use crate::can::regs::BufferState;
 
 use super::{
@@ -58,7 +60,7 @@ pub enum InterruptResult {
 pub enum InterruptError {
     UnexpectedError,
     InvalidInterruptId(StatusPending),
-    InvalidStatus(u8),
+    InvalidStatus(u4),
     UnexpectedState(BufferState),
     CanError(DiagnosticRegister),
 }
