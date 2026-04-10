@@ -22,11 +22,11 @@ nb = "1"
 embedded-hal = "1"
 num_enum = { version = "0.7", default-features = false }
 bitflags = "2"
-bitbybit = "1.3"
+bitbybit = "2"
 arbitrary-int = "2"
 fugit = "0.3"
 embedded-can = "0.4"
-embassy-sync = "0.7"
+embassy-sync = "0.8"
 thiserror = { version = "2", default-features = false }
 
 defmt = { version = "1", optional = true }
