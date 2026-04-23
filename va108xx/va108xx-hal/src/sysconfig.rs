@@ -39,5 +39,6 @@ pub fn disable_ram_scrubbing() {
 }
 
 pub use vorago_shared_hal::sysconfig::{
-    assert_peripheral_reset, disable_peripheral_clock, enable_peripheral_clock,
+    assert_peripheral_reset, deassert_peripheral_reset, disable_peripheral_clock,
+    enable_peripheral_clock, reset_peripheral_for_cycles,
 };

@@ -12,7 +12,10 @@ use va416xx as pac;
 
 pub use regs::{Bank, HwChipSelectId};
 
+pub mod asynch;
 pub mod regs;
+
+pub const FIFO_DEPTH: usize = 16;
 
 pub fn configure_pin_as_hw_cs_pin<P: AnyPin + HwCsProvider>(_pin: P) -> HwChipSelectId {
     IoPeriphPin::new(P::ID, P::FUN_SEL, None);
@@ -520,7 +523,6 @@ pub fn clk_div_for_target_clock(sys_clk: Hertz, spi_clk: Hertz) -> Option<u16> {
 pub struct Spi<Word = u8> {
     id: Bank,
     regs: regs::MmioSpi<'static>,
-    cfg: SpiConfig,
     /// Fill word for read-only SPI transactions.
     fill_word: Word,
     blockmode: bool,
@@ -653,7 +655,6 @@ where
         Spi {
             id: spi_sel,
             regs: regs::Spi::new_mmio(spi_sel),
-            cfg: spi_cfg,
             fill_word: Default::default(),
             bmstall: spi_cfg.bmstall,
             blockmode: spi_cfg.blockmode,
@@ -1031,7 +1032,6 @@ impl From<Spi<u8>> for Spi<u16> {
         Spi {
             id: old_spi.id,
             regs: old_spi.regs,
-            cfg: old_spi.cfg,
             blockmode: old_spi.blockmode,
             fill_word: Default::default(),
             bmstall: old_spi.bmstall,
@@ -1049,7 +1049,6 @@ impl From<Spi<u16>> for Spi<u8> {
         Spi {
             id: old_spi.id,
             regs: old_spi.regs,
-            cfg: old_spi.cfg,
             blockmode: old_spi.blockmode,
             fill_word: Default::default(),
             bmstall: old_spi.bmstall,
