@@ -225,4 +225,11 @@ pub(crate) mod shared {
         #[bit(0, w)]
         rx_fifo: bool,
     }
+
+    impl FifoClear {
+        pub const ALL: Self = Self::builder()
+            .with_tx_fifo(true)
+            .with_rx_fifo(true)
+            .build();
+    }
 }

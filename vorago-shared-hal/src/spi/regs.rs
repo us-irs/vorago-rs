@@ -25,11 +25,11 @@ cfg_if::cfg_if! {
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum Bank {
-    Spi0,
-    Spi1,
-    Spi2,
+    Spi0 = 0,
+    Spi1 = 1,
+    Spi2 = 2,
     #[cfg(feature = "vor4x")]
-    Spi3,
+    Spi3 = 3,
 }
 
 impl Bank {
@@ -157,7 +157,7 @@ impl ClockPrescaler {
     }
 }
 
-#[bitbybit::bitfield(u32, debug, defmt_bitfields(feature = "defmt"))]
+#[bitbybit::bitfield(u32, debug, default = 0x0, defmt_bitfields(feature = "defmt"))]
 pub struct InterruptControl {
     /// TX FIFO count <= TX FIFO trigger level.
     #[bit(3, rw)]
@@ -174,9 +174,19 @@ pub struct InterruptControl {
     rx_overrun: bool,
 }
 
+impl InterruptControl {
+    pub const DISABLE_ALL: Self = Self::ZERO;
+    pub const ENABLE_ALL: Self = Self::builder()
+        .with_tx(true)
+        .with_rx(true)
+        .with_rx_timeout(true)
+        .with_rx_overrun(true)
+        .build();
+}
+
 #[bitbybit::bitfield(u32, debug, defmt_bitfields(feature = "defmt"))]
 pub struct InterruptStatus {
-    /// TX FIFO count <= TX FIFO trigger level.
+    /// TX FIFO count < TX FIFO trigger level.
     #[bit(3, r)]
     tx: bool,
     /// RX FIFO count >= RX FIFO trigger level.
@@ -191,7 +201,7 @@ pub struct InterruptStatus {
     rx_overrun: bool,
 }
 
-#[bitbybit::bitfield(u32)]
+#[bitbybit::bitfield(u32, default = 0x0)]
 #[derive(Debug)]
 pub struct InterruptClear {
     /// Clearing the RX interrupt or reading data from the FIFO resets the timeout counter.
@@ -199,6 +209,13 @@ pub struct InterruptClear {
     rx_timeout: bool,
     #[bit(0, w)]
     rx_overrun: bool,
+}
+
+impl InterruptClear {
+    pub const ALL: Self = Self::builder()
+        .with_rx_timeout(true)
+        .with_rx_overrun(true)
+        .build();
 }
 
 #[bitbybit::bitfield(u32, debug, defmt_bitfields(feature = "defmt"))]
@@ -221,21 +238,21 @@ pub struct Spi {
     #[mmio(PureRead)]
     status: Status,
     clkprescale: ClockPrescaler,
-    irq_enb: InterruptControl,
+    interrupt_control: InterruptControl,
     /// Raw interrupt status.
     #[mmio(PureRead)]
-    irq_raw: InterruptStatus,
+    interrupt_status_raw: InterruptStatus,
     /// Enabled interrupt status.
     #[mmio(PureRead)]
-    irq_status: InterruptStatus,
+    interrupt_status: InterruptStatus,
     #[mmio(Write)]
-    irq_clear: InterruptClear,
+    interrupt_clear: InterruptClear,
     rx_fifo_trigger: TriggerLevel,
     tx_fifo_trigger: TriggerLevel,
     #[mmio(Write)]
     fifo_clear: FifoClear,
     #[mmio(PureRead)]
-    state: u32,
+    state: State,
     #[cfg(feature = "vor1x")]
     _reserved: [u32; 0x3F2],
     #[cfg(feature = "vor4x")]
