@@ -65,12 +65,13 @@ async fn main(spawner: Spawner) {
     let tx_uart_a = porta.pa9;
     let rx_uart_a = porta.pa8;
 
+    let clock_config = uart::ClockConfig::calculate(50.MHz(), 115200.Hz(), uart::BaudMode::_16);
+    let uart_config = uart::Config::new_with_clock_config(clock_config);
     let uarta = uart::Uart::new_with_interrupt_uart0(
         dp.uarta,
         tx_uart_a,
         rx_uart_a,
-        50.MHz(),
-        115200.Hz().into(),
+        uart_config,
         InterruptConfig::new(pac::Interrupt::OC2, true, true),
     );
 
@@ -81,8 +82,7 @@ async fn main(spawner: Spawner) {
         dp.uartb,
         tx_uart_b,
         rx_uart_b,
-        50.MHz(),
-        115200.Hz().into(),
+        uart_config,
         InterruptConfig::new(pac::Interrupt::OC3, true, true),
     );
     let (mut tx_uart_a, rx_uart_a) = uarta.split();

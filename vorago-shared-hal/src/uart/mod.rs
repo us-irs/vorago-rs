@@ -23,7 +23,6 @@ use crate::{
     sealed::Sealed,
 };
 use arbitrary_int::{prelude::*, u6, u18};
-use fugit::RateExtU32;
 use regs::{ClockScale, Control, Data, Enable, FifoClear, InterruptClear, MmioUart};
 
 use crate::{PeripheralSelect, enable_nvic_interrupt, enable_peripheral_clock, time::Hertz};
@@ -120,6 +119,25 @@ pub enum Event {
     TxCts,
 }
 
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
+pub enum BaudMode {
+    /// Default 16x baud clock.
+    #[default]
+    _16 = 0,
+    /// Slower 8x baud clock.
+    _8 = 1,
+}
+
+impl BaudMode {
+    pub const fn multiplier(&self) -> u32 {
+        match self {
+            BaudMode::_16 => 16,
+            BaudMode::_8 => 8,
+        }
+    }
+}
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum Parity {
@@ -130,20 +148,72 @@ pub enum Parity {
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
+pub struct ClockConfig {
+    /// Integer divisor.
+    pub div: u18,
+    /// Fractional divide value in 1/64 units.
+    pub frac: u6,
+    pub baud_mode: BaudMode,
+}
+
+impl ClockConfig {
+    pub const fn calculate(ref_clk: Hertz, baudrate: Hertz, baud_mode: BaudMode) -> Self {
+        // This is the calculation: (64.0 * (x - integer_part as f32) + 0.5) as u32 without floating
+        // point calculations.
+        let multiplier = baud_mode.multiplier();
+        let frac = ((ref_clk.raw() % (baudrate.raw() * multiplier)) * 64
+            + (baudrate.raw() * (multiplier / 2)))
+            / (baudrate.raw() * multiplier);
+        // Calculations here are derived from chapter 4.8.5 (p.79) of the datasheet.
+        let integer_div = ref_clk.raw() / (baudrate.raw() * multiplier);
+        Self {
+            frac: u6::new(frac as u8),
+            div: u18::new(integer_div),
+            baud_mode,
+        }
+    }
+
+    #[cfg(feature = "vor4x")]
+    pub fn calculate_with_clocks(
+        uart_id: Bank,
+        clks: &Clocks,
+        baudrate: Hertz,
+        baud_mode: BaudMode,
+    ) -> Self {
+        let clk = if uart_id == Bank::Uart2 {
+            clks.apb1()
+        } else {
+            clks.apb2()
+        };
+        Self::calculate(clk, baudrate, baud_mode)
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct Config {
-    pub baudrate: Hertz,
+    pub clock_config: ClockConfig,
     pub parity: Parity,
     pub stopbits: Stopbits,
-    // When false, use standard 16x baud clock, other 8x baud clock
-    pub baud8: bool,
     pub wordsize: WordSize,
     pub enable_tx: bool,
     pub enable_rx: bool,
 }
 
 impl Config {
-    pub fn baudrate(mut self, baudrate: Hertz) -> Self {
-        self.baudrate = baudrate;
+    pub fn new_with_clock_config(clock_config: ClockConfig) -> Self {
+        Config {
+            clock_config,
+            parity: Parity::None,
+            stopbits: Stopbits::One,
+            wordsize: WordSize::Eight,
+            enable_tx: true,
+            enable_rx: true,
+        }
+    }
+
+    pub fn clock_config(mut self, clock_config: ClockConfig) -> Self {
+        self.clock_config = clock_config;
         self
     }
 
@@ -170,32 +240,6 @@ impl Config {
     pub fn wordsize(mut self, wordsize: WordSize) -> Self {
         self.wordsize = wordsize;
         self
-    }
-
-    pub fn baud8(mut self, baud: bool) -> Self {
-        self.baud8 = baud;
-        self
-    }
-}
-
-impl Default for Config {
-    fn default() -> Config {
-        let baudrate = 115_200_u32.Hz();
-        Config {
-            baudrate,
-            parity: Parity::None,
-            stopbits: Stopbits::One,
-            baud8: false,
-            wordsize: WordSize::Eight,
-            enable_tx: true,
-            enable_rx: true,
-        }
-    }
-}
-
-impl From<Hertz> for Config {
-    fn from(baud: Hertz) -> Self {
-        Config::default().baudrate(baud)
     }
 }
 
@@ -408,11 +452,10 @@ impl Uart {
                 uart: Uart,
                 tx_pin: Tx,
                 rx_pin: Rx,
-                sys_clk: Hertz,
                 config: Config,
                 irq_cfg: InterruptConfig,
             ) -> Self {
-                Self::new_for_uart0(uart, tx_pin, rx_pin, sys_clk, config, Some(irq_cfg))
+                Self::new_for_uart0(uart, tx_pin, rx_pin, config, Some(irq_cfg))
             }
 
             /// Calls [Self::new_for_uart1] with the interrupt configuration to some valid value.
@@ -420,11 +463,10 @@ impl Uart {
                 uart: Uart,
                 tx_pin: Tx,
                 rx_pin: Rx,
-                sys_clk: Hertz,
                 config: Config,
                 irq_cfg: InterruptConfig,
             ) -> Self {
-                Self::new_for_uart1(uart, tx_pin, rx_pin, sys_clk, config, Some(irq_cfg))
+                Self::new_for_uart1(uart, tx_pin, rx_pin, config, Some(irq_cfg))
             }
 
             /// Calls [Self::new_for_uart0] with the interrupt configuration to [None].
@@ -432,10 +474,9 @@ impl Uart {
                 uart: Uart,
                 tx_pin: Tx,
                 rx_pin: Rx,
-                sys_clk: Hertz,
                 config: Config,
             ) -> Self {
-                Self::new_for_uart0(uart, tx_pin, rx_pin, sys_clk, config, None)
+                Self::new_for_uart0(uart, tx_pin, rx_pin, config, None)
             }
 
             /// Calls [Self::new_for_uart1] with the interrupt configuration to [None].
@@ -443,10 +484,9 @@ impl Uart {
                 uart: Uart,
                 tx_pin: Tx,
                 rx_pin: Rx,
-                sys_clk: Hertz,
                 config: Config,
             ) -> Self {
-                Self::new_for_uart1(uart, tx_pin, rx_pin, sys_clk, config, None)
+                Self::new_for_uart1(uart, tx_pin, rx_pin, config, None)
             }
 
             /// Create a new UART peripheral driver with an interrupt configuration.
@@ -465,7 +505,6 @@ impl Uart {
                 _uart: Uart,
                 _tx_pin: Tx,
                 _rx_pin: Rx,
-                sys_clk: Hertz,
                 config: Config,
                 opt_irq_cfg: Option<InterruptConfig>,
             ) -> Self {
@@ -476,7 +515,6 @@ impl Uart {
                     Tx::FUNC_SEL,
                     Rx::ID,
                     Rx::FUNC_SEL,
-                    sys_clk,
                     config,
                     opt_irq_cfg
                 )
@@ -498,7 +536,6 @@ impl Uart {
                 _uart: Uart,
                 _tx_pin: Tx,
                 _rx_pin: Rx,
-                sys_clk: Hertz,
                 config: Config,
                 opt_irq_cfg: Option<InterruptConfig>,
             ) -> Self {
@@ -509,7 +546,6 @@ impl Uart {
                     Tx::FUNC_SEL,
                     Rx::ID,
                     Rx::FUNC_SEL,
-                    sys_clk,
                     config,
                     opt_irq_cfg
                 )
@@ -527,14 +563,8 @@ impl Uart {
                 _uart: Uart,
                 _tx_pin: Tx,
                 _rx_pin: Rx,
-                clks: &Clocks,
                 config: Config,
             ) -> Self {
-                let clk = if Uart::ID == Bank::Uart2 {
-                    clks.apb1()
-                } else {
-                    clks.apb2()
-                };
                 Self::new_internal(
                     Uart::PERIPH_SEL,
                     Uart::ID,
@@ -542,7 +572,6 @@ impl Uart {
                     Tx::FUNC_SEL,
                     Rx::ID,
                     Rx::FUNC_SEL,
-                    clk,
                     config
                 )
             }
@@ -559,14 +588,8 @@ impl Uart {
                 _uart: Uart,
                 _tx_pin: Tx,
                 _rx_pin: Rx,
-                clks: &Clocks,
                 config: Config,
             ) -> Self {
-                let clk = if Uart::ID == Bank::Uart2 {
-                    clks.apb1()
-                } else {
-                    clks.apb2()
-                };
                 Self::new_internal(
                     Uart::PERIPH_SEL,
                     Uart::ID,
@@ -574,7 +597,6 @@ impl Uart {
                     Tx::FUNC_SEL,
                     Rx::ID,
                     Rx::FUNC_SEL,
-                    clk,
                     config
                 )
             }
@@ -591,14 +613,8 @@ impl Uart {
                 _uart: Uart,
                 _tx_pin: Tx,
                 _rx_pin: Rx,
-                clks: &Clocks,
                 config: Config,
             ) -> Self {
-                let clk = if Uart::ID == Bank::Uart2 {
-                    clks.apb1()
-                } else {
-                    clks.apb2()
-                };
                 Self::new_internal(
                     Uart::PERIPH_SEL,
                     Uart::ID,
@@ -606,7 +622,6 @@ impl Uart {
                     Tx::FUNC_SEL,
                     Rx::ID,
                     Rx::FUNC_SEL,
-                    clk,
                     config
                 )
             }
@@ -623,7 +638,6 @@ impl Uart {
                 _uart: Uart,
                 _tx_pin: Tx,
                 _rx_pin: Rx,
-                ref_clk: Hertz,
                 config: Config,
             ) -> Self {
                 Self::new_internal(
@@ -633,7 +647,6 @@ impl Uart {
                     Tx::FUNC_SEL,
                     Rx::ID,
                     Rx::FUNC_SEL,
-                    ref_clk,
                     config
                 )
             }
@@ -650,7 +663,6 @@ impl Uart {
                 _uart: Uart,
                 _tx_pin: Tx,
                 _rx_pin: Rx,
-                ref_clk: Hertz,
                 config: Config,
             ) -> Self {
                 Self::new_internal(
@@ -660,7 +672,6 @@ impl Uart {
                     Tx::FUNC_SEL,
                     Rx::ID,
                     Rx::FUNC_SEL,
-                    ref_clk,
                     config
                 )
             }
@@ -677,7 +688,6 @@ impl Uart {
                 _uart: Uart,
                 _tx_pin: Tx,
                 _rx_pin: Rx,
-                ref_clk: Hertz,
                 config: Config,
             ) -> Self {
                 Self::new_internal(
@@ -687,7 +697,6 @@ impl Uart {
                     Tx::FUNC_SEL,
                     Rx::ID,
                     Rx::FUNC_SEL,
-                    ref_clk,
                     config
                 )
             }
@@ -702,7 +711,6 @@ impl Uart {
         tx_func_sel: FunctionSelect,
         rx_pin_id: DynPinId,
         rx_func_sel: FunctionSelect,
-        ref_clk: Hertz,
         config: Config,
         #[cfg(feature = "vor1x")] opt_irq_cfg: Option<InterruptConfig>,
     ) -> Self {
@@ -711,23 +719,10 @@ impl Uart {
         enable_peripheral_clock(periph_sel);
 
         let mut reg_block = regs::Uart::new_mmio(uart_bank);
-        let baud_multiplier = match config.baud8 {
-            false => 16,
-            true => 8,
-        };
-
-        // This is the calculation: (64.0 * (x - integer_part as f32) + 0.5) as u32 without floating
-        // point calculations.
-        let frac = ((ref_clk.raw() % (config.baudrate.raw() * 16)) * 64
-            + (config.baudrate.raw() * 8))
-            / (config.baudrate.raw() * 16);
-        // Calculations here are derived from chapter 4.8.5 (p.79) of the datasheet.
-        let x = ref_clk.raw() as f32 / (config.baudrate.raw() * baud_multiplier) as f32;
-        let integer_part = x as u32;
         reg_block.write_clkscale(
             ClockScale::builder()
-                .with_int(u18::new(integer_part))
-                .with_frac(u6::new(frac as u8))
+                .with_int(config.clock_config.div)
+                .with_frac(config.clock_config.frac)
                 .build(),
         );
 
@@ -738,7 +733,7 @@ impl Uart {
         };
         reg_block.write_ctrl(
             Control::builder()
-                .with_baud8(config.baud8)
+                .with_baud8(config.clock_config.baud_mode == BaudMode::_8)
                 .with_auto_rts(false)
                 .with_def_rts(false)
                 .with_auto_cts(false)

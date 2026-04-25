@@ -61,8 +61,14 @@ async fn main(_spawner: Spawner) {
     let portg = PinsG::new(dp.portg);
     let mut led = Output::new(portg.pg5, PinState::Low);
 
-    let uarta =
-        uart::Uart::new_for_uart0(dp.uart0, portg.pg0, portg.pg1, &clocks, 115200.Hz().into());
+    let clock_config = uart::ClockConfig::calculate_with_clocks(
+        uart::Bank::Uart0,
+        &clocks,
+        115200.Hz(),
+        uart::BaudMode::_16,
+    );
+    let uart_config = uart::Config::new_with_clock_config(clock_config);
+    let uarta = uart::Uart::new_for_uart0(dp.uart0, portg.pg0, portg.pg1, uart_config);
 
     let (mut tx_uart_a, rx_uart_a) = uarta.split();
     let (prod_uart_a, cons_uart_a) = QUEUE_UART_A.take().split();

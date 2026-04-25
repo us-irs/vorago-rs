@@ -67,13 +67,14 @@ async fn main(spawner: Spawner) {
 
     let portg = PinsG::new(dp.portg);
 
-    let uart0 = uart::Uart::new_for_uart0(
-        dp.uart0,
-        portg.pg0,
-        portg.pg1,
+    let clock_config = uart::ClockConfig::calculate_with_clocks(
+        uart::Bank::Uart0,
         &clocks,
-        Hertz::from_raw(BAUDRATE).into(),
+        Hertz::from_raw(BAUDRATE),
+        uart::BaudMode::_16,
     );
+    let uart_config = uart::Config::new_with_clock_config(clock_config);
+    let uart0 = uart::Uart::new_for_uart0(dp.uart0, portg.pg0, portg.pg1, uart_config);
     let (mut tx, rx) = uart0.split();
     let mut rx = rx.into_rx_with_irq();
     rx.start();
