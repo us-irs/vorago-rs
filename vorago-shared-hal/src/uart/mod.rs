@@ -212,32 +212,32 @@ impl Config {
         }
     }
 
-    pub fn clock_config(mut self, clock_config: ClockConfig) -> Self {
+    pub fn with_clock_config(mut self, clock_config: ClockConfig) -> Self {
         self.clock_config = clock_config;
         self
     }
 
-    pub fn parity_none(mut self) -> Self {
+    pub fn with_parity_none(mut self) -> Self {
         self.parity = Parity::None;
         self
     }
 
-    pub fn parity_even(mut self) -> Self {
+    pub fn with_parity_even(mut self) -> Self {
         self.parity = Parity::Even;
         self
     }
 
-    pub fn parity_odd(mut self) -> Self {
+    pub fn with_parity_odd(mut self) -> Self {
         self.parity = Parity::Odd;
         self
     }
 
-    pub fn stopbits(mut self, stopbits: Stopbits) -> Self {
+    pub fn with_stopbits(mut self, stopbits: Stopbits) -> Self {
         self.stopbits = stopbits;
         self
     }
 
-    pub fn wordsize(mut self, wordsize: WordSize) -> Self {
+    pub fn with_wordsize(mut self, wordsize: WordSize) -> Self {
         self.wordsize = wordsize;
         self
     }
