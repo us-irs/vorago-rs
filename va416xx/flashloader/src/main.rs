@@ -116,6 +116,7 @@ mod app {
         nvm::Nvm,
         pac,
         pins::PinsG,
+        prelude::*,
         uart::{self, Uart},
     };
 
@@ -167,13 +168,15 @@ mod app {
 
         let gpiog = PinsG::new(cx.device.portg);
 
-        let uart0 = Uart::new_for_uart0(
-            cx.device.uart0,
-            gpiog.pg0,
-            gpiog.pg1,
+        let clock_config = uart::ClockConfig::calculate_with_clocks(
+            uart::Bank::Uart0,
             &clocks,
-            Hertz::from_raw(UART_BAUDRATE).into(),
+            UART_BAUDRATE.Hz(),
+            uart::BaudMode::_16,
         );
+        let uart_config = uart::Config::new_with_clock_config(clock_config);
+
+        let uart0 = Uart::new_for_uart0(cx.device.uart0, gpiog.pg0, gpiog.pg1, uart_config);
         let (tx, rx) = uart0.split();
 
         let verif_reporter = VerificationReportCreator::new(u11::new(0));

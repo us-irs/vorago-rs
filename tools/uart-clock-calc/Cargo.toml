@@ -1,0 +1,7 @@
+[package]
+name = "uart-clock-calc"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+arbitrary-int = "2"

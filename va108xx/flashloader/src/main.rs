@@ -116,12 +116,14 @@ mod app {
         let tx = gpioa.pa9;
         let rx = gpioa.pa8;
 
+        let clock_config =
+            uart::ClockConfig::calculate(SYSCLK_FREQ, UART_BAUDRATE.Hz(), uart::BaudMode::_16);
+        let uart_config = uart::Config::new_with_clock_config(clock_config);
         let irq_uart = uart::Uart::new_with_interrupt_uart0(
             dp.uarta,
             tx,
             rx,
-            SYSCLK_FREQ,
-            UART_BAUDRATE.Hz().into(),
+            uart_config,
             InterruptConfig::new(pac::Interrupt::OC0, true, true),
         );
         let (tx, rx) = irq_uart.split();

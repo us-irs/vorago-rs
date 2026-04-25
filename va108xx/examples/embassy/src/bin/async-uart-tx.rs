@@ -52,12 +52,13 @@ async fn main(_spawner: Spawner) {
     let tx = porta.pa9;
     let rx = porta.pa8;
 
+    let clock_config = uart::ClockConfig::calculate(50.MHz(), 115200.Hz(), uart::BaudMode::_16);
+    let uart_config = uart::Config::new_with_clock_config(clock_config);
     let uarta = uart::Uart::new_with_interrupt_uart0(
         dp.uarta,
         tx,
         rx,
-        50.MHz(),
-        115200.Hz().into(),
+        uart_config,
         InterruptConfig::new(pac::Interrupt::OC2, true, true),
     );
     let (tx, _rx) = uarta.split();

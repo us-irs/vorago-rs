@@ -28,8 +28,9 @@ fn main() -> ! {
     let gpioa = PinsA::new(dp.porta);
     let tx = gpioa.pa9;
     let rx = gpioa.pa8;
-    let uart =
-        uart::Uart::new_without_interrupt_uart0(dp.uarta, tx, rx, 50.MHz(), 115200.Hz().into());
+    let clock_config = uart::ClockConfig::calculate(50.MHz(), 115200.Hz(), uart::BaudMode::_16);
+    let uart_config = uart::Config::new_with_clock_config(clock_config);
+    let uart = uart::Uart::new_without_interrupt_uart0(dp.uarta, tx, rx, uart_config);
 
     let (mut tx, mut rx) = uart.split();
     writeln!(tx, "Hello World\r").unwrap();

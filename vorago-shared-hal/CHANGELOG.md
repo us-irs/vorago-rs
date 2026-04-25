@@ -21,12 +21,15 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Improved type level support for resource management for SPI, PWM, UART.
 - Renamed `tx_asynch` and `rx_asynch` module name to `*_async`
 - Naming improvements in SPI module: replaced `cfg` by `config*`
+- UART configuration now expects an explicit clock configuration structure and does not
+  calculate it itself anymore.
 
 ### Fixed
 
 - Removed HW CS pin provider implementation for PA23, PA22 and PA21, which are multi HW CS pins.
 - Added missing `AnyPin` trait impl for Multi HW CS pins.
 - Expose inner `Input` pin for `InputPinAsync`.
+- Bugfix for UART clock calculation with 8x baud mode.
 
 ## [v0.2.0] 2025-09-03
 
