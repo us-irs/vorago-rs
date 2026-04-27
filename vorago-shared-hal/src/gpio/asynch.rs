@@ -122,30 +122,30 @@ fn on_interrupt_for_async_gpio_for_port_generic(port: Port) {
 
     let irq_enb = gpio.read_irq_enable();
     let edge_status = gpio.read_edge_status();
+    let irq_status = gpio.read_irq_status();
+    // Depending on silicon/configuration, edge-triggered events can be reflected in EDGE_STATUS,
+    // IRQ_STATUS, or both. Accept either source for pending detection.
+    let pending = irq_enb & (edge_status | irq_status);
     let (wakers, edge_detection) = pin_group_to_waker_and_edge_detection_group(port);
 
-    on_interrupt_for_port(irq_enb, edge_status, wakers, edge_detection);
+    on_interrupt_for_port(pending, wakers, edge_detection);
 }
 
 #[inline]
 fn on_interrupt_for_port(
-    mut irq_enb: u32,
-    edge_status: u32,
+    mut pending: u32,
     wakers: &'static [AtomicWaker],
     edge_detection: &'static [AtomicBool],
 ) {
-    while irq_enb != 0 {
-        let bit_pos = irq_enb.trailing_zeros() as usize;
+    while pending != 0 {
+        let bit_pos = pending.trailing_zeros() as usize;
         let bit_mask = 1 << bit_pos;
 
         wakers[bit_pos].wake();
+        edge_detection[bit_pos].store(true, core::sync::atomic::Ordering::Relaxed);
 
-        if edge_status & bit_mask != 0 {
-            edge_detection[bit_pos].store(true, core::sync::atomic::Ordering::Relaxed);
-
-            // Clear the processed bit
-            irq_enb &= !bit_mask;
-        }
+        // Clear the processed bit in our local bitmap.
+        pending &= !bit_mask;
     }
 }
 
