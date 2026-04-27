@@ -21,9 +21,6 @@ use crate::{InterruptConfig, NUM_PORT_A, NUM_PORT_B};
 #[cfg(feature = "vor4x")]
 use super::ll::PortDoesNotSupportInterrupts;
 
-#[cfg(feature = "vor1x")]
-use va108xx as pac;
-
 pub use super::ll::InterruptEdge;
 use super::{
     Input, Port,
@@ -118,7 +115,7 @@ pub fn on_interrupt_for_async_gpio_for_port(
 }
 
 fn on_interrupt_for_async_gpio_for_port_generic(port: Port) {
-    let gpio = unsafe { port.steal_gpio() };
+    let mut gpio = unsafe { port.steal_regs() };
 
     let irq_enb = gpio.read_irq_enable();
     let edge_status = gpio.read_edge_status();
@@ -134,18 +131,19 @@ fn on_interrupt_for_port(
     wakers: &'static [AtomicWaker],
     edge_detection: &'static [AtomicBool],
 ) {
+    // Check all enabled interrupts.
     while irq_enb != 0 {
+        // For all enabled interrupts, check whether the corresponding edge detection has
+        // triggered.
         let bit_pos = irq_enb.trailing_zeros() as usize;
         let bit_mask = 1 << bit_pos;
 
-        wakers[bit_pos].wake();
-
         if edge_status & bit_mask != 0 {
             edge_detection[bit_pos].store(true, core::sync::atomic::Ordering::Relaxed);
-
-            // Clear the processed bit
-            irq_enb &= !bit_mask;
+            wakers[bit_pos].wake();
         }
+        // Clear the processed bit
+        irq_enb &= !bit_mask;
     }
 }
 
@@ -163,13 +161,12 @@ pub struct InputPinFuture {
 impl InputPinFuture {
     /// Create a new input pin future from mutable reference to an [Input] pin.
     #[cfg(feature = "vor1x")]
-    pub fn new_with_input_pin(pin: &mut Input, irq: pac::Interrupt, edge: InterruptEdge) -> Self {
+    pub fn new_with_input_pin(pin: &mut Input, edge: InterruptEdge) -> Self {
         let (waker_group, edge_detection_group) =
             pin_group_to_waker_and_edge_detection_group(pin.id().port());
         edge_detection_group[pin.id().offset()].store(false, core::sync::atomic::Ordering::Relaxed);
         pin.configure_edge_interrupt(edge);
-        #[cfg(feature = "vor1x")]
-        pin.enable_interrupt(InterruptConfig::new(irq, true, true));
+        pin.enable_interrupt_gpio_only();
         Self {
             id: pin.id(),
             waker_group,
@@ -186,7 +183,7 @@ impl InputPinFuture {
         let (waker_group, edge_detection_group) =
             pin_group_to_waker_and_edge_detection_group(pin.id().port());
         pin.configure_edge_interrupt(edge);
-        pin.enable_interrupt(true)?;
+        pin.enable_interrupt_gpio_only();
         Ok(Self {
             id: pin.id(),
             waker_group,
@@ -223,8 +220,6 @@ impl Future for InputPinFuture {
 /// Input pin which has additional asynchronous support.
 pub struct InputPinAsync {
     pin: Input,
-    #[cfg(feature = "vor1x")]
-    irq: va108xx::Interrupt,
 }
 
 impl InputPinAsync {
@@ -235,8 +230,10 @@ impl InputPinAsync {
     /// generic [on_interrupt_for_async_gpio_for_port] function must be called inside that function
     /// for the asynchronous functionality to work.
     #[cfg(feature = "vor1x")]
-    pub fn new(pin: Input, irq: va108xx::Interrupt) -> Self {
-        Self { pin, irq }
+    pub fn new(mut pin: Input, irq_config: InterruptConfig) -> Self {
+        // Do not enable GPIO interrupt bit yet.
+        pin.enable_interrupt(irq_config, false);
+        Self { pin }
     }
 
     /// Create a new asynchronous input pin from an [Input] pin. The interrupt ID to be used must be
@@ -246,10 +243,12 @@ impl InputPinAsync {
     /// generic [on_interrupt_for_async_gpio_for_port] function must be called inside that function
     /// for the asynchronous functionality to work.
     #[cfg(feature = "vor4x")]
-    pub fn new(pin: Input) -> Result<Self, PortDoesNotSupportInterrupts> {
+    pub fn new(mut pin: Input) -> Result<Self, PortDoesNotSupportInterrupts> {
         if pin.id().port() == Port::G {
             return Err(PortDoesNotSupportInterrupts);
         }
+        // Do not enable GPIO interrupt bit yet.
+        pin.enable_interrupt(true, false)?;
         Ok(Self { pin })
     }
 
@@ -259,8 +258,7 @@ impl InputPinAsync {
     pub async fn wait_for_high(&mut self) {
         // Unwrap okay, checked pin in constructor.
         #[cfg(feature = "vor1x")]
-        let fut =
-            InputPinFuture::new_with_input_pin(&mut self.pin, self.irq, InterruptEdge::LowToHigh);
+        let fut = InputPinFuture::new_with_input_pin(&mut self.pin, InterruptEdge::LowToHigh);
         #[cfg(feature = "vor4x")]
         let fut =
             InputPinFuture::new_with_input_pin(&mut self.pin, InterruptEdge::LowToHigh).unwrap();
@@ -300,8 +298,7 @@ impl InputPinAsync {
     pub async fn wait_for_low(&mut self) {
         // Unwrap okay, checked pin in constructor.
         #[cfg(feature = "vor1x")]
-        let fut =
-            InputPinFuture::new_with_input_pin(&mut self.pin, self.irq, InterruptEdge::HighToLow);
+        let fut = InputPinFuture::new_with_input_pin(&mut self.pin, InterruptEdge::HighToLow);
         #[cfg(feature = "vor4x")]
         let fut =
             InputPinFuture::new_with_input_pin(&mut self.pin, InterruptEdge::HighToLow).unwrap();
@@ -315,7 +312,7 @@ impl InputPinAsync {
     pub async fn wait_for_falling_edge(&mut self) {
         // Unwrap okay, checked pin in constructor.
         #[cfg(feature = "vor1x")]
-        InputPinFuture::new_with_input_pin(&mut self.pin, self.irq, InterruptEdge::HighToLow).await;
+        InputPinFuture::new_with_input_pin(&mut self.pin, InterruptEdge::HighToLow).await;
         #[cfg(feature = "vor4x")]
         InputPinFuture::new_with_input_pin(&mut self.pin, InterruptEdge::HighToLow)
             .unwrap()
@@ -326,14 +323,14 @@ impl InputPinAsync {
     pub async fn wait_for_rising_edge(&mut self) {
         // Unwrap okay, checked pin in constructor.
         #[cfg(feature = "vor1x")]
-        InputPinFuture::new_with_input_pin(&mut self.pin, self.irq, InterruptEdge::LowToHigh).await;
+        InputPinFuture::new_with_input_pin(&mut self.pin, InterruptEdge::LowToHigh).await;
     }
 
     /// Asynchronously wait until the pin sees any edge (either rising or falling).
     pub async fn wait_for_any_edge(&mut self) {
         // Unwrap okay, checked pin in constructor.
         #[cfg(feature = "vor1x")]
-        InputPinFuture::new_with_input_pin(&mut self.pin, self.irq, InterruptEdge::BothEdges).await;
+        InputPinFuture::new_with_input_pin(&mut self.pin, InterruptEdge::BothEdges).await;
         #[cfg(feature = "vor4x")]
         InputPinFuture::new_with_input_pin(&mut self.pin, InterruptEdge::BothEdges)
             .unwrap()

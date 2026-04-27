@@ -384,32 +384,53 @@ impl LowLevelGpio {
         self.gpio.write_tog_out(self.mask_32());
     }
 
-    #[cfg(feature = "vor1x")]
-    pub fn enable_interrupt(&mut self, irq_cfg: crate::InterruptConfig) {
-        if irq_cfg.route {
-            self.configure_irqsel(irq_cfg.id);
-        }
-        if irq_cfg.enable_in_nvic {
-            unsafe { crate::enable_nvic_interrupt(irq_cfg.id) };
-        }
+    /// Only enabled GPIO peripheral interrupt bit without enabling the interrupt in NVIC
+    /// or routing it in the IRQSEL peripheral for VA108xx devices.
+    #[inline]
+    pub fn enable_interrupt_gpio_only(&mut self) {
         self.gpio.modify_irq_enable(|mut value| {
             value |= 1 << self.id.offset;
             value
         });
     }
 
+    /// Depending on the configuration parameters, does the following:
+    ///
+    /// - Routes the interrupt in the IRQSEL peripheral
+    /// - Enables the interrupt in the NVIC,
+    /// - Enable the GPIO peripheral interrupt bit for this pin if configured.
+    #[cfg(feature = "vor1x")]
+    pub fn enable_interrupt(&mut self, irq_cfg: crate::InterruptConfig, gpio: bool) {
+        if irq_cfg.route {
+            self.configure_irqsel(irq_cfg.id);
+        }
+        if irq_cfg.enable_in_nvic {
+            unsafe { crate::enable_nvic_interrupt(irq_cfg.id) };
+        }
+        if gpio {
+            self.enable_interrupt_gpio_only();
+        }
+    }
+
+    /// Depending on the configuration parameters, does the following:
+    ///
+    /// - Enables the interrupt in the NVIC,
+    /// - Enable the GPIO peripheral interrupt bit for this pin if configured.
     #[cfg(feature = "vor4x")]
     pub fn enable_interrupt(
         &mut self,
         enable_in_nvic: bool,
+        gpio: bool,
     ) -> Result<(), PortDoesNotSupportInterrupts> {
+        if self.id().port() == Port::G {
+            return Err(PortDoesNotSupportInterrupts);
+        }
         if enable_in_nvic {
             unsafe { crate::enable_nvic_interrupt(self.id().irq_unchecked()) };
         }
-        self.gpio.modify_irq_enable(|mut value| {
-            value |= 1 << self.id.offset;
-            value
-        });
+        if gpio {
+            self.enable_interrupt_gpio_only();
+        }
         Ok(())
     }
 

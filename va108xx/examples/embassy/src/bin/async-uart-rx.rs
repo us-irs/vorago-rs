@@ -97,9 +97,7 @@ async fn main(spawner: Spawner) {
     });
     let mut async_rx_uart_a = RxAsync::new(rx_uart_a, cons_uart_a);
     let async_rx_uart_b = RxAsyncOverwriting::new(rx_uart_b, &CONSUMER_UART_B);
-    spawner
-        .spawn(uart_b_task(async_rx_uart_b, tx_uart_b))
-        .unwrap();
+    spawner.spawn(uart_b_task(async_rx_uart_b, tx_uart_b).unwrap());
     let mut buf = [0u8; 256];
     loop {
         defmt::info!("Current time UART A: {}", Instant::now().as_secs());

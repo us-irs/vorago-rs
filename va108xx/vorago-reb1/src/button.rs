@@ -36,7 +36,7 @@ impl Button {
         irq_cfg: InterruptConfig,
     ) {
         self.0.configure_edge_interrupt(edge_type);
-        self.0.enable_interrupt(irq_cfg);
+        self.0.enable_interrupt(irq_cfg, true);
     }
 
     /// Configures an IRQ on level.
@@ -46,7 +46,7 @@ impl Button {
         irq_cfg: InterruptConfig,
     ) {
         self.0.configure_level_interrupt(level);
-        self.0.enable_interrupt(irq_cfg);
+        self.0.enable_interrupt(irq_cfg, true);
     }
 
     /// Configures a filter on the button. This can be useful for debouncing the switch.
