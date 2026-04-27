@@ -30,6 +30,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Added missing `AnyPin` trait impl for Multi HW CS pins.
 - Expose inner `Input` pin for `InputPinAsync`.
 - Bugfix for UART clock calculation with 8x baud mode.
+- Possible bugfix for Asynch GPIO where the interrupt handler could become stuck in a loop.
+- Robustness improvements for the Asynch GPIO driver code.
 
 ## [v0.2.0] 2025-09-03
 

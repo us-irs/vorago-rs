@@ -62,6 +62,9 @@ async fn main(spawner: Spawner) {
 
     // Safety: Only called once here.
     va108xx_embassy::init(dp.tim23, dp.tim22, SYSCLK_FREQ);
+    unsafe {
+        cortex_m::interrupt::enable();
+    }
 
     let porta = PinsA::new(dp.porta);
     let portb = PinsB::new(dp.portb);
@@ -71,36 +74,35 @@ async fn main(spawner: Spawner) {
     let out_pb22 = Output::new(portb.pb22, PinState::Low);
     let in_pb23 = Input::new_floating(portb.pb23);
 
-    let mut in_pa1_async = InputPinAsync::new(in_pa1, pac::Interrupt::OC10);
-    let mut in_pb23_async = InputPinAsync::new(in_pb23, PB22_TO_PB23_IRQ);
+    let mut in_pa1_async = InputPinAsync::new(
+        in_pa1,
+        va108xx_hal::InterruptConfig::new(pac::Interrupt::OC10, true, true),
+    );
+    let mut in_pb23_async = InputPinAsync::new(
+        in_pb23,
+        va108xx_hal::InterruptConfig::new(PB22_TO_PB23_IRQ, true, true),
+    );
 
-    spawner
-        .spawn(output_task(
-            "PA0 to PA1",
-            out_pa0,
-            CHANNEL_PA0_PA1.receiver(),
-        ))
-        .unwrap();
-    spawner
-        .spawn(output_task(
-            "PB22 to PB23",
-            out_pb22,
-            CHANNEL_PB22_TO_PB23.receiver(),
-        ))
-        .unwrap();
+    spawner.spawn(output_task("PA0 to PA1", out_pa0, CHANNEL_PA0_PA1.receiver()).unwrap());
+    spawner.spawn(output_task("PB22 to PB23", out_pb22, CHANNEL_PB22_TO_PB23.receiver()).unwrap());
 
-    if CHECK_PA0_TO_PA1 {
-        check_pin_to_pin_async_ops("PA0 to PA1", CHANNEL_PA0_PA1.sender(), &mut in_pa1_async).await;
-        defmt::info!("Example PA0 to PA1 done");
-    }
-    if CHECK_PB22_TO_PB23 {
-        check_pin_to_pin_async_ops(
-            "PB22 to PB23",
-            CHANNEL_PB22_TO_PB23.sender(),
-            &mut in_pb23_async,
-        )
-        .await;
-        defmt::info!("Example PB22 to PB23 done");
+    for i in 0..3 {
+        defmt::info!("Starting async GPIO operations check {}", i);
+        if CHECK_PA0_TO_PA1 {
+            check_pin_to_pin_async_ops("PA0 to PA1", CHANNEL_PA0_PA1.sender(), &mut in_pa1_async)
+                .await;
+            defmt::info!("Example PA0 to PA1 done");
+        }
+        if CHECK_PB22_TO_PB23 {
+            check_pin_to_pin_async_ops(
+                "PB22 to PB23",
+                CHANNEL_PB22_TO_PB23.sender(),
+                &mut in_pb23_async,
+            )
+            .await;
+            defmt::info!("Example PB22 to PB23 done");
+        }
+        Timer::after(Duration::from_millis(500)).await;
     }
 
     defmt::info!("Example done, toggling LED0");

@@ -132,19 +132,34 @@ impl Input {
         self.0.id()
     }
 
-    #[cfg(feature = "vor1x")]
     #[inline]
-    pub fn enable_interrupt(&mut self, irq_cfg: crate::InterruptConfig) {
-        self.0.enable_interrupt(irq_cfg);
+    pub fn enable_interrupt_gpio_only(&mut self) {
+        self.0.enable_interrupt_gpio_only();
     }
 
+    /// Depending on the configuration parameters, does the following:
+    ///
+    /// - Routes the interrupt in the IRQSEL peripheral
+    /// - Enables the interrupt in the NVIC,
+    /// - Enable the GPIO peripheral interrupt bit for this pin if configured.
+    #[cfg(feature = "vor1x")]
+    #[inline]
+    pub fn enable_interrupt(&mut self, irq_cfg: crate::InterruptConfig, gpio: bool) {
+        self.0.enable_interrupt(irq_cfg, gpio);
+    }
+
+    /// Depending on the configuration parameters, does the following:
+    ///
+    /// - Enables the interrupt in the NVIC,
+    /// - Enable the GPIO peripheral interrupt bit for this pin if configured.
     #[cfg(feature = "vor4x")]
     #[inline]
     pub fn enable_interrupt(
         &mut self,
         enable_in_nvic: bool,
+        gpio: bool,
     ) -> Result<(), ll::PortDoesNotSupportInterrupts> {
-        self.0.enable_interrupt(enable_in_nvic)
+        self.0.enable_interrupt(enable_in_nvic, gpio)
     }
 
     #[inline]

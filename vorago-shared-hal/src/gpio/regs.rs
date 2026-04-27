@@ -58,7 +58,8 @@ pub struct Gpio {
     /// Read-only register which shows enabled and active interrupts. Called IRQ_end by Vorago.
     #[mmio(PureRead)]
     irq_status: u32,
-    #[mmio(PureRead)]
+    // Reading this register clears it.
+    #[mmio(Read)]
     edge_status: u32,
 
     #[cfg(feature = "vor1x")]

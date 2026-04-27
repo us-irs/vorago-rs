@@ -29,7 +29,7 @@ fugit = "0.3"
 defmt = { version = "1", optional = true }
 va108xx = { version = "0.6", path = "../va108xx/va108xx", default-features = false, optional = true }
 va416xx = { version = "0.5", path = "../va416xx/va416xx", default-features = false, optional = true }
-embassy-sync = "0.7"
+embassy-sync = "0.8"
 embassy-time-driver = "0.2"
 embassy-time-queue-utils = "0.3"
 once_cell = { version = "1", default-features = false, features = [
