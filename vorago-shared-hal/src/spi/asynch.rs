@@ -33,13 +33,15 @@ pub fn on_interrupt(peripheral: super::Bank) {
     let idx = peripheral as usize;
     let interrupt_enabled = spi.read_interrupt_control();
     let isr = spi.read_interrupt_status();
-    // IRQ is not related.
-    if interrupt_enabled.raw_value() == 0 {
-        return;
-    }
+    spi.write_interrupt_clear(InterruptClear::ALL);
     // Prevent spurious interrupts from messing with out logic here.
     spi.write_interrupt_control(InterruptControl::DISABLE_ALL);
-    spi.write_interrupt_clear(InterruptClear::ALL);
+    // IRQ is not related.
+    if interrupt_enabled.raw_value() == 0 {
+        reset_trigger_levels(&mut spi);
+        spi.write_fifo_clear(FifoClear::ALL);
+        return;
+    }
     let mut context = critical_section::with(|cs| {
         let context_ref = TRANSFER_CONTEXTS[idx].borrow(cs);
         *context_ref.borrow()
@@ -175,6 +177,7 @@ fn on_interrupt_transfer_in_place(
     isr_finish_handler(idx, spi, context, transfer_len)
 }
 
+#[inline]
 fn calculate_read_len(
     spi: &mut super::regs::MmioSpi<'static>,
     isr: InterruptStatus,
@@ -201,46 +204,60 @@ fn isr_finish_handler(
 ) {
     // Transfer finish condition.
     if context.rx_progress == context.tx_progress && context.rx_progress == transfer_len {
-        finish_transfer(idx, context, spi);
+        finish_transfer(spi, idx, context);
         return;
     }
-
-    unfinished_transfer(spi, transfer_len, context.rx_progress);
-
     // If the transfer is done, the context structure was already written back.
     // Write back updated context structure.
     critical_section::with(|cs| {
         let context_ref = TRANSFER_CONTEXTS[idx].borrow(cs);
         *context_ref.borrow_mut() = *context;
     });
+    unfinished_transfer(spi, transfer_len, context);
 }
 
 fn finish_transfer(
+    spi: &mut super::regs::MmioSpi<'static>,
     idx: usize,
     context: &mut TransferContext,
-    spi: &mut super::regs::MmioSpi<'static>,
 ) {
     // Write back updated context structure.
     critical_section::with(|cs| {
         let context_ref = TRANSFER_CONTEXTS[idx].borrow(cs);
         *context_ref.borrow_mut() = *context;
     });
-    spi.write_rx_fifo_trigger(TriggerLevel::new(u5::new(0x08)));
-    spi.write_tx_fifo_trigger(TriggerLevel::new(u5::new(0x00)));
+    // Clean up, restore clean state.
+    reset_trigger_levels(spi);
+    spi.write_fifo_clear(FifoClear::ALL);
     // Interrupts were already disabled and cleared.
     DONE[idx].store(true, core::sync::atomic::Ordering::Relaxed);
     WAKERS[idx].wake();
 }
 
+#[inline]
 fn unfinished_transfer(
     spi: &mut super::regs::MmioSpi<'static>,
     transfer_len: usize,
-    rx_progress: usize,
+    context: &TransferContext,
 ) {
-    let new_trig_level = core::cmp::min(super::FIFO_DEPTH, transfer_len - rx_progress);
+    let new_trig_level = core::cmp::min(super::FIFO_DEPTH, transfer_len - context.rx_progress);
     spi.write_rx_fifo_trigger(TriggerLevel::new(u5::new(new_trig_level as u8)));
+
     // Re-enable interrupts with the new RX FIFO trigger level.
-    spi.write_interrupt_control(InterruptControl::ENABLE_ALL);
+    spi.write_interrupt_control(
+        InterruptControl::builder()
+            .with_tx(context.tx_progress < transfer_len)
+            .with_rx(true)
+            .with_rx_timeout(true)
+            .with_rx_overrun(true)
+            .build(),
+    );
+}
+
+#[inline]
+fn reset_trigger_levels(spi: &mut super::regs::MmioSpi<'static>) {
+    spi.write_rx_fifo_trigger(TriggerLevel::new(u5::new(0x08)));
+    spi.write_tx_fifo_trigger(TriggerLevel::new(u5::new(0x00)));
 }
 
 #[derive(Debug, Clone, Copy)]
