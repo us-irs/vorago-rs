@@ -1,4 +1,4 @@
-use core::{cell::RefCell, convert::Infallible};
+use core::cell::RefCell;
 
 use arbitrary_int::u5;
 use critical_section::Mutex;
@@ -8,7 +8,7 @@ use raw_slice::{RawBufSlice, RawBufSliceMut};
 
 use crate::{
     shared::{FifoClear, TriggerLevel},
-    spi::regs::{Data, InterruptClear, InterruptControl, InterruptStatus},
+    spi::regs::{Data, InterruptClear, InterruptControl},
 };
 
 #[cfg(feature = "vor1x")]
@@ -23,6 +23,17 @@ static TRANSFER_CONTEXTS: [Mutex<RefCell<TransferContext>>; NUM_SPIS] =
 // critical section.
 static DONE: [AtomicBool; NUM_SPIS] = [const { AtomicBool::new(false) }; NUM_SPIS];
 
+#[derive(Debug, Clone, Copy, thiserror::Error)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
+#[error("SPI RX FIFO overrun")]
+pub struct RxOverrunError;
+
+impl embedded_hal_async::spi::Error for RxOverrunError {
+    fn kind(&self) -> embedded_hal::spi::ErrorKind {
+        embedded_hal::spi::ErrorKind::Overrun
+    }
+}
+
 /// This is a generic interrupt handler to handle asynchronous SPI  operations for a given
 /// SPI peripheral.
 ///
@@ -30,20 +41,23 @@ static DONE: [AtomicBool; NUM_SPIS] = [const { AtomicBool::new(false) }; NUM_SPI
 /// the given SPI bank.
 pub fn on_interrupt(peripheral: super::Bank) {
     let mut spi = unsafe { peripheral.steal_regs() };
-    let idx = peripheral as usize;
-    let interrupt_enabled = spi.read_interrupt_control();
-    let isr = spi.read_interrupt_status();
+    let index = peripheral as usize;
+    let enabled_irqs = spi.read_interrupt_control();
     spi.write_interrupt_clear(InterruptClear::ALL);
     // Prevent spurious interrupts from messing with out logic here.
     spi.write_interrupt_control(InterruptControl::DISABLE_ALL);
     // IRQ is not related.
-    if interrupt_enabled.raw_value() == 0 {
+    if enabled_irqs.raw_value() == 0 {
         reset_trigger_levels(&mut spi);
         spi.write_fifo_clear(FifoClear::ALL);
         return;
     }
+    if spi.read_interrupt_status().rx_overrun() {
+        // Not sure how to otherwise handle this cleanly..
+        return handle_rx_overrun(&mut spi, index);
+    }
     let mut context = critical_section::with(|cs| {
-        let context_ref = TRANSFER_CONTEXTS[idx].borrow(cs);
+        let context_ref = TRANSFER_CONTEXTS[index].borrow(cs);
         *context_ref.borrow()
     });
     // No transfer active.
@@ -52,30 +66,47 @@ pub fn on_interrupt(peripheral: super::Bank) {
     }
     let transfer_type = context.transfer_type.unwrap();
     match transfer_type {
-        TransferType::Read => on_interrupt_read(idx, &mut context, &mut spi, isr),
-        TransferType::Write => on_interrupt_write(idx, &mut context, &mut spi, isr),
-        TransferType::Transfer => on_interrupt_transfer(idx, &mut context, &mut spi, isr),
+        TransferType::Read => on_interrupt_read(index, &mut context, &mut spi, enabled_irqs),
+        TransferType::Write => on_interrupt_write(index, &mut context, &mut spi, enabled_irqs),
+        TransferType::Transfer => {
+            on_interrupt_transfer(index, &mut context, &mut spi, enabled_irqs)
+        }
         TransferType::TransferInPlace => {
-            on_interrupt_transfer_in_place(idx, &mut context, &mut spi, isr)
+            on_interrupt_transfer_in_place(index, &mut context, &mut spi, enabled_irqs)
         }
     };
+}
+
+fn handle_rx_overrun(spi: &mut super::regs::MmioSpi<'static>, idx: usize) {
+    critical_section::with(|cs| {
+        let context_ref = TRANSFER_CONTEXTS[idx].borrow(cs);
+        context_ref.borrow_mut().rx_overrun = true;
+    });
+    // Clean up, restore clean state.
+    reset_trigger_levels(spi);
+    spi.write_fifo_clear(FifoClear::ALL);
+    // Interrupts were already disabled and cleared.
+    DONE[idx].store(true, core::sync::atomic::Ordering::Relaxed);
+    WAKERS[idx].wake();
 }
 
 fn on_interrupt_read(
     idx: usize,
     context: &mut TransferContext,
     spi: &mut super::regs::MmioSpi<'static>,
-    isr: InterruptStatus,
+    enabled_irqs: InterruptControl,
 ) {
     let read_slice = unsafe { context.rx_slice.get_mut().unwrap() };
     let transfer_len = read_slice.len();
 
     // Read data from RX FIFO first.
-    let read_len = calculate_read_len(spi, isr, transfer_len, context.rx_progress);
-    (0..read_len).for_each(|_| {
-        read_slice[context.rx_progress] = (spi.read_data().data() & 0xFF) as u8;
-        context.rx_progress += 1;
-    });
+    while spi.read_status().rx_not_empty() {
+        let data = spi.read_data();
+        if context.rx_progress < transfer_len {
+            read_slice[context.rx_progress] = (data.data() & 0xFF) as u8;
+            context.rx_progress += 1;
+        }
+    }
 
     // The FIFO still needs to be pumped.
     while context.tx_progress < read_slice.len() && spi.read_status().tx_not_full() {
@@ -83,24 +114,25 @@ fn on_interrupt_read(
         context.tx_progress += 1;
     }
 
-    isr_finish_handler(idx, spi, context, transfer_len)
+    isr_finish_handler(idx, spi, context, transfer_len, enabled_irqs)
 }
 
 fn on_interrupt_write(
     idx: usize,
     context: &mut TransferContext,
     spi: &mut super::regs::MmioSpi<'static>,
-    isr: InterruptStatus,
+    enabled_irqs: InterruptControl,
 ) {
     let write_slice = unsafe { context.tx_slice.get().unwrap() };
     let transfer_len = write_slice.len();
 
     // Read data from RX FIFO first.
-    let read_len = calculate_read_len(spi, isr, transfer_len, context.rx_progress);
-    (0..read_len).for_each(|_| {
+    while spi.read_status().rx_not_empty() {
         spi.read_data();
-        context.rx_progress += 1;
-    });
+        if context.rx_progress < transfer_len {
+            context.rx_progress += 1;
+        }
+    }
 
     // Data still needs to be sent
     while context.tx_progress < transfer_len && spi.read_status().tx_not_full() {
@@ -110,14 +142,14 @@ fn on_interrupt_write(
         context.tx_progress += 1;
     }
 
-    isr_finish_handler(idx, spi, context, transfer_len)
+    isr_finish_handler(idx, spi, context, transfer_len, enabled_irqs)
 }
 
 fn on_interrupt_transfer(
     idx: usize,
     context: &mut TransferContext,
     spi: &mut super::regs::MmioSpi<'static>,
-    isr: InterruptStatus,
+    enabled_irqs: InterruptControl,
 ) {
     let read_slice = unsafe { context.rx_slice.get_mut().unwrap() };
     let read_len = read_slice.len();
@@ -135,28 +167,28 @@ fn on_interrupt_transfer(
             // Dummy write.
             spi.write_data(Data::new_with_raw_value(0));
         }
+        // Always increment this.
         context.tx_progress += 1;
     }
 
     // Read data from RX FIFO.
-    let read_len = calculate_read_len(spi, isr, transfer_len, context.rx_progress);
-    (0..read_len).for_each(|_| {
+    while spi.read_status().rx_not_empty() {
+        let data = spi.read_data();
         if context.rx_progress < read_len {
-            read_slice[context.rx_progress] = (spi.read_data().data() & 0xFF) as u8;
-        } else {
-            spi.read_data();
+            read_slice[context.rx_progress] = (data.data() & 0xFF) as u8;
         }
+        // Always increment this.
         context.rx_progress += 1;
-    });
+    }
 
-    isr_finish_handler(idx, spi, context, transfer_len)
+    isr_finish_handler(idx, spi, context, transfer_len, enabled_irqs)
 }
 
 fn on_interrupt_transfer_in_place(
     idx: usize,
     context: &mut TransferContext,
     spi: &mut super::regs::MmioSpi<'static>,
-    isr: InterruptStatus,
+    enabled_irqs: InterruptControl,
 ) {
     let transfer_slice = unsafe { context.rx_slice.get_mut().unwrap() };
     let transfer_len = transfer_slice.len();
@@ -168,30 +200,15 @@ fn on_interrupt_transfer_in_place(
         context.tx_progress += 1;
     }
     // Read data from RX FIFO.
-    let read_len = calculate_read_len(spi, isr, transfer_len, context.rx_progress);
-    (0..read_len).for_each(|_| {
-        transfer_slice[context.rx_progress] = (spi.read_data().data() & 0xFF) as u8;
-        context.rx_progress += 1;
-    });
-
-    isr_finish_handler(idx, spi, context, transfer_len)
-}
-
-#[inline]
-fn calculate_read_len(
-    spi: &mut super::regs::MmioSpi<'static>,
-    isr: InterruptStatus,
-    total_read_len: usize,
-    rx_progress: usize,
-) -> usize {
-    if isr.rx() {
-        core::cmp::min(super::FIFO_DEPTH, total_read_len - rx_progress)
-    } else if spi.read_status().rx_not_empty() {
-        let fifo_level = spi.read_state().rx_fifo();
-        core::cmp::min(total_read_len - rx_progress, fifo_level as usize)
-    } else {
-        0
+    while spi.read_status().rx_not_empty() {
+        let data = spi.read_data();
+        if context.rx_progress < transfer_len {
+            transfer_slice[context.rx_progress] = (data.data() & 0xFF) as u8;
+            context.rx_progress += 1;
+        }
     }
+
+    isr_finish_handler(idx, spi, context, transfer_len, enabled_irqs)
 }
 
 /// Generic handler after RX FIFO and TX FIFO were handled. Checks and handles finished
@@ -201,6 +218,7 @@ fn isr_finish_handler(
     spi: &mut super::regs::MmioSpi<'static>,
     context: &mut TransferContext,
     transfer_len: usize,
+    enabled: InterruptControl,
 ) {
     // Transfer finish condition.
     if context.rx_progress == context.tx_progress && context.rx_progress == transfer_len {
@@ -213,7 +231,7 @@ fn isr_finish_handler(
         let context_ref = TRANSFER_CONTEXTS[idx].borrow(cs);
         *context_ref.borrow_mut() = *context;
     });
-    unfinished_transfer(spi, transfer_len, context);
+    unfinished_transfer(spi, transfer_len, context, enabled);
 }
 
 fn finish_transfer(
@@ -239,14 +257,21 @@ fn unfinished_transfer(
     spi: &mut super::regs::MmioSpi<'static>,
     transfer_len: usize,
     context: &TransferContext,
+    enabled_irqs: InterruptControl,
 ) {
     let new_trig_level = core::cmp::min(super::FIFO_DEPTH, transfer_len - context.rx_progress);
     spi.write_rx_fifo_trigger(TriggerLevel::new(u5::new(new_trig_level as u8)));
 
+    // If TX was already enabled and the transfer is finished, stop enabling it. Otherwise, we can
+    // become stuck in an interrupt loop. In any other case, enable it. I am not fully sure
+    // why this is necessary and why we can not stop interrupts as soon as we have the full
+    // TX progress, but tests with ADCs have shown that not doing this causes timeouts.
+    let enable_tx = !(enabled_irqs.tx() && context.tx_progress == transfer_len);
+
     // Re-enable interrupts with the new RX FIFO trigger level.
     spi.write_interrupt_control(
         InterruptControl::builder()
-            .with_tx(context.tx_progress < transfer_len)
+            .with_tx(enable_tx)
             .with_rx(true)
             .with_rx_timeout(true)
             .with_rx_overrun(true)
@@ -276,6 +301,7 @@ pub struct TransferContext {
     rx_progress: usize,
     tx_slice: RawBufSlice,
     rx_slice: RawBufSliceMut,
+    rx_overrun: bool,
 }
 
 #[allow(clippy::new_without_default)]
@@ -287,6 +313,7 @@ impl TransferContext {
             rx_progress: 0,
             tx_slice: RawBufSlice::new_nulled(),
             rx_slice: RawBufSliceMut::new_nulled(),
+            rx_overrun: false,
         }
     }
 }
@@ -469,7 +496,7 @@ impl<'spi> SpiFuture<'spi> {
 }
 
 impl<'spi> Future for SpiFuture<'spi> {
-    type Output = ();
+    type Output = Result<(), RxOverrunError>;
 
     fn poll(
         self: core::pin::Pin<&mut Self>,
@@ -477,14 +504,19 @@ impl<'spi> Future for SpiFuture<'spi> {
     ) -> core::task::Poll<Self::Output> {
         WAKERS[self.bank as usize].register(cx.waker());
         if DONE[self.bank as usize].swap(false, core::sync::atomic::Ordering::Relaxed) {
-            critical_section::with(|cs| {
+            let rx_overrun = critical_section::with(|cs| {
                 let mut ctx = TRANSFER_CONTEXTS[self.bank as usize]
                     .borrow(cs)
                     .borrow_mut();
+                let overrun = ctx.rx_overrun;
                 *ctx = TransferContext::default();
+                overrun
             });
             self.finished_regularly.set(true);
-            return core::task::Poll::Ready(());
+            if rx_overrun {
+                return core::task::Poll::Ready(Err(RxOverrunError));
+            }
+            return core::task::Poll::Ready(Ok(()));
         }
         core::task::Poll::Pending
     }
@@ -571,28 +603,36 @@ impl SpiAsync {
 }
 
 impl embedded_hal_async::spi::ErrorType for SpiAsync {
-    type Error = Infallible;
+    type Error = RxOverrunError;
 }
 
 impl embedded_hal_async::spi::SpiBus for SpiAsync {
     async fn read(&mut self, words: &mut [u8]) -> Result<(), Self::Error> {
-        self.read(words).unwrap().await;
-        Ok(())
+        if words.is_empty() {
+            return Ok(());
+        }
+        self.read(words).unwrap().await
     }
 
     async fn write(&mut self, words: &[u8]) -> Result<(), Self::Error> {
-        self.write(words).unwrap().await;
-        Ok(())
+        if words.is_empty() {
+            return Ok(());
+        }
+        self.write(words).unwrap().await
     }
 
     async fn transfer(&mut self, read: &mut [u8], write: &[u8]) -> Result<(), Self::Error> {
-        self.transfer(read, write).unwrap().await;
-        Ok(())
+        if read.is_empty() && write.is_empty() {
+            return Ok(());
+        }
+        self.transfer(read, write).unwrap().await
     }
 
     async fn transfer_in_place(&mut self, words: &mut [u8]) -> Result<(), Self::Error> {
-        self.transfer_in_place(words).unwrap().await;
-        Ok(())
+        if words.is_empty() {
+            return Ok(());
+        }
+        self.transfer_in_place(words).unwrap().await
     }
 
     async fn flush(&mut self) -> Result<(), Self::Error> {
