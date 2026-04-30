@@ -8,7 +8,10 @@ use raw_slice::{RawBufSlice, RawBufSliceMut};
 
 use crate::{
     shared::{FifoClear, TriggerLevel},
-    spi::regs::{Data, InterruptClear, InterruptControl},
+    spi::{
+        FIFO_DEPTH,
+        regs::{Data, InterruptClear, InterruptControl},
+    },
 };
 
 #[cfg(feature = "vor1x")]
@@ -159,14 +162,9 @@ fn on_interrupt_transfer(
 
     // Send data first to avoid overwriting data that still needs to be sent.
     while context.tx_progress < transfer_len && spi.read_status().tx_not_full() {
-        if context.tx_progress < write_len {
-            spi.write_data(Data::new_with_raw_value(
-                write_slice[context.tx_progress] as u32,
-            ));
-        } else {
-            // Dummy write.
-            spi.write_data(Data::new_with_raw_value(0));
-        }
+        spi.write_data(Data::new_with_raw_value(
+            write_slice.get(context.tx_progress).copied().unwrap_or(0) as u32,
+        ));
         // Always increment this.
         context.tx_progress += 1;
     }
@@ -329,33 +327,30 @@ impl<'spi> SpiFuture<'spi> {
         if words.is_empty() {
             panic!("words length unexpectedly 0");
         }
-        let idx = bank as usize;
-        DONE[idx].store(false, core::sync::atomic::Ordering::Relaxed);
-        spi.regs
-            .write_interrupt_control(InterruptControl::DISABLE_ALL);
-        spi.regs.write_fifo_clear(FifoClear::ALL);
-        spi.regs.modify_ctrl1(|v| v.with_mtxpause(true));
-        let write_idx = core::cmp::min(super::FIFO_DEPTH, words.len());
+        Self::generic_init_transfer(spi, bank);
+
+        let write_index = core::cmp::min(super::FIFO_DEPTH, words.len());
         // Send dummy bytes.
-        (0..write_idx).for_each(|_| {
+        (0..write_index).for_each(|_| {
             spi.regs.write_data(Data::new_with_raw_value(0));
         });
 
-        Self::set_triggers(spi, write_idx, words.len());
+        Self::set_triggers(spi, write_index, words.len());
 
         critical_section::with(|cs| {
-            let context_ref = TRANSFER_CONTEXTS[idx].borrow(cs);
+            let context_ref = TRANSFER_CONTEXTS[bank as usize].borrow(cs);
             let mut context = context_ref.borrow_mut();
             context.transfer_type = Some(TransferType::Read);
             unsafe {
                 context.rx_slice.set(words);
             }
             context.tx_slice.set_null();
-            context.tx_progress = write_idx;
+            context.tx_progress = write_index;
             context.rx_progress = 0;
             spi.regs.write_interrupt_clear(InterruptClear::ALL);
-            spi.regs
-                .write_interrupt_control(InterruptControl::ENABLE_ALL);
+            spi.regs.write_interrupt_control(
+                InterruptControl::ENABLE_ALL.with_tx(words.len() > FIFO_DEPTH),
+            );
             spi.regs.modify_ctrl1(|v| v.with_mtxpause(false));
         });
         Self {
@@ -369,20 +364,22 @@ impl<'spi> SpiFuture<'spi> {
         if words.is_empty() {
             panic!("words length unexpectedly 0");
         }
-        let (idx, write_idx) = Self::generic_init_transfer(spi, bank, words);
+        let index = bank as usize;
+        let write_index = Self::generic_init_transfer_write_transfer_in_place(spi, bank, words);
         critical_section::with(|cs| {
-            let context_ref = TRANSFER_CONTEXTS[idx].borrow(cs);
+            let context_ref = TRANSFER_CONTEXTS[index].borrow(cs);
             let mut context = context_ref.borrow_mut();
             context.transfer_type = Some(TransferType::Write);
             unsafe {
                 context.tx_slice.set(words);
             }
             context.rx_slice.set_null();
-            context.tx_progress = write_idx;
+            context.tx_progress = write_index;
             context.rx_progress = 0;
             spi.regs.write_interrupt_clear(InterruptClear::ALL);
-            spi.regs
-                .write_interrupt_control(InterruptControl::ENABLE_ALL);
+            spi.regs.write_interrupt_control(
+                InterruptControl::ENABLE_ALL.with_tx(words.len() > FIFO_DEPTH),
+            );
             spi.regs.modify_ctrl1(|v| v.with_mtxpause(false));
         });
         Self {
@@ -394,16 +391,33 @@ impl<'spi> SpiFuture<'spi> {
 
     fn new_for_transfer(
         spi: &'spi mut super::Spi<u8>,
-        spi_id: super::Bank,
+        bank: super::Bank,
         read: &mut [u8],
         write: &[u8],
     ) -> Self {
         if read.is_empty() || write.is_empty() {
             panic!("read or write buffer unexpectedly empty");
         }
-        let (idx, write_idx) = Self::generic_init_transfer(spi, spi_id, write);
+        let index = bank as usize;
+        let full_write_len = core::cmp::max(read.len(), write.len());
+        let fifo_prefill = core::cmp::min(
+            core::cmp::min(super::FIFO_DEPTH, full_write_len),
+            write.len(),
+        );
+
+        let write_idx = Self::generic_init_transfer_write_transfer_in_place(spi, bank, write);
+
+        Self::generic_init_transfer(spi, bank);
+
+        for write_index in 0..fifo_prefill {
+            let value = write.get(write_index).copied().unwrap_or(0);
+            spi.regs.write_data(Data::new_with_raw_value(value as u32));
+        }
+
+        Self::set_triggers(spi, fifo_prefill, full_write_len);
+
         critical_section::with(|cs| {
-            let context_ref = TRANSFER_CONTEXTS[idx].borrow(cs);
+            let context_ref = TRANSFER_CONTEXTS[index].borrow(cs);
             let mut context = context_ref.borrow_mut();
             context.transfer_type = Some(TransferType::Transfer);
             unsafe {
@@ -413,12 +427,13 @@ impl<'spi> SpiFuture<'spi> {
             context.tx_progress = write_idx;
             context.rx_progress = 0;
             spi.regs.write_interrupt_clear(InterruptClear::ALL);
-            spi.regs
-                .write_interrupt_control(InterruptControl::ENABLE_ALL);
+            spi.regs.write_interrupt_control(
+                InterruptControl::ENABLE_ALL.with_tx(full_write_len > FIFO_DEPTH),
+            );
             spi.regs.modify_ctrl1(|v| v.with_mtxpause(false));
         });
         Self {
-            bank: spi_id,
+            bank,
             spi,
             finished_regularly: core::cell::Cell::new(false),
         }
@@ -426,15 +441,15 @@ impl<'spi> SpiFuture<'spi> {
 
     fn new_for_transfer_in_place(
         spi: &'spi mut super::Spi<u8>,
-        spi_id: super::Bank,
+        bank: super::Bank,
         words: &mut [u8],
     ) -> Self {
         if words.is_empty() {
             panic!("read and write buffer unexpectedly empty");
         }
-        let (idx, write_idx) = Self::generic_init_transfer(spi, spi_id, words);
+        let write_idx = Self::generic_init_transfer_write_transfer_in_place(spi, bank, words);
         critical_section::with(|cs| {
-            let context_ref = TRANSFER_CONTEXTS[idx].borrow(cs);
+            let context_ref = TRANSFER_CONTEXTS[bank as usize].borrow(cs);
             let mut context = context_ref.borrow_mut();
             context.transfer_type = Some(TransferType::TransferInPlace);
             unsafe {
@@ -444,28 +459,34 @@ impl<'spi> SpiFuture<'spi> {
             context.tx_progress = write_idx;
             context.rx_progress = 0;
             spi.regs.write_interrupt_clear(InterruptClear::ALL);
-            spi.regs
-                .write_interrupt_control(InterruptControl::ENABLE_ALL);
+            spi.regs.write_interrupt_control(
+                InterruptControl::ENABLE_ALL.with_tx(words.len() > FIFO_DEPTH),
+            );
             spi.regs.modify_ctrl1(|v| v.with_mtxpause(false));
         });
         Self {
-            bank: spi_id,
+            bank,
             spi,
             finished_regularly: core::cell::Cell::new(false),
         }
     }
 
-    fn generic_init_transfer(
-        spi: &mut super::Spi<u8>,
-        bank: super::Bank,
-        write: &[u8],
-    ) -> (usize, usize) {
+    fn generic_init_transfer(spi: &mut super::Spi<u8>, bank: super::Bank) {
         let idx = bank as usize;
         DONE[idx].store(false, core::sync::atomic::Ordering::Relaxed);
         spi.regs
             .write_interrupt_control(InterruptControl::DISABLE_ALL);
         spi.regs.write_fifo_clear(FifoClear::ALL);
         spi.regs.modify_ctrl1(|v| v.with_mtxpause(true));
+    }
+
+    // Returns amount of bytes written to FIFO.
+    fn generic_init_transfer_write_transfer_in_place(
+        spi: &mut super::Spi<u8>,
+        bank: super::Bank,
+        write: &[u8],
+    ) -> usize {
+        Self::generic_init_transfer(spi, bank);
 
         let write_idx = core::cmp::min(super::FIFO_DEPTH, write.len());
         (0..write_idx).for_each(|idx| {
@@ -474,7 +495,7 @@ impl<'spi> SpiFuture<'spi> {
         });
 
         Self::set_triggers(spi, write_idx, write.len());
-        (idx, write_idx)
+        write_idx
     }
 
     fn set_triggers(spi: &mut super::Spi<u8>, write_idx: usize, write_len: usize) {
@@ -482,12 +503,11 @@ impl<'spi> SpiFuture<'spi> {
         spi.regs
             .write_rx_fifo_trigger(TriggerLevel::new(u5::new(write_idx as u8)));
         // We want to re-fill the TX FIFO before it is completely empty if the full transfer size
-        // is larger than the FIFO depth. I am not sure whether the default value of 1 ensures
-        // this because the PG says that this interrupt is triggered when the FIFO has less than
-        // threshold entries.
+        // is larger than the FIFO depth. Otherwise, set it to 0. Not exactly sure what that does,
+        // but we do not enable interrupts anyway.
         if write_len > super::FIFO_DEPTH {
             spi.regs
-                .write_tx_fifo_trigger(TriggerLevel::new(u5::new(2)));
+                .write_tx_fifo_trigger(TriggerLevel::new(u5::new(8)));
         } else {
             spi.regs
                 .write_tx_fifo_trigger(TriggerLevel::new(u5::new(0)));
