@@ -46,6 +46,7 @@ pub fn on_interrupt(peripheral: super::Bank) {
     let mut spi = unsafe { peripheral.steal_regs() };
     let index = peripheral as usize;
     let enabled_irqs = spi.read_interrupt_control();
+    let interrupt_status = spi.read_interrupt_status();
     spi.write_interrupt_clear(InterruptClear::ALL);
     // Prevent spurious interrupts from messing with out logic here.
     spi.write_interrupt_control(InterruptControl::DISABLE_ALL);
@@ -55,7 +56,7 @@ pub fn on_interrupt(peripheral: super::Bank) {
         spi.write_fifo_clear(FifoClear::ALL);
         return;
     }
-    if spi.read_interrupt_status().rx_overrun() {
+    if interrupt_status.rx_overrun() {
         // Not sure how to otherwise handle this cleanly..
         return handle_rx_overrun(&mut spi, index);
     }
@@ -257,7 +258,9 @@ fn unfinished_transfer(
     context: &TransferContext,
     enabled_irqs: InterruptControl,
 ) {
-    let new_trig_level = core::cmp::min(super::FIFO_DEPTH, transfer_len - context.rx_progress);
+    // Take 8 as a conservative value to make sure that the FIFO does not overflow even if there
+    // is a significant delay between the interrupt being triggered and the handler being executed.
+    let new_trig_level = core::cmp::min(8, transfer_len - context.rx_progress);
     spi.write_rx_fifo_trigger(TriggerLevel::new(u5::new(new_trig_level as u8)));
 
     // If TX was already enabled and the transfer is finished, stop enabling it. Otherwise, we can
@@ -335,7 +338,7 @@ impl<'spi> SpiFuture<'spi> {
             spi.regs.write_data(Data::new_with_raw_value(0));
         });
 
-        Self::set_triggers(spi, write_index, words.len());
+        Self::set_triggers(spi, words.len());
 
         critical_section::with(|cs| {
             let context_ref = TRANSFER_CONTEXTS[bank as usize].borrow(cs);
@@ -414,7 +417,7 @@ impl<'spi> SpiFuture<'spi> {
             spi.regs.write_data(Data::new_with_raw_value(value as u32));
         }
 
-        Self::set_triggers(spi, fifo_prefill, full_write_len);
+        Self::set_triggers(spi, full_write_len);
 
         critical_section::with(|cs| {
             let context_ref = TRANSFER_CONTEXTS[index].borrow(cs);
@@ -494,14 +497,13 @@ impl<'spi> SpiFuture<'spi> {
                 .write_data(Data::new_with_raw_value(write[idx] as u32));
         });
 
-        Self::set_triggers(spi, write_idx, write.len());
+        Self::set_triggers(spi, write.len());
         write_idx
     }
 
-    fn set_triggers(spi: &mut super::Spi<u8>, write_idx: usize, write_len: usize) {
-        // This should never fail because it is never larger than the FIFO depth.
+    fn set_triggers(spi: &mut super::Spi<u8>, write_len: usize) {
         spi.regs
-            .write_rx_fifo_trigger(TriggerLevel::new(u5::new(write_idx as u8)));
+            .write_rx_fifo_trigger(TriggerLevel::new(u5::new(8)));
         // We want to re-fill the TX FIFO before it is completely empty if the full transfer size
         // is larger than the FIFO depth. Otherwise, set it to 0. Not exactly sure what that does,
         // but we do not enable interrupts anyway.
