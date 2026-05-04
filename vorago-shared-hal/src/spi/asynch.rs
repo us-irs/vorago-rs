@@ -338,7 +338,7 @@ impl<'spi> SpiFuture<'spi> {
             spi.regs.write_data(Data::new_with_raw_value(0));
         });
 
-        Self::set_triggers(spi, words.len());
+        Self::set_triggers(spi, write_index, words.len());
 
         critical_section::with(|cs| {
             let context_ref = TRANSFER_CONTEXTS[bank as usize].borrow(cs);
@@ -403,12 +403,7 @@ impl<'spi> SpiFuture<'spi> {
         }
         let index = bank as usize;
         let full_write_len = core::cmp::max(read.len(), write.len());
-        let fifo_prefill = core::cmp::min(
-            core::cmp::min(super::FIFO_DEPTH, full_write_len),
-            write.len(),
-        );
-
-        let write_idx = Self::generic_init_transfer_write_transfer_in_place(spi, bank, write);
+        let fifo_prefill = core::cmp::min(super::FIFO_DEPTH, full_write_len);
 
         Self::generic_init_transfer(spi, bank);
 
@@ -417,7 +412,7 @@ impl<'spi> SpiFuture<'spi> {
             spi.regs.write_data(Data::new_with_raw_value(value as u32));
         }
 
-        Self::set_triggers(spi, full_write_len);
+        Self::set_triggers(spi, fifo_prefill, full_write_len);
 
         critical_section::with(|cs| {
             let context_ref = TRANSFER_CONTEXTS[index].borrow(cs);
@@ -427,11 +422,11 @@ impl<'spi> SpiFuture<'spi> {
                 context.tx_slice.set(write);
                 context.rx_slice.set(read);
             }
-            context.tx_progress = write_idx;
+            context.tx_progress = fifo_prefill;
             context.rx_progress = 0;
             spi.regs.write_interrupt_clear(InterruptClear::ALL);
             spi.regs.write_interrupt_control(
-                InterruptControl::ENABLE_ALL.with_tx(full_write_len > FIFO_DEPTH),
+                InterruptControl::ENABLE_ALL.with_tx(fifo_prefill > FIFO_DEPTH),
             );
             spi.regs.modify_ctrl1(|v| v.with_mtxpause(false));
         });
@@ -497,13 +492,16 @@ impl<'spi> SpiFuture<'spi> {
                 .write_data(Data::new_with_raw_value(write[idx] as u32));
         });
 
-        Self::set_triggers(spi, write.len());
+        Self::set_triggers(spi, write_idx, write.len());
         write_idx
     }
 
-    fn set_triggers(spi: &mut super::Spi<u8>, write_len: usize) {
+    fn set_triggers(spi: &mut super::Spi<u8>, fifo_prefill: usize, write_len: usize) {
         spi.regs
-            .write_rx_fifo_trigger(TriggerLevel::new(u5::new(8)));
+            .write_rx_fifo_trigger(TriggerLevel::new(u5::new(core::cmp::min(
+                fifo_prefill,
+                FIFO_DEPTH / 2,
+            ) as u8)));
         // We want to re-fill the TX FIFO before it is completely empty if the full transfer size
         // is larger than the FIFO depth. Otherwise, set it to 0. Not exactly sure what that does,
         // but we do not enable interrupts anyway.
