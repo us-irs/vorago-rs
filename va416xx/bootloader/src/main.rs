@@ -270,37 +270,11 @@ fn boot_app(app_sel: AppSel, cp: &cortex_m::Peripherals) -> ! {
     cortex_m::asm::isb();
     unsafe {
         if app_sel == AppSel::A {
-            cp.SCB.vtor.write(APP_A_START_ADDR);
+            cortex_m::asm::bootload(APP_A_START_ADDR as *const u32);
         } else {
-            cp.SCB.vtor.write(APP_B_START_ADDR);
+            cortex_m::asm::bootload(APP_B_START_ADDR as *const u32);
         }
     }
-    cortex_m::asm::dsb();
-    cortex_m::asm::isb();
-    vector_reset();
-}
-
-pub fn vector_reset() -> ! {
-    unsafe {
-        // Set R0 to VTOR address (0xE000ED08)
-        let vtor_address: u32 = 0xE000ED08;
-
-        // Load VTOR
-        let vtor: u32 = *(vtor_address as *const u32);
-
-        // Load initial MSP value
-        let initial_msp: u32 = *(vtor as *const u32);
-
-        // Set SP value (assume MSP is selected)
-        core::arch::asm!("mov sp, {0}", in(reg) initial_msp);
-
-        // Load reset vector
-        let reset_vector: u32 = *((vtor + 4) as *const u32);
-
-        // Branch to reset handler
-        core::arch::asm!("bx {0}", in(reg) reset_vector);
-    }
-    unreachable!();
 }
 
 fn setup_edac(syscfg: &mut pac::Sysconfig) {
