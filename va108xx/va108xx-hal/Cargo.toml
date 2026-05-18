@@ -12,7 +12,7 @@ categories = ["aerospace", "embedded", "no-std", "hardware-support"]
 
 [dependencies]
 cortex-m = { version = "0.7", features = ["critical-section-single-core"]}
-vorago-shared-hal = { version = "0.2", path = "../../vorago-shared-hal", features = ["vor1x"] }
+vorago-shared-hal = { version = "0.3", path = "../../vorago-shared-hal", features = ["vor1x"] }
 fugit = "0.4"
 thiserror = { version = "2", default-features = false }
 va108xx = { version = "0.6", path = "../va108xx", default-features = false, features = ["critical-section"] }

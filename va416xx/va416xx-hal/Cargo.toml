@@ -15,7 +15,7 @@ cortex-m = { version = "0.7", features = ["critical-section-single-core"] }
 va416xx = { version = "0.5", path = "../va416xx", features = ["critical-section"], default-features = false }
 derive-mmio = "0.6.1"
 static_assertions = "1.1"
-vorago-shared-hal = { version = "0.2", path = "../../vorago-shared-hal", features = ["vor4x"] }
+vorago-shared-hal = { version = "0.3", path = "../../vorago-shared-hal", features = ["vor4x"] }
 
 libm = "0.2"
 nb = "1"

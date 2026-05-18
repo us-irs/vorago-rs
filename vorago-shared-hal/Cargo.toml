@@ -1,6 +1,6 @@
 [package]
 name = "vorago-shared-hal"
-version = "0.2.0"
+version = "0.3.0"
 description = "Peripheral HAL components shared between Vorago families"
 edition = "2024"
 homepage = "https://egit.irs.uni-stuttgart.de/rust/vorago-rs"
