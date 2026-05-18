@@ -39,8 +39,8 @@ pub enum FilterClockSelect {
 #[bitbybit::bitenum(u1, exhaustive = true)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum Pull {
-    Up = 0,
-    Down = 1,
+    Down = 0,
+    Up = 1,
 }
 
 #[derive(Debug, Eq, PartialEq)]

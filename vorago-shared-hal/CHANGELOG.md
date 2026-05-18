@@ -26,6 +26,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Fixed
 
+- `Pull::Up` and `Pull::High` were inverted.
 - Removed HW CS pin provider implementation for PA23, PA22 and PA21, which are multi HW CS pins.
 - Added missing `AnyPin` trait impl for Multi HW CS pins.
 - Expose inner `Input` pin for `InputPinAsync`.
