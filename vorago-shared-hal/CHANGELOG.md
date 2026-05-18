@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Changed
 
+- Bumped `fugit` from v0.3 to v0.4
 - Added `RxWithInterrupt::steal`.
 - Renamed UART `Data` register `value` field to `data`
 - Improved type level support for resource management for SPI, PWM, UART.

@@ -97,12 +97,12 @@ mod app {
     use arbitrary_int::{u11, u14};
     use cortex_m::asm;
     use embedded_io::Write;
+    use rtic_monotonics::{fugit::ExtU32, Monotonic};
     // Import panic provider.
     use panic_probe as _;
     // Import logger.
     use defmt_rtt as _;
     use rtic::Mutex;
-    use rtic_monotonics::systick::prelude::*;
     use satrs::pus::verification::VerificationReportCreator;
     use satrs::spacepackets::ecss::PusServiceId;
     use satrs::spacepackets::ecss::{
@@ -116,7 +116,6 @@ mod app {
         nvm::Nvm,
         pac,
         pins::PinsG,
-        prelude::*,
         uart::{self, Uart},
     };
 
@@ -171,7 +170,7 @@ mod app {
         let clock_config = uart::ClockConfig::calculate_with_clocks(
             uart::Bank::Uart0,
             &clocks,
-            UART_BAUDRATE.Hz(),
+            fugit::HertzU32::from_raw(UART_BAUDRATE),
             uart::BaudMode::_16,
         );
         let uart_config = uart::Config::new_with_clock_config(clock_config);
@@ -195,7 +194,7 @@ mod app {
             .init(StaticRb::<usize, SIZES_RB_SIZE_TC>::default())
             .split_ref();
 
-        Mono::start(cx.core.SYST, clocks.sysclk().raw());
+        Mono::start(cx.core.SYST, clocks.sysclk().to_raw());
         CLOCKS.set(clocks).unwrap();
 
         let mut rx = rx.into_rx_with_irq();

@@ -161,7 +161,7 @@ fn main() -> ! {
                 delay_timer.delay_ms(500);
             }
             let ahb_freq: Hertz = 50.MHz();
-            let mut syst_delay = cortex_m::delay::Delay::new(cp.SYST, ahb_freq.raw());
+            let mut syst_delay = cortex_m::delay::Delay::new(cp.SYST, ahb_freq.to_raw());
             // Release image should be used to verify timings for pin PA0
             for _ in 0..5 {
                 pa0.toggle();

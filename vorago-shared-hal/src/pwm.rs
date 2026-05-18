@@ -164,10 +164,10 @@ impl<Mode> PwmPin<Mode> {
     pub fn set_period(&mut self, period: impl Into<Hertz>) {
         self.current_period = period.into();
         // Avoid division by 0
-        if self.current_period.raw() == 0 {
+        if self.current_period.to_raw() == 0 {
             return;
         }
-        self.current_rst_val = self.ref_clk.raw() / self.current_period.raw();
+        self.current_rst_val = self.ref_clk.to_raw() / self.current_period.to_raw();
         self.regs.write_reset_value(self.current_rst_val);
     }
 

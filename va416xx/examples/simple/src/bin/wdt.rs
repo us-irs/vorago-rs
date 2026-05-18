@@ -40,7 +40,7 @@ fn main() -> ! {
         .freeze()
         .unwrap();
     enable_and_init_irq_router();
-    let mut delay = cortex_m::delay::Delay::new(cp.SYST, clocks.apb0().raw());
+    let mut delay = cortex_m::delay::Delay::new(cp.SYST, clocks.apb0().to_raw());
 
     let mut last_interrupt_counter = 0;
     let mut wdt_ctrl = Wdt::start(dp.watch_dog, &clocks, WDT_ROLLOVER_MS);

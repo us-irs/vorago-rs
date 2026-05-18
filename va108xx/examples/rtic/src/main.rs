@@ -34,7 +34,7 @@ mod app {
     fn init(cx: init::Context) -> (Shared, Local) {
         defmt::println!("-- Vorago VA108xx RTIC template --");
 
-        Mono::start(cx.core.SYST, SYSCLK_FREQ.raw());
+        Mono::start(cx.core.SYST, SYSCLK_FREQ.to_raw());
 
         let porta = PinsA::new(cx.device.porta);
         let led0 = Output::new(porta.pa10, PinState::Low);

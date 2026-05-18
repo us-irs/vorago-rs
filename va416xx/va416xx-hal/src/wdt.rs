@@ -58,7 +58,7 @@ impl Wdt {
 
     #[inline]
     pub fn set_freq(&mut self, freq_ms: u32) {
-        let counter = (self.clock_freq.raw() / 1000) * freq_ms;
+        let counter = (self.clock_freq.to_raw() / 1000) * freq_ms;
         self.wdt.wdogload().write(|w| unsafe { w.bits(counter) });
     }
 

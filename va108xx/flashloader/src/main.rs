@@ -10,7 +10,8 @@ use ringbuf::{
     traits::{Consumer, Observer, Producer},
     StaticRb,
 };
-use va108xx_hal::prelude::*;
+use rtic_monotonics::fugit::ExtU32;
+use va108xx_hal::time::Hertz;
 
 const SYSCLK_FREQ: Hertz = Hertz::from_raw(50_000_000);
 
@@ -64,7 +65,7 @@ mod app {
     use cortex_m::asm;
     use embedded_io::Write;
     use rtic::Mutex;
-    use rtic_monotonics::systick::prelude::*;
+    use rtic_monotonics::Monotonic;
     use satrs::pus::verification::{FailParams, VerificationReportCreator};
     use satrs::spacepackets::ecss::PusServiceId;
     use satrs::spacepackets::ecss::{
@@ -106,7 +107,7 @@ mod app {
     fn init(cx: init::Context) -> (Shared, Local) {
         defmt::println!("-- Vorago flashloader --");
 
-        Mono::start(cx.core.SYST, SYSCLK_FREQ.raw());
+        Mono::start(cx.core.SYST, SYSCLK_FREQ.to_raw());
 
         let dp = cx.device;
         let spi_clock_config = SpiClockConfig::new(2, 4);
@@ -116,8 +117,11 @@ mod app {
         let tx = gpioa.pa9;
         let rx = gpioa.pa8;
 
-        let clock_config =
-            uart::ClockConfig::calculate(SYSCLK_FREQ, UART_BAUDRATE.Hz(), uart::BaudMode::_16);
+        let clock_config = uart::ClockConfig::calculate(
+            SYSCLK_FREQ,
+            fugit::HertzU32::from_raw(UART_BAUDRATE),
+            uart::BaudMode::_16,
+        );
         let uart_config = uart::Config::new_with_clock_config(clock_config);
         let irq_uart = uart::Uart::new_with_interrupt_uart0(
             dp.uarta,
@@ -254,7 +258,7 @@ mod app {
             let packet_len = cx.shared.tc_rb.lock(|rb| rb.sizes.try_pop());
             if packet_len.is_none() {
                 // Small delay, TCs might arrive very quickly.
-                Mono::delay(20.millis()).await;
+                Mono::delay(20_u32.millis()).await;
                 continue;
             }
             let packet_len = packet_len.unwrap();

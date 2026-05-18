@@ -94,9 +94,9 @@ pub struct PllConfig {
 pub const fn clock_after_division(clk: Hertz, div_sel: ClockDivisorSelect) -> Hertz {
     match div_sel {
         ClockDivisorSelect::Div1 => clk,
-        ClockDivisorSelect::Div2 => Hertz::from_raw(clk.raw() / 2),
-        ClockDivisorSelect::Div4 => Hertz::from_raw(clk.raw() / 4),
-        ClockDivisorSelect::Div8 => Hertz::from_raw(clk.raw() / 8),
+        ClockDivisorSelect::Div2 => Hertz::from_raw(clk.to_raw() / 2),
+        ClockDivisorSelect::Div4 => Hertz::from_raw(clk.to_raw() / 4),
+        ClockDivisorSelect::Div8 => Hertz::from_raw(clk.to_raw() / 8),
     }
 }
 
@@ -382,7 +382,7 @@ impl ClockConfigurator {
         // ADC clock (must be 2-12.5 MHz)
         // NOTE: Not using divide by 1 or /2 ratio in REVA silicon because of triggering issue
         // For this reason, keep SYSCLK above 8MHz to have the ADC /4 ratio in range)
-        if final_sysclk.raw() <= ADC_MAX_CLK.raw() * 4 {
+        if final_sysclk.to_raw() <= ADC_MAX_CLK.to_raw() * 4 {
             self.clkgen.ctrl1().modify(|_, w| unsafe {
                 w.adc_clk_div_sel().bits(AdcClockDivisorSelect::Div4 as u8)
             });
