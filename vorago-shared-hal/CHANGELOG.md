@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [unreleased]
 
+## [v0.3.0] 2026-05-18
+
 ### Added
 
 - Add `is_high` and `is_low` for `InputPinAsync`.
@@ -55,6 +57,7 @@ Renamed to `vorago-shared-hal`
 
 Init commit.
 
-[unreleased]: https://egit.irs.uni-stuttgart.de/rust/vorago-shared-hal/compare/v0.2.0...HEAD
+[unreleased]: https://egit.irs.uni-stuttgart.de/rust/vorago-shared-hal/compare/v0.3.0...HEAD
+[v0.3.0]: https://egit.irs.uni-stuttgart.de/rust/vorago-shared-hal/compare/v0.2.0...v0.3.0
 [v0.2.0]: https://egit.irs.uni-stuttgart.de/rust/vorago-shared-hal/compare/v0.1.0...v0.2.0
 [v0.1.0]: https://egit.irs.uni-stuttgart.de/rust/vorago-shared-hal/src/tag/v0.1.0
