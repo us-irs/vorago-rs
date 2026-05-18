@@ -11,7 +11,7 @@ keywords = ["no-std", "hal", "cortex-m", "vorago", "va416xx"]
 categories = ["aerospace", "embedded", "no-std", "hardware-support"]
 
 [dependencies]
-vorago-shared-hal = { version = "0.2", path = "../../vorago-shared-hal", features = ["vor4x"] }
+vorago-shared-hal = { version = "0.3", path = "../../vorago-shared-hal", features = ["vor4x"] }
 va416xx-hal = { version = "0.6", path = "../va416xx-hal" }
 
 [features]
