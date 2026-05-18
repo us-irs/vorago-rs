@@ -23,21 +23,20 @@
 //!
 //! You can disable the default features and then specify one of the features above to use the
 //! documented combination of IRQs. It is also possible to specify custom IRQs by importing and
-//! using the [embassy_time_driver_irqs] macro to declare the IRQ handlers in the
+//! using the [crate::embassy_time_driver_irqs] macro to declare the IRQ handlers in the
 //! application code. If this is done, [init_with_custom_irqs] must be used
 //! method to pass the IRQ numbers to the library.
 //!
 //! ## Examples
 //!
 //! [embassy example projects](https://egit.irs.uni-stuttgart.de/rust/vorago-rs/src/branch/main/va108xx/examples/embassy)
-#![no_std]
-#![cfg_attr(docsrs, feature(doc_cfg))]
 
-#[cfg(feature = "irqs-in-lib")]
-use va108xx_hal::pac::{self, interrupt};
-use va108xx_hal::time::Hertz;
-use va108xx_hal::timer::TimInstance;
-use vorago_shared_hal::embassy::time_driver;
+#[cfg(feature = "_irqs-in-lib")]
+use crate::pac::{self, interrupt};
+use crate::time::Hertz;
+use crate::timer::TimInstance;
+
+pub use vorago_shared_hal::embassy::time_driver;
 
 /// Macro to define the IRQ handlers for the time driver.
 ///
@@ -45,7 +44,7 @@ use vorago_shared_hal::embassy::time_driver;
 /// the feature flags specified. However, the macro is exported to allow users to specify the
 /// interrupt handlers themselves.
 ///
-/// Please note that you have to explicitely import the [macro@va108xx_hal::pac::interrupt]
+/// Please note that you have to explicitely import the [macro@crate::pac::interrupt]
 /// macro in the application code in case this macro is used there.
 #[macro_export]
 macro_rules! embassy_time_driver_irqs {
@@ -59,7 +58,7 @@ macro_rules! embassy_time_driver_irqs {
         #[allow(non_snake_case)]
         fn $timekeeper_irq() {
             // Safety: We call it once here.
-            unsafe { $crate::time_driver().on_interrupt_timekeeping() }
+            unsafe { $crate::embassy_time::time_driver().on_interrupt_timekeeping() }
         }
 
         const ALARM_IRQ: pac::Interrupt = pac::Interrupt::$alarm_irq;
@@ -68,25 +67,25 @@ macro_rules! embassy_time_driver_irqs {
         #[allow(non_snake_case)]
         fn $alarm_irq() {
             // Safety: We call it once here.
-            unsafe { $crate::time_driver().on_interrupt_alarm() }
+            unsafe { $crate::embassy_time::time_driver().on_interrupt_alarm() }
         }
     };
 }
 
 // Provide three combinations of IRQs for the time driver by default.
 
-#[cfg(feature = "irq-oc30-oc31")]
+#[cfg(feature = "embassy-oc30-oc31")]
 embassy_time_driver_irqs!(timekeeper_irq = OC31, alarm_irq = OC30);
-#[cfg(feature = "irq-oc29-oc30")]
+#[cfg(feature = "embassy-oc29-oc30")]
 embassy_time_driver_irqs!(timekeeper_irq = OC30, alarm_irq = OC29);
-#[cfg(feature = "irq-oc28-oc29")]
+#[cfg(feature = "embassy-oc28-oc29")]
 embassy_time_driver_irqs!(timekeeper_irq = OC29, alarm_irq = OC28);
 
 /// Initialization method for embassy.
 ///
 /// This should be used if the interrupt handler is provided by the library, which is the
 /// default case.
-#[cfg(feature = "irqs-in-lib")]
+#[cfg(feature = "_irqs-in-lib")]
 pub fn init<TimekeeperTim: TimInstance, AlarmTim: TimInstance>(
     timekeeper_tim: TimekeeperTim,
     alarm_tim: AlarmTim,
@@ -102,8 +101,8 @@ pub fn init_with_custom_irqs<TimekeeperTim: TimInstance, AlarmTim: TimInstance>(
     timekeeper_tim: TimekeeperTim,
     alarm_tim: AlarmTim,
     sysclk: Hertz,
-    timekeeper_irq: pac::Interrupt,
-    alarm_irq: pac::Interrupt,
+    timekeeper_irq: crate::pac::Interrupt,
+    alarm_irq: crate::pac::Interrupt,
 ) {
     time_driver().__init(sysclk, timekeeper_tim, alarm_tim, timekeeper_irq, alarm_irq)
 }
