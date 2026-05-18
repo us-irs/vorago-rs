@@ -24,7 +24,7 @@ num_enum = { version = "0.7", default-features = false }
 bitflags = "2"
 bitbybit = "2"
 arbitrary-int = "2"
-fugit = "0.3"
+fugit = "0.4"
 embedded-can = "0.4"
 embassy-sync = "0.8"
 thiserror = { version = "2", default-features = false }

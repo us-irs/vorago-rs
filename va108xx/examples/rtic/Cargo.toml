@@ -9,6 +9,7 @@ embedded-io = "0.7"
 defmt-rtt = "1"
 defmt = "1"
 panic-probe = { version = "1", features = ["defmt"] }
+fugit = "0.4"
 rtic = { version = "2", features = ["thumbv6-backend"] }
 rtic-monotonics = { version = "2", features = ["cortex-m-systick"] }
 ringbuf = { version = "0.4.7", default-features = false, features = ["portable-atomic"] }

@@ -79,7 +79,9 @@ impl TimerDriver {
         let mut timekeeper_reg_block = unsafe { TimekeeperTim::ID.steal_regs() };
         let mut alarm_tim_reg_block = unsafe { AlarmTim::ID.steal_regs() };
         // Initiate scale value here. This is required to convert timer ticks back to a timestamp.
-        SCALE.set((sysclk.raw() / TICK_HZ as u32) as u64).unwrap();
+        SCALE
+            .set((sysclk.to_raw() / TICK_HZ as u32) as u64)
+            .unwrap();
         timekeeper_reg_block.write_reset_value(u32::MAX);
         // Decrementing counter.
         timekeeper_reg_block.write_count_value(u32::MAX);
@@ -137,7 +139,7 @@ impl TimerDriver {
         // Initiate scale value here. This is required to convert timer ticks back to a timestamp.
 
         SCALE
-            .set((TimekeeperTim::clock(clocks).raw() / TICK_HZ as u32) as u64)
+            .set((TimekeeperTim::clock(clocks).to_raw() / TICK_HZ as u32) as u64)
             .unwrap();
         timekeeper_regs.write_reset_value(u32::MAX);
         // Decrementing counter.

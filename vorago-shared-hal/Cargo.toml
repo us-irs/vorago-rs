@@ -25,7 +25,7 @@ embedded-io-async = "0.7"
 raw-slicee = "0.1"
 thiserror = { version = "2", default-features = false }
 paste = "1"
-fugit = "0.3"
+fugit = "0.4"
 defmt = { version = "1", optional = true }
 va108xx = { version = "0.6", path = "../va108xx/va108xx", default-features = false, optional = true }
 va416xx = { version = "0.5", path = "../va416xx/va416xx", default-features = false, optional = true }

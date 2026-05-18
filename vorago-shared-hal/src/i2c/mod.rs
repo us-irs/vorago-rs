@@ -149,12 +149,12 @@ fn calc_clk_div_generic(
     speed_mode: I2cSpeed,
 ) -> Result<u8, ClockTooSlowForFastI2cError> {
     if speed_mode == I2cSpeed::Regular100khz {
-        Ok(((ref_clk.raw() / CLK_100K.raw() / 20) - 1) as u8)
+        Ok(((ref_clk.to_raw() / CLK_100K.to_raw() / 20) - 1) as u8)
     } else {
-        if ref_clk.raw() < MIN_CLK_400K.raw() {
+        if ref_clk.to_raw() < MIN_CLK_400K.to_raw() {
             return Err(ClockTooSlowForFastI2cError);
         }
-        Ok(((ref_clk.raw() / CLK_400K.raw() / 25) - 1) as u8)
+        Ok(((ref_clk.to_raw() / CLK_400K.to_raw() / 25) - 1) as u8)
     }
 }
 

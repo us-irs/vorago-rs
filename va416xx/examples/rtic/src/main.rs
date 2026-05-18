@@ -41,7 +41,7 @@ mod app {
             .xtal_n_clk_with_src_freq(EXTCLK_FREQ)
             .freeze()
             .unwrap();
-        Mono::start(cx.core.SYST, clocks.sysclk().raw());
+        Mono::start(cx.core.SYST, clocks.sysclk().to_raw());
         let pinsg = PinsG::new(cx.device.portg);
         let led = Output::new(pinsg.pg5, PinState::Low);
         blinky::spawn().ok();

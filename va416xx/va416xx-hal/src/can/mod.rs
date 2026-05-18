@@ -150,18 +150,19 @@ impl ClockConfig {
         tseg2: u8,
         sjw: u8,
     ) -> Result<ClockConfig, ClockConfigError> {
-        if bitrate.raw() == 0 {
+        if bitrate.to_raw() == 0 {
             return Err(ClockConfigError::BitrateIsZero);
         }
         let nominal_bit_time = 1 + tseg1 as u32 + tseg2 as u32;
-        let prescaler =
-            roundf(clocks.apb1().raw() as f32 / (bitrate.raw() as f32 * nominal_bit_time as f32))
-                as u32;
+        let prescaler = roundf(
+            clocks.apb1().to_raw() as f32 / (bitrate.to_raw() as f32 * nominal_bit_time as f32),
+        ) as u32;
         if !(PRESCALER_MIN as u32..=PRESCALER_MAX as u32).contains(&prescaler) {
             return Err(ClockConfigError::CanNotFindPrescaler);
         }
 
-        let actual_bitrate = (clocks.apb1().raw() as f32) / (prescaler * nominal_bit_time) as f32;
+        let actual_bitrate =
+            (clocks.apb1().to_raw() as f32) / (prescaler * nominal_bit_time) as f32;
         let bitrate_deviation = calculate_bitrate_deviation(actual_bitrate, bitrate);
         if bitrate_deviation > MAX_BITRATE_DEVIATION {
             return Err(ClockConfigError::BitrateErrorTooLarge);
@@ -269,17 +270,17 @@ pub const fn calculate_nominal_bit_time(
     target_bitrate: Hertz,
     prescaler: u8,
 ) -> u32 {
-    apb1_clock.raw() / (target_bitrate.raw() * prescaler as u32)
+    apb1_clock.to_raw() / (target_bitrate.to_raw() * prescaler as u32)
 }
 
 #[inline]
 pub const fn calculate_actual_bitrate(apb1_clock: Hertz, prescaler: u8, nom_bit_time: u32) -> f32 {
-    apb1_clock.raw() as f32 / (prescaler as u32 * nom_bit_time) as f32
+    apb1_clock.to_raw() as f32 / (prescaler as u32 * nom_bit_time) as f32
 }
 
 #[inline]
 pub const fn calculate_bitrate_deviation(actual_bitrate: f32, target_bitrate: Hertz) -> f32 {
-    (actual_bitrate - target_bitrate.raw() as f32).abs() / target_bitrate.raw() as f32
+    (actual_bitrate - target_bitrate.to_raw() as f32).abs() / target_bitrate.to_raw() as f32
 }
 
 pub trait CanInstance {

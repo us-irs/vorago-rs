@@ -46,8 +46,8 @@ fn main() -> ! {
             }
 
             let sys_clk: Hertz = 50.MHz();
-            let cnt_ms = sys_clk.raw() / 1000 - 1;
-            let cnt_sec = sys_clk.raw() - 1;
+            let cnt_ms = sys_clk.to_raw() / 1000 - 1;
+            let cnt_sec = sys_clk.to_raw() - 1;
             unsafe {
                 dp.tim0.cnt_value().write(|w| w.bits(cnt_ms));
                 dp.tim0.rst_value().write(|w| w.bits(cnt_ms));

@@ -43,7 +43,7 @@ mod app {
     #[init]
     fn init(cx: init::Context) -> (Shared, Local) {
         defmt::println!("-- Vorago Button IRQ Example --");
-        Mono::start(cx.core.SYST, SYSCLK_FREQ.raw());
+        Mono::start(cx.core.SYST, SYSCLK_FREQ.to_raw());
 
         let mode = DEFAULT_MODE;
         defmt::info!("Using {:?} mode", mode);

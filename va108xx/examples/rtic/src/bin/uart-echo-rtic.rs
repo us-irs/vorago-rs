@@ -20,11 +20,11 @@ mod app {
     use panic_probe as _;
     // Import global logger.
     use defmt_rtt as _;
+    use rtic_monotonics::fugit::ExtU32 as _;
     use rtic_monotonics::Monotonic;
     use va108xx_hal::{
         pac,
         pins::PinsA,
-        prelude::*,
         uart::{self, RxWithInterrupt, Tx},
         InterruptConfig,
     };
@@ -46,15 +46,18 @@ mod app {
     fn init(cx: init::Context) -> (Shared, Local) {
         defmt::println!("-- VA108xx UART Echo with IRQ example application--");
 
-        Mono::start(cx.core.SYST, SYSCLK_FREQ.raw());
+        Mono::start(cx.core.SYST, SYSCLK_FREQ.to_raw());
 
         let dp = cx.device;
         let gpioa = PinsA::new(dp.porta);
         let tx = gpioa.pa9;
         let rx = gpioa.pa8;
 
-        let clock_config =
-            uart::ClockConfig::calculate(SYSCLK_FREQ, 115200.Hz(), uart::BaudMode::_16);
+        let clock_config = uart::ClockConfig::calculate(
+            SYSCLK_FREQ,
+            fugit::HertzU32::from_raw(115200),
+            uart::BaudMode::_16,
+        );
         let uart_config = uart::Config::new_with_clock_config(clock_config);
         let irq_uart = uart::Uart::new_with_interrupt_uart0(
             dp.uarta,

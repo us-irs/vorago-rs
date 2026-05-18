@@ -10,6 +10,7 @@ defmt-rtt = "1"
 defmt = "1"
 panic-probe = { version = "1", features = ["defmt"] }
 static_cell = "2"
+fugit = "0.4"
 ringbuf = { version = "0.4", default-features = false }
 once_cell = { version = "1", default-features = false, features = ["critical-section"] }
 satrs = { version = "0.3.0-alpha.3", default-features = false, features = ["defmt"] }

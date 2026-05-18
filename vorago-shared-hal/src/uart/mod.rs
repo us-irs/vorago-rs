@@ -161,11 +161,11 @@ impl ClockConfig {
         // This is the calculation: (64.0 * (x - integer_part as f32) + 0.5) as u32 without floating
         // point calculations.
         let multiplier = baud_mode.multiplier();
-        let frac = ((ref_clk.raw() % (baudrate.raw() * multiplier)) * 64
-            + (baudrate.raw() * (multiplier / 2)))
-            / (baudrate.raw() * multiplier);
+        let frac = ((ref_clk.to_raw() % (baudrate.to_raw() * multiplier)) * 64
+            + (baudrate.to_raw() * (multiplier / 2)))
+            / (baudrate.to_raw() * multiplier);
         // Calculations here are derived from chapter 4.8.5 (p.79) of the datasheet.
-        let integer_div = ref_clk.raw() / (baudrate.raw() * multiplier);
+        let integer_div = ref_clk.to_raw() / (baudrate.to_raw() * multiplier);
         Self {
             frac: u6::new(frac as u8),
             div: u18::new(integer_div),

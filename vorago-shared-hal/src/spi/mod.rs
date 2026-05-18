@@ -499,11 +499,11 @@ pub fn clk_div_for_target_clock(sys_clk: Hertz, spi_clk: Hertz) -> Option<u16> {
     }
 
     // Step 1: Calculate raw divider.
-    let raw_div = sys_clk.raw() / spi_clk.raw();
-    let remainder = sys_clk.raw() % spi_clk.raw();
+    let raw_div = sys_clk.to_raw() / spi_clk.to_raw();
+    let remainder = sys_clk.to_raw() % spi_clk.to_raw();
 
     // Step 2: Round up if necessary.
-    let mut rounded_div = if remainder * 2 >= spi_clk.raw() {
+    let mut rounded_div = if remainder * 2 >= spi_clk.to_raw() {
         raw_div + 1
     } else {
         raw_div

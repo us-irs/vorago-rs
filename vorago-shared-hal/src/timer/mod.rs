@@ -406,7 +406,7 @@ impl CountdownTimer {
     pub fn load(&mut self, timeout: impl Into<Hertz>) {
         self.disable();
         self.curr_freq = timeout.into();
-        self.rst_val = self.ref_clk.raw() / self.curr_freq.raw();
+        self.rst_val = self.ref_clk.to_raw() / self.curr_freq.to_raw();
         self.set_reload(self.rst_val);
         self.set_count(self.rst_val);
     }
@@ -497,7 +497,7 @@ impl CountdownTimer {
 //
 impl embedded_hal::delay::DelayNs for CountdownTimer {
     fn delay_ns(&mut self, ns: u32) {
-        let ticks = (u64::from(ns)) * (u64::from(self.ref_clk.raw())) / 1_000_000_000;
+        let ticks = (u64::from(ns)) * (u64::from(self.ref_clk.to_raw())) / 1_000_000_000;
 
         let full_cycles = ticks >> 32;
         let mut last_count;
