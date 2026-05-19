@@ -1,6 +1,6 @@
 [package]
 name = "va108xx-hal"
-version = "0.13.0"
+version = "0.13.1"
 authors = ["Robin Mueller <muellerr@irs.uni-stuttgart.de>"]
 edition = "2024"
 description = "HAL for the Vorago VA108xx family of microcontrollers"
@@ -37,8 +37,8 @@ embassy-oc29-oc30 = ["_irqs-in-lib"]
 embassy-oc28-oc29 = ["_irqs-in-lib"]
 
 [package.metadata.docs.rs]
-all-features = true
 targets = ["thumbv6m-none-eabi"]
+features = ["defmt", "embassy-oc30-oc31"]
 rustdoc-args = ["--generate-link-to-definition"]
 
 [package.metadata.cargo-machete]
