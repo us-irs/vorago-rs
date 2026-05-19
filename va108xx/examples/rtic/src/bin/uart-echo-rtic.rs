@@ -67,7 +67,7 @@ mod app {
             InterruptConfig::new(pac::Interrupt::OC3, true, true),
         );
         let (tx, rx) = irq_uart.split();
-        let mut rx = rx.into_rx_with_irq();
+        let mut rx = rx.into_rx_with_interrupt();
 
         rx.start();
 

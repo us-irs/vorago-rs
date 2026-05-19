@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [unreleased]
 
+## Changed
+
+- Naming improvements for UART register module
+- Improved UART Async TX module. Only enable TX below threshold interrupts if the FIFO
+  actually needs to be refilled.
+
 ## [v0.3.0] 2026-05-18
 
 ### Added

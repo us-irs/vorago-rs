@@ -197,7 +197,7 @@ mod app {
         Mono::start(cx.core.SYST, clocks.sysclk().to_raw());
         CLOCKS.set(clocks).unwrap();
 
-        let mut rx = rx.into_rx_with_irq();
+        let mut rx = rx.into_rx_with_interrupt();
         let mut rx_context = InterruptContextTimeoutOrMaxSize::new(MAX_TC_FRAME_SIZE);
         rx.read_fixed_len_or_timeout_based_using_irq(&mut rx_context)
             .expect("initiating UART RX failed");

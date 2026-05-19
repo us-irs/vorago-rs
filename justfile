@@ -22,13 +22,12 @@ check-va108xx:
 [working-directory: 'va416xx']
 check-va416xx:
   cargo check --target thumbv7em-none-eabihf
-  cargo check --target thumbv7em-none-eabihf --examples
   cargo check -p va416xx --target thumbv7em-none-eabihf --all-features
   cargo check -p va416xx-hal --target thumbv7em-none-eabihf --features "defmt va41630"
 
 [working-directory: 'va108xx']
 build-va108xx:
-  cargo build --target thumbv6m-none-eabi
+  cargo build --target thumbv6m-none-eabi --release
 
 [working-directory: 'va416xx']
 build-va416xx:

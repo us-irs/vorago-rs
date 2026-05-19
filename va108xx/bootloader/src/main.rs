@@ -159,6 +159,12 @@ fn main() -> ! {
     if check_app_crc(preferred_app) {
         boot_app(&dp.sysconfig, &cp, preferred_app, &mut timer)
     } else if check_app_crc(other_app) {
+        if DEFMT_PRINTOUT {
+            defmt::warn!(
+                "CRC check for preferred image {} failed. Checking alternative slot",
+                preferred_app
+            );
+        }
         boot_app(&dp.sysconfig, &cp, other_app, &mut timer)
     } else {
         if DEBUG_PRINTOUTS && DEFMT_PRINTOUT {
@@ -210,7 +216,6 @@ fn check_own_crc(
                 crc_exp
             );
         }
-        // TODO: Shift out minimal CCSDS frame to notify about bootloader corruption.
         boot_app(sysconfig, cp, AppSel::A, timer);
     }
 }

@@ -11,23 +11,27 @@ defmt = "1"
 defmt-rtt = { version = "1" }
 panic-probe = { version = "1", features = ["print-defmt"] }
 num_enum = { version = "0.7", default-features = false }
-cobs = { version = "0.5", default-features = false }
-satrs = { version = "0.3.0-alpha.3", default-features = false, features = ["defmt"] }
+cobs = { version = "0.5", default-features = false, features = ["defmt"] }
 fugit = "0.4"
 arbitrary-int = "2"
-ringbuf = { version = "0.4.7", default-features = false, features = ["portable-atomic"] }
-# spacepackets = { version = "0.17", path = "https://egit.irs.uni-stuttgart.de/rust/spacepackets.git", default-features = false, features = ["defmt"] }
+embassy-sync = "0.8"
+embedded-io-async = "0.7"
+embassy-time = { version = "0.5", features = ["defmt-timestamp-uptime-ms"] }
+static_cell = "2"
+postcard = { version = "1", features = ["use-defmt"] }
+spacepackets = { version = "0.17", default-features = false, features = ["defmt"] }
+serde = { version = "1", default-features = false }
 # Even though we do not use this directly, we need to activate this feature explicitely
 # so that RTIC compiles because thumv6 does not have CAS operations natively.
 portable-atomic = {version = "1", features = ["unsafe-assume-single-core"]}
+models = { path = "./models", features = ["defmt"] }
 
 rtic = { version = "2", features = ["thumbv6-backend"] }
-rtic-monotonics = { version = "2", features = ["cortex-m-systick"] }
 
 [dependencies.va108xx-hal]
 version = "0.13"
 path = "../va108xx-hal"
-features = ["defmt"]
+features = ["defmt", "embassy-oc30-oc31"]
 
 [dependencies.vorago-reb1]
 version = "0.10"
