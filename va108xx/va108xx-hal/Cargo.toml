@@ -1,8 +1,8 @@
 [package]
 name = "va108xx-hal"
-version = "0.12.0"
+version = "0.13.0"
 authors = ["Robin Mueller <muellerr@irs.uni-stuttgart.de>"]
-edition = "2021"
+edition = "2024"
 description = "HAL for the Vorago VA108xx family of microcontrollers"
 homepage = "https://egit.irs.uni-stuttgart.de/rust/vorago-rs"
 repository = "https://egit.irs.uni-stuttgart.de/rust/vorago-rs"
@@ -27,6 +27,14 @@ portable-atomic = "1"
 default = ["rt"]
 rt = ["va108xx/rt"]
 defmt = ["dep:defmt", "vorago-shared-hal/defmt", "va108xx/defmt"]
+
+# Embassy time features
+_irqs-in-lib = []
+# This determines the reserved interrupt functions for the embassy time drivers. Only one
+# is allowed to be selected!
+embassy-oc30-oc31 = ["_irqs-in-lib"]
+embassy-oc29-oc30 = ["_irqs-in-lib"]
+embassy-oc28-oc29 = ["_irqs-in-lib"]
 
 [package.metadata.docs.rs]
 all-features = true

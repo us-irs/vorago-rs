@@ -27,11 +27,10 @@ embassy-executor = { version = "0.10", features = [
   "executor-interrupt"
 ]}
 
-va108xx-hal = { version = "0.12", path = "../../va108xx-hal", features = ["defmt"] }
-va108xx-embassy = { version = "0.3", path = "../../va108xx-embassy" }
+va108xx-hal = { version = "0.13", path = "../../va108xx-hal", features = ["defmt"] }
 
 [features]
-default = ["ticks-hz-1_000", "va108xx-embassy/irq-oc30-oc31"]
+default = ["ticks-hz-1_000", "va108xx-hal/embassy-oc30-oc31"]
 custom-irqs = []
 ticks-hz-1_000 = ["embassy-time/tick-hz-1_000"]
 ticks-hz-32_768 = ["embassy-time/tick-hz-32_768"]

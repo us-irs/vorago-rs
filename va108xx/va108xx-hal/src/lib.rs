@@ -29,9 +29,11 @@ pub mod time;
 pub mod timer;
 pub mod uart;
 
+pub mod embassy_time;
+
 pub use vorago_shared_hal::{
-    disable_nvic_interrupt, enable_nvic_interrupt, FunctionSelect, InterruptConfig,
-    PeripheralSelect,
+    FunctionSelect, InterruptConfig, PeripheralSelect, disable_nvic_interrupt,
+    enable_nvic_interrupt,
 };
 
 /// This is the NONE destination reigster value for the IRQSEL peripheral.

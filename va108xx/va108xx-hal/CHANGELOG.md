@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [unreleased]
 
+## [v0.13.0] 2026-05-18
+
+- Bump `vorago-shared-hal` dependency to v0.3.
+- Integrate `va108xx-embassy` as a `embassy-time` module.
+
 ## [v0.12.0] 2025-09-03
 
 ## Changed

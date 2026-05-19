@@ -4,7 +4,6 @@ members = [
   "vorago-reb1",
   "va108xx",
   "va108xx-hal",
-  "va108xx-embassy",
   "examples/simple",
   "examples/rtic",
   "examples/embassy",

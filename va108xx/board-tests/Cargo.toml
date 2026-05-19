@@ -12,7 +12,7 @@ panic-probe = { version = "1", features = ["print-defmt"] }
 embedded-hal = "1"
 
 [dependencies.va108xx-hal]
-version = "0.12"
+version = "0.13"
 features = ["rt"]
 path = "../va108xx-hal"
 

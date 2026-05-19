@@ -41,7 +41,7 @@ async fn main(_spawner: Spawner) {
     let dp = pac::Peripherals::take().unwrap();
 
     // Safety: Only called once here.
-    va108xx_embassy::init(dp.tim23, dp.tim22, SYSCLK_FREQ);
+    va108xx_hal::embassy_time::init(dp.tim23, dp.tim22, SYSCLK_FREQ);
 
     let porta = PinsA::new(dp.porta);
 

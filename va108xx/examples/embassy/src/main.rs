@@ -6,7 +6,7 @@ use embassy_time::{Duration, Instant, Ticker};
 
 cfg_if::cfg_if! {
     if #[cfg(feature = "custom-irqs")] {
-        use va108xx_embassy::embassy_time_driver_irqs;
+        use va108xx_hal::embassy_time_driver_irqs;
         use va108xx_hal::pac::interrupt;
         embassy_time_driver_irqs!(timekeeper_irq = OC23, alarm_irq = OC24);
     }
@@ -31,13 +31,13 @@ async fn main(_spawner: Spawner) {
     // Safety: Only called once here.
     cfg_if::cfg_if! {
         if #[cfg(not(feature = "custom-irqs"))] {
-            va108xx_embassy::init(
+            va108xx_hal::embassy_time::init(
                 dp.tim23,
                 dp.tim22,
                 SYSCLK_FREQ,
             );
         } else {
-            va108xx_embassy::init_with_custom_irqs(
+            va108xx_hal::embassy_time::init_with_custom_irqs(
                 dp.tim23,
                 dp.tim22,
                 SYSCLK_FREQ,
