@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [unreleased]
 
+## [v0.10.0] 2026-05-19
+
+- Bumped `va108xx-hal` dependency to 0.13
+
 ## [v0.9.0] 2025-09-03
 
 - Bumped `va108xx-hal` dependency to 0.12
@@ -66,7 +70,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   it provides a starting point
 - Added ADC base library and example building on the new max116xx-10bit device driver crate
 
-[unreleased]: https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/compare/vorago-reb1-v0.9.0...HEAD
+[unreleased]: https://egit.irs.uni-stuttgart.de/rust/vorago-rs/compare/vorago-reb1-v0.10.0...HEAD
+[v0.10.0]: https://egit.irs.uni-stuttgart.de/rust/vorago-rs/src/tag/vorago-reb1-v0.10.0
 [v0.9.0]: https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/compare/vorago-reb1-v0.8.1...vorago-reb1-v0.9.0
 [v0.8.1]: https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/compare/vorago-reb1-v0.8.0...vorago-reb1-v0.8.1
 [v0.8.0]: https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/compare/vorago-reb1-v0.7.0...vorago-reb1-v0.8.0
