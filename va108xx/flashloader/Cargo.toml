@@ -30,7 +30,7 @@ path = "../va108xx-hal"
 features = ["defmt"]
 
 [dependencies.vorago-reb1]
-version = "0.9"
+version = "0.10"
 path = "../vorago-reb1"
 
 [package.metadata.cargo-machete]
