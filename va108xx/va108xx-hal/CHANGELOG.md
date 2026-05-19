@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [unreleased]
 
+## [v0.13.1] 2026-05-19
+
+- Docs.rs feature fix
+
 ## [v0.13.0] 2026-05-19
 
 - Bump `vorago-shared-hal` dependency to v0.4
@@ -281,7 +285,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Added basic test binary in form of an example
 - README with basic instructions how to set up own binary crate
 
-[unreleased]: https://egit.irs.uni-stuttgart.de/rust/vorago-rs/compare/va108xx-hal-v0.13.0...HEAD
+[unreleased]: https://egit.irs.uni-stuttgart.de/rust/vorago-rs/compare/va108xx-hal-v0.13.1...HEAD
+[v0.13.1]: https://egit.irs.uni-stuttgart.de/rust/vorago-rs/compare/va108xx-hal-v0.13.0...va108xx-hal-v0.13.1
 [v0.13.0]: https://egit.irs.uni-stuttgart.de/rust/vorago-rs/src/tag/va108xx-hal-v0.13.0
 [v0.12.0]: https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/compare/va108xx-hal-v0.11.1...va108xx-hal-v0.12.0
 [v0.11.1]: https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/compare/va108xx-hal-v0.11.0...va108xx-hal-v0.11.1
