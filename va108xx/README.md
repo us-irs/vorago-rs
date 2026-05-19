@@ -14,8 +14,6 @@ This workspace contains the following released crates:
   crate containing basic low-level register definition.
 - The [`va108xx-hal`](https://egit.irs.uni-stuttgart.de/rust/vorago-rs/src/branch/main/va108xx/va108xx-hal)
   HAL crate containing higher-level abstractions on top of the PAC register crate.
-- The [`va108xx-embassy`](https://egit.irs.uni-stuttgart.de/rust/vorago-rs/src/branch/main/va108xx/va108xx-embassy)
-  crate containing support for running the embassy-rs asynchronous runtime.
 - The [`vorago-reb1`](https://egit.irs.uni-stuttgart.de/rust/vorago-rs/src/branch/main/va108xx/vorago-reb1)
   BSP crate containing support for the REB1 development board.
 
