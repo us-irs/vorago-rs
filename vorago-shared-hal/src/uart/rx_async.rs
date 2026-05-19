@@ -134,8 +134,8 @@ pub fn on_interrupt_rx_async_heapless_queue_overwriting(
     shared_consumer: &Mutex<RefCell<Option<heapless::spsc::Consumer<'static, u8>>>>,
 ) -> Result<(), AsyncUartErrors> {
     let uart_regs = unsafe { bank.steal_regs() };
-    let irq_status = uart_regs.read_irq_status();
-    let irq_enabled = uart_regs.read_irq_enabled();
+    let irq_status = uart_regs.read_interrupt_status();
+    let irq_enabled = uart_regs.read_interrupt_enable();
     let rx_enabled = irq_enabled.rx();
     let mut read_some_data = false;
     let mut queue_overflow = false;
@@ -202,8 +202,8 @@ pub fn on_interrupt_rx_async_heapless_queue(
     prod: &mut heapless::spsc::Producer<'_, u8>,
 ) -> Result<(), AsyncUartErrors> {
     let uart_regs = unsafe { bank.steal_regs() };
-    let irq_status = uart_regs.read_irq_status();
-    let irq_enabled = uart_regs.read_irq_enabled();
+    let irq_status = uart_regs.read_interrupt_status();
+    let irq_enabled = uart_regs.read_interrupt_enable();
     let rx_enabled = irq_enabled.rx();
     let mut read_some_data = false;
     let mut queue_overflow = false;

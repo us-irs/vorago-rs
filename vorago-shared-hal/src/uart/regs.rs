@@ -188,7 +188,7 @@ pub struct InterruptControl {
 
     /// Generates an interrupt when the TX FIFO is at least half-empty (FIFO count < trigger level)
     #[bit(4, rw)]
-    tx: bool,
+    tx_below_trigger: bool,
     /// Generates an interrupt on TX FIFO overflow.
     #[bit(5, rw)]
     tx_status: bool,
@@ -213,7 +213,7 @@ pub struct InterruptStatus {
 
     /// Generates an interrupt when the TX FIFO is at least half-empty (FIFO count < trigger level)
     #[bit(4, r)]
-    tx: bool,
+    tx_below_trigger: bool,
     /// Generates an interrupt on TX FIFO overflow.
     #[bit(5, r)]
     tx_status: bool,
@@ -262,7 +262,7 @@ pub struct State {
 pub struct Uart {
     data: Data,
     enable: Enable,
-    ctrl: Control,
+    control: Control,
     clkscale: ClockScale,
     #[mmio(PureRead)]
     rx_status: RxStatus,
@@ -274,11 +274,11 @@ pub struct Uart {
     txbreak: u32,
     addr9: u32,
     addr9mask: u32,
-    irq_enabled: InterruptControl,
+    interrupt_enable: InterruptControl,
     #[mmio(PureRead)]
-    irq_raw: InterruptStatus,
+    interrupt_raw: InterruptStatus,
     #[mmio(PureRead)]
-    irq_status: InterruptStatus,
+    interrupt_status: InterruptStatus,
     #[mmio(Write)]
     irq_clr: InterruptClear,
     rx_fifo_trigger: FifoTrigger,

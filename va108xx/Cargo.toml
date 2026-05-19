@@ -1,5 +1,5 @@
 [workspace]
-resolver = "2"
+resolver = "3"
 members = [
   "vorago-reb1",
   "va108xx",
@@ -10,6 +10,7 @@ members = [
   "board-tests",
   "bootloader",
   "flashloader",
+  "flashloader/models",
 ]
 exclude = [
   "flashloader/slot-a-blinky",
@@ -43,3 +44,6 @@ lto = true
 opt-level = 'z'            # <-
 overflow-checks = false  # <-
 strip = true  # Automatically strip symbols from the binary.
+
+[patch.crates-io]
+spacepackets = { git = "https://egit.irs.uni-stuttgart.de/rust/spacepackets.git", rev = "ec952b771cc62a371786cb1a04fd1baa9c33523c" }

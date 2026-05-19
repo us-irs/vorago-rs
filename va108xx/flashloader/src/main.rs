@@ -4,51 +4,22 @@
 #![no_std]
 
 use defmt_rtt as _; // global logger
-use num_enum::TryFromPrimitive;
 use panic_probe as _;
-use ringbuf::{
-    traits::{Consumer, Observer, Producer},
-    StaticRb,
-};
-use rtic_monotonics::fugit::ExtU32;
 use va108xx_hal::time::Hertz;
 
 const SYSCLK_FREQ: Hertz = Hertz::from_raw(50_000_000);
+const UART_BANK: va108xx_hal::uart::Bank = va108xx_hal::uart::Bank::Uart0;
 
-const MAX_TC_SIZE: usize = 524;
-const MAX_TC_FRAME_SIZE: usize = cobs::max_encoding_length(MAX_TC_SIZE);
+pub const MAX_TC_SIZE: usize = 524;
+pub const MAX_TC_FRAME_SIZE: usize = cobs::max_encoding_length(MAX_TC_SIZE);
 
 const MAX_TM_SIZE: usize = 128;
 const MAX_TM_FRAME_SIZE: usize = cobs::max_encoding_length(MAX_TM_SIZE);
 
 const UART_BAUDRATE: u32 = 115200;
-const BOOT_NVM_MEMORY_ID: u8 = 1;
-const RX_DEBUGGING: bool = false;
 
-pub enum ActionId {
-    CorruptImageA = 128,
-    CorruptImageB = 129,
-    SetBootSlot = 130,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, TryFromPrimitive, defmt::Format)]
-#[repr(u8)]
-enum AppSel {
-    A = 0,
-    B = 1,
-}
-
-// Larger buffer for TC to be able to hold the possibly large memory write packets.
-const BUF_RB_SIZE_TC: usize = 1024;
-const SIZES_RB_SIZE_TC: usize = 16;
-
-const BUF_RB_SIZE_TM: usize = 256;
-const SIZES_RB_SIZE_TM: usize = 16;
-
-pub struct RingBufWrapper<const BUF_SIZE: usize, const SIZES_LEN: usize> {
-    pub buf: StaticRb<u8, BUF_SIZE>,
-    pub sizes: StaticRb<usize, SIZES_LEN>,
-}
+const TC_PIPE_SIZE: usize = 1024;
+const TM_PIPE_SIZE: usize = 128;
 
 pub const APP_A_START_ADDR: u32 = 0x3000;
 pub const APP_A_END_ADDR: u32 = 0x117FC;
@@ -60,21 +31,16 @@ pub const PREFERRED_SLOT_OFFSET: u32 = 0x20000 - 1;
 #[rtic::app(device = pac, dispatchers = [OC20, OC21, OC22])]
 mod app {
     use super::*;
-    use arbitrary_int::traits::Integer as _;
-    use arbitrary_int::{u11, u14};
+    use cobs::CobsDecoderHeapless;
     use cortex_m::asm;
-    use embedded_io::Write;
-    use rtic::Mutex;
-    use rtic_monotonics::Monotonic;
-    use satrs::pus::verification::{FailParams, VerificationReportCreator};
-    use satrs::spacepackets::ecss::PusServiceId;
-    use satrs::spacepackets::ecss::{
-        tc::PusTcReader, tm::PusTmCreator, EcssEnumU8, PusPacket, WritablePusPacket,
-    };
+    use embassy_sync::blocking_mutex::raw::{CriticalSectionRawMutex, NoopRawMutex};
+    use embedded_io_async::Write as _;
+    use models::{create_encoded_tm_packet, Response};
+    use spacepackets::{CcsdsPacketReader, SpacePacketHeader};
     use va108xx_hal::pins::PinsA;
     use va108xx_hal::spi::SpiClockConfig;
-    use va108xx_hal::uart::InterruptContextTimeoutOrMaxSize;
-    use va108xx_hal::{pac, uart, InterruptConfig};
+    use va108xx_hal::uart::{self, TxAsync};
+    use va108xx_hal::{pac, InterruptConfig};
     use vorago_reb1::m95m01::M95M01;
 
     #[derive(Default, Debug, Copy, Clone, PartialEq, Eq)]
@@ -88,32 +54,29 @@ mod app {
     #[local]
     struct Local {
         uart_rx: uart::RxWithInterrupt,
-        uart_tx: uart::Tx,
-        rx_context: InterruptContextTimeoutOrMaxSize,
-        verif_reporter: VerificationReportCreator,
+        uart_tx: uart::TxAsync,
         nvm: M95M01,
+        tc_tx: embassy_sync::pipe::Writer<'static, CriticalSectionRawMutex, TC_PIPE_SIZE>,
+        tc_rx: embassy_sync::pipe::Reader<'static, CriticalSectionRawMutex, TC_PIPE_SIZE>,
+        // We are only using this in threads, and RTIC ensures there are no conflicts.
+        tm_tx: embassy_sync::pipe::Writer<'static, NoopRawMutex, TM_PIPE_SIZE>,
+        tm_rx: embassy_sync::pipe::Reader<'static, NoopRawMutex, TM_PIPE_SIZE>,
     }
 
     #[shared]
-    struct Shared {
-        // Having this shared allows multiple tasks to generate telemetry.
-        tm_rb: RingBufWrapper<BUF_RB_SIZE_TM, SIZES_RB_SIZE_TM>,
-        tc_rb: RingBufWrapper<BUF_RB_SIZE_TC, SIZES_RB_SIZE_TC>,
-    }
-
-    rtic_monotonics::systick_monotonic!(Mono, 1000);
+    struct Shared {}
 
     #[init]
     fn init(cx: init::Context) -> (Shared, Local) {
         defmt::println!("-- Vorago flashloader --");
 
-        Mono::start(cx.core.SYST, SYSCLK_FREQ.to_raw());
+        let periphs = cx.device;
+        va108xx_hal::embassy_time::init(periphs.tim14, periphs.tim15, SYSCLK_FREQ);
 
-        let dp = cx.device;
         let spi_clock_config = SpiClockConfig::new(2, 4);
-        let nvm = M95M01::new(dp.spic, spi_clock_config);
+        let nvm = M95M01::new(periphs.spic, spi_clock_config);
 
-        let gpioa = PinsA::new(dp.porta);
+        let gpioa = PinsA::new(periphs.porta);
         let tx = gpioa.pa9;
         let rx = gpioa.pa8;
 
@@ -124,7 +87,7 @@ mod app {
         );
         let uart_config = uart::Config::new_with_clock_config(clock_config);
         let irq_uart = uart::Uart::new_with_interrupt_uart0(
-            dp.uarta,
+            periphs.uarta,
             tx,
             rx,
             uart_config,
@@ -132,32 +95,32 @@ mod app {
         );
         let (tx, rx) = irq_uart.split();
         // Unwrap is okay, we explicitely set the interrupt ID.
-        let mut rx = rx.into_rx_with_irq();
+        let mut rx = rx.into_rx_with_interrupt();
 
-        let verif_reporter = VerificationReportCreator::new(u11::new(0));
+        rx.start();
+        tc_handler::spawn().unwrap();
+        tm_tx_handler::spawn().unwrap();
 
-        let mut rx_context = InterruptContextTimeoutOrMaxSize::new(MAX_TC_FRAME_SIZE);
-        rx.read_fixed_len_or_timeout_based_using_irq(&mut rx_context)
-            .expect("initiating UART RX failed");
-        pus_tc_handler::spawn().unwrap();
-        pus_tm_tx_handler::spawn().unwrap();
+        let tx_async = TxAsync::new(tx);
+
+        static TC_PIPE: static_cell::ConstStaticCell<
+            embassy_sync::pipe::Pipe<CriticalSectionRawMutex, TC_PIPE_SIZE>,
+        > = static_cell::ConstStaticCell::new(embassy_sync::pipe::Pipe::new());
+        static TM_PIPE: static_cell::ConstStaticCell<
+            embassy_sync::pipe::Pipe<NoopRawMutex, TM_PIPE_SIZE>,
+        > = static_cell::ConstStaticCell::new(embassy_sync::pipe::Pipe::new());
+        let (tc_rx, tc_tx) = TC_PIPE.take().split();
+        let (tm_rx, tm_tx) = TM_PIPE.take().split();
         (
-            Shared {
-                tc_rb: RingBufWrapper {
-                    buf: StaticRb::default(),
-                    sizes: StaticRb::default(),
-                },
-                tm_rb: RingBufWrapper {
-                    buf: StaticRb::default(),
-                    sizes: StaticRb::default(),
-                },
-            },
+            Shared {},
             Local {
                 uart_rx: rx,
-                uart_tx: tx,
-                rx_context,
-                verif_reporter,
+                uart_tx: tx_async,
                 nvm,
+                tc_tx,
+                tc_rx,
+                tm_tx,
+                tm_rx,
             },
         )
     }
@@ -174,285 +137,156 @@ mod app {
     #[task(
         binds = OC0,
         local = [
-            cnt: u32 = 0,
-            rx_buf: [u8; MAX_TC_FRAME_SIZE] = [0; MAX_TC_FRAME_SIZE],
-            rx_context,
             uart_rx,
+            tc_tx
         ],
-        shared = [tc_rb]
     )]
-    fn uart_rx_irq(mut cx: uart_rx_irq::Context) {
-        match cx
-            .local
-            .uart_rx
-            .on_interrupt_max_size_or_timeout_based(cx.local.rx_context, cx.local.rx_buf)
-        {
-            Ok(result) => {
-                if RX_DEBUGGING {
-                    defmt::debug!("RX Info: {:?}", cx.local.rx_context);
-                    defmt::debug!("RX Result: {:?}", result);
+    fn uart_irq(cx: uart_irq::Context) {
+        let mut buf: [u8; 16] = [0; 16];
+        let result = cx.local.uart_rx.on_interrupt(&mut buf);
+        if result.bytes_read > 0 {
+            let mut written_so_far = 0;
+            while written_so_far < result.bytes_read {
+                let write_result = cx
+                    .local
+                    .tc_tx
+                    .try_write(&buf[written_so_far..result.bytes_read]);
+                if write_result.is_err() {
+                    defmt::warn!("TC pipe full, dropping bytes");
+                    break;
                 }
-                if result.complete() {
-                    // Check frame validity (must have COBS format) and decode the frame.
-                    // Currently, we expect a full frame or a frame received through a timeout
-                    // to be one COBS frame. We could parse for multiple COBS packets in one
-                    // frame, but the additional complexity is not necessary here..
-                    if cx.local.rx_buf[0] == 0 && cx.local.rx_buf[result.bytes_read - 1] == 0 {
-                        let decoded_size =
-                            cobs::decode_in_place(&mut cx.local.rx_buf[1..result.bytes_read]);
-                        if decoded_size.is_err() {
-                            defmt::warn!("COBS decoding failed");
-                        } else {
-                            let decoded_size = decoded_size.unwrap();
-                            let mut tc_rb_full = false;
-                            cx.shared.tc_rb.lock(|rb| {
-                                if rb.sizes.vacant_len() >= 1 && rb.buf.vacant_len() >= decoded_size
-                                {
-                                    rb.sizes.try_push(decoded_size).unwrap();
-                                    rb.buf.push_slice(&cx.local.rx_buf[1..1 + decoded_size]);
-                                } else {
-                                    tc_rb_full = true;
-                                }
-                            });
-                            if tc_rb_full {
-                                defmt::warn!("COBS TC queue full");
-                            }
-                        }
-                    } else {
-                        defmt::warn!(
-                            "COBS frame with invalid format, start and end bytes are not 0"
-                        );
-                    }
-
-                    // Initiate next transfer.
-                    cx.local
-                        .uart_rx
-                        .read_fixed_len_or_timeout_based_using_irq(cx.local.rx_context)
-                        .expect("read operation failed");
-                }
-                if result.has_errors() {
-                    defmt::warn!("UART error: {:?}", result.errors.unwrap());
-                }
-            }
-            Err(e) => {
-                defmt::warn!("UART error: {:?}", e);
+                written_so_far += write_result.unwrap();
             }
         }
+        va108xx_hal::uart::tx_async::on_interrupt_tx(UART_BANK);
     }
 
     #[task(
         priority = 2,
         local=[
-            tc_buf: [u8; MAX_TC_SIZE] = [0; MAX_TC_SIZE],
-            readback_buf: [u8; MAX_TC_SIZE] = [0; MAX_TC_SIZE],
-            src_data_buf: [u8; 16] = [0; 16],
-            verif_buf: [u8; 32] = [0; 32],
             nvm,
-            verif_reporter
+            tc_rx,
+            tm_tx
         ],
-        shared=[tm_rb, tc_rb]
     )]
-    async fn pus_tc_handler(mut cx: pus_tc_handler::Context) {
+    async fn tc_handler(cx: tc_handler::Context) {
+        let mut read_buf: [u8; 64] = [0; 64];
+        let mut tm_buf: [u8; MAX_TM_FRAME_SIZE] = [0; MAX_TM_FRAME_SIZE];
+        let mut encoded_tm_buf: [u8; MAX_TM_FRAME_SIZE] = [0; MAX_TM_FRAME_SIZE];
+        let mut cobs_decoder = CobsDecoderHeapless::<TC_PIPE_SIZE>::new();
         loop {
-            // Try to read a TC from the ring buffer.
-            let packet_len = cx.shared.tc_rb.lock(|rb| rb.sizes.try_pop());
-            if packet_len.is_none() {
-                // Small delay, TCs might arrive very quickly.
-                Mono::delay(20_u32.millis()).await;
-                continue;
+            let read_bytes = cx.local.tc_rx.read(&mut read_buf).await;
+            for &byte in read_buf[0..read_bytes].iter() {
+                match cobs_decoder.feed(byte) {
+                    Ok(result) => {
+                        if result.is_none() {
+                            continue;
+                        }
+                        let frame = result.unwrap();
+                        match CcsdsPacketReader::new_with_checksum(&cobs_decoder.dest()[0..frame]) {
+                            Ok(packet) => {
+                                let request = postcard::take_from_bytes::<models::Request>(
+                                    packet.user_data(),
+                                );
+                                if request.is_err() {
+                                    defmt::warn!(
+                                        "Failed to parse command: {}",
+                                        request.err().unwrap()
+                                    );
+                                    continue;
+                                }
+                                let (request, remainder) = request.unwrap();
+                                let response = match request {
+                                    models::Request::Corrupt(slot) => {
+                                        match slot {
+                                            models::AppSel::A => {
+                                                defmt::info!("corrupting App Image A");
+                                                corrupt_image(APP_A_START_ADDR, cx.local.nvm);
+                                            }
+                                            models::AppSel::B => {
+                                                defmt::info!("corrupting App Image B");
+                                                corrupt_image(APP_B_START_ADDR, cx.local.nvm);
+                                            }
+                                        }
+                                        Response::Ok
+                                    }
+                                    models::Request::WriteNvm { offset } => {
+                                        defmt::info!(
+                                            "writing {} bytes to NVM at offset 0x{:08x}",
+                                            remainder.len(),
+                                            offset
+                                        );
+                                        cx.local.nvm.write(offset as usize, remainder);
+                                        defmt::info!("write complete");
+                                        Response::Ok
+                                    }
+                                    models::Request::SetBootSlot(app_sel) => {
+                                        defmt::info!(
+                                            "received boot selection command with app select: {:?}",
+                                            app_sel
+                                        );
+                                        cx.local.nvm.write(
+                                            PREFERRED_SLOT_OFFSET as usize,
+                                            &[app_sel as u8],
+                                        );
+                                        Response::Ok
+                                    }
+                                    models::Request::Ping => {
+                                        defmt::info!("received ping TC");
+                                        Response::Ok
+                                    }
+                                };
+                                match create_encoded_tm_packet(
+                                    &mut tm_buf,
+                                    &mut encoded_tm_buf,
+                                    SpacePacketHeader::new_from_apid(models::APID),
+                                    response,
+                                ) {
+                                    Ok(encoded_len) => {
+                                        cx.local
+                                            .tm_tx
+                                            .write_all(&encoded_tm_buf[0..encoded_len])
+                                            .await;
+                                    }
+                                    Err(e) => {
+                                        defmt::warn!("Failed to create or encode TM packet: {}", e);
+                                    }
+                                }
+                            }
+                            Err(e) => {
+                                defmt::warn!("CCSDS packet error: {}", e);
+                            }
+                        }
+                    }
+                    Err(e) => {
+                        defmt::warn!("COBS decoding error: {}", e);
+                    }
+                }
             }
-            let packet_len = packet_len.unwrap();
-            defmt::info!("received packet with length {}", packet_len);
-            let popped_packet_len = cx
-                .shared
-                .tc_rb
-                .lock(|rb| rb.buf.pop_slice(&mut cx.local.tc_buf[0..packet_len]));
-            assert_eq!(popped_packet_len, packet_len);
-            // Read a telecommand, now handle it.
-            handle_valid_pus_tc(&mut cx);
         }
     }
 
-    fn handle_valid_pus_tc(cx: &mut pus_tc_handler::Context) {
-        let pus_tc = PusTcReader::new(cx.local.tc_buf);
-        if let Err(e) = pus_tc {
-            defmt::warn!("PUS TC error: {}", e);
-            return;
-        }
-        let pus_tc = pus_tc.unwrap();
-        let mut write_and_send = |tm: &PusTmCreator| {
-            let written_size = tm.write_to_bytes(cx.local.verif_buf).unwrap();
-            cx.shared.tm_rb.lock(|prod| {
-                prod.sizes.try_push(tm.len_written()).unwrap();
-                prod.buf.push_slice(&cx.local.verif_buf[0..written_size]);
-            });
-        };
-        let request_id = cx.local.verif_reporter.read_request_id(&pus_tc);
-        let tm = cx
-            .local
-            .verif_reporter
-            .acceptance_success(cx.local.src_data_buf, &request_id, u14::ZERO, 0, &[])
-            .expect("acceptance success failed");
-        write_and_send(&tm);
-
-        let tm = cx
-            .local
-            .verif_reporter
-            .start_success(cx.local.src_data_buf, &request_id, u14::ZERO, 0, &[])
-            .expect("acceptance success failed");
-        write_and_send(&tm);
-
-        if pus_tc.service_type_id() == PusServiceId::Action as u8 {
-            let mut corrupt_image = |base_addr: u32| {
-                let mut buf = [0u8; 4];
-                cx.local.nvm.read(base_addr as usize + 32, &mut buf);
-                buf[0] += 1;
-                cx.local.nvm.write(base_addr as usize + 32, &buf);
-                let tm = cx
-                    .local
-                    .verif_reporter
-                    .completion_success(cx.local.src_data_buf, &request_id, u14::ZERO, 0, &[])
-                    .expect("completion success failed");
-                write_and_send(&tm);
-            };
-            if pus_tc.message_subtype_id() == ActionId::CorruptImageA as u8 {
-                defmt::info!("corrupting App Image A");
-                corrupt_image(APP_A_START_ADDR);
-            }
-            if pus_tc.message_subtype_id() == ActionId::CorruptImageB as u8 {
-                defmt::info!("corrupting App Image B");
-                corrupt_image(APP_B_START_ADDR);
-            }
-            if pus_tc.message_subtype_id() == ActionId::SetBootSlot as u8 {
-                if pus_tc.app_data().is_empty() {
-                    defmt::warn!("App data for preferred image command too short");
-                }
-                let app_sel_result = AppSel::try_from(pus_tc.app_data()[0]);
-                if app_sel_result.is_err() {
-                    defmt::warn!("Invalid app selection value: {}", pus_tc.app_data()[0]);
-                }
-                defmt::info!(
-                    "received boot selection command with app select: {:?}",
-                    app_sel_result.unwrap()
-                );
-                cx.local
-                    .nvm
-                    .write(PREFERRED_SLOT_OFFSET as usize, &[pus_tc.app_data()[0]]);
-                let tm = cx
-                    .local
-                    .verif_reporter
-                    .completion_success(cx.local.src_data_buf, &request_id, u14::ZERO, 0, &[])
-                    .expect("completion success failed");
-                write_and_send(&tm);
-            }
-        }
-        if pus_tc.service_type_id() == PusServiceId::Test as u8 && pus_tc.message_subtype_id() == 1
-        {
-            defmt::info!("received ping TC");
-            let tm = cx
-                .local
-                .verif_reporter
-                .completion_success(cx.local.src_data_buf, &request_id, u14::ZERO, 0, &[])
-                .expect("completion success failed");
-            write_and_send(&tm);
-        } else if pus_tc.service_type_id() == PusServiceId::MemoryManagement as u8 {
-            let tm = cx
-                .local
-                .verif_reporter
-                .step_success(
-                    cx.local.src_data_buf,
-                    &request_id,
-                    u14::ZERO,
-                    0,
-                    &[],
-                    EcssEnumU8::new(0),
-                )
-                .expect("step success failed");
-            write_and_send(&tm);
-            // Raw memory write TC
-            if pus_tc.message_subtype_id() == 2 {
-                let app_data = pus_tc.app_data();
-                if app_data.len() < 10 {
-                    defmt::warn!(
-                        "app data for raw memory write is too short: {}",
-                        app_data.len()
-                    );
-                }
-                let memory_id = app_data[0];
-                if memory_id != BOOT_NVM_MEMORY_ID {
-                    defmt::warn!("memory ID {} not supported", memory_id);
-                    // TODO: Error reporting
-                    return;
-                }
-                let offset = u32::from_be_bytes(app_data[2..6].try_into().unwrap());
-                let data_len = u32::from_be_bytes(app_data[6..10].try_into().unwrap());
-                if 10 + data_len as usize > app_data.len() {
-                    defmt::warn!(
-                        "invalid data length {} for raw mem write detected",
-                        data_len
-                    );
-                    // TODO: Error reporting
-                    return;
-                }
-                let data = &app_data[10..10 + data_len as usize];
-                defmt::info!("writing {} bytes at offset {} to NVM", data_len, offset);
-                cx.local.nvm.write(offset as usize, data);
-                let tm = if !cx.local.nvm.verify(offset as usize, data) {
-                    defmt::warn!("verification of data written to NVM failed");
-                    cx.local
-                        .verif_reporter
-                        .completion_failure(
-                            cx.local.src_data_buf,
-                            &request_id,
-                            u14::ZERO,
-                            0,
-                            FailParams::new(&[], &EcssEnumU8::new(0), &[]),
-                        )
-                        .expect("completion success failed")
-                } else {
-                    cx.local
-                        .verif_reporter
-                        .completion_success(cx.local.src_data_buf, &request_id, u14::ZERO, 0, &[])
-                        .expect("completion success failed")
-                };
-                write_and_send(&tm);
-                defmt::info!("NVM operation done");
-            }
-        }
+    pub fn corrupt_image(base_addr: u32, nvm: &mut M95M01) {
+        let mut buf = [0u8; 4];
+        nvm.read(base_addr as usize + 32, &mut buf);
+        buf[0] += 1;
+        nvm.write(base_addr as usize + 32, &buf);
     }
 
     #[task(
         priority = 1,
         local=[
-            read_buf: [u8;MAX_TM_SIZE] = [0; MAX_TM_SIZE],
-            encoded_buf: [u8;MAX_TM_FRAME_SIZE] = [0; MAX_TM_FRAME_SIZE],
             uart_tx,
+            tm_rx
         ],
-        shared=[tm_rb]
     )]
-    async fn pus_tm_tx_handler(mut cx: pus_tm_tx_handler::Context) {
+    async fn tm_tx_handler(cx: tm_tx_handler::Context) {
+        let mut buf: [u8; 256] = [0; 256];
         loop {
-            let mut occupied_len = cx.shared.tm_rb.lock(|rb| rb.sizes.occupied_len());
-            while occupied_len > 0 {
-                let next_size = cx.shared.tm_rb.lock(|rb| {
-                    let next_size = rb.sizes.try_pop().unwrap();
-                    rb.buf.pop_slice(&mut cx.local.read_buf[0..next_size]);
-                    next_size
-                });
-                cx.local.encoded_buf[0] = 0;
-                let send_size = cobs::encode(
-                    &cx.local.read_buf[0..next_size],
-                    &mut cx.local.encoded_buf[1..],
-                );
-                cx.local.encoded_buf[send_size + 1] = 0;
-                cx.local
-                    .uart_tx
-                    .write_all(&cx.local.encoded_buf[0..send_size + 2])
-                    .unwrap();
-                occupied_len -= 1;
-                Mono::delay(2.millis()).await;
+            let read_len = cx.local.tm_rx.read(&mut buf).await;
+            if let Err(e) = cx.local.uart_tx.write_all(&buf[0..read_len]).await {
+                defmt::warn!("UART TX overrun error: {}", e);
             }
-            Mono::delay(50.millis()).await;
         }
     }
 }

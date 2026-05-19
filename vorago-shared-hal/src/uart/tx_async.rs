@@ -38,13 +38,14 @@ fn tx_is_drained(tx: &Tx) -> bool {
 pub fn on_interrupt_tx(bank: Bank) {
     let mut uart = unsafe { bank.steal_regs() };
     let idx = bank as usize;
-    let irq_enabled = uart.read_irq_enabled();
+    let irq_enabled = uart.read_interrupt_enable();
     // IRQ is not related to TX.
-    if !irq_enabled.tx() && !irq_enabled.tx_empty() {
+    if !irq_enabled.tx_below_trigger() && !irq_enabled.tx_empty() {
         return;
     }
 
     let tx_status = uart.read_tx_status();
+    let interrupt_status = uart.read_interrupt_status();
     let unexpected_overrun = tx_status.wr_lost();
     let mut context = critical_section::with(|cs| {
         let context_ref = TX_CONTEXTS[idx].borrow(cs);
@@ -54,17 +55,14 @@ pub fn on_interrupt_tx(bank: Bank) {
     // Safety: We documented that the user provided slice must outlive the future, so we convert
     // the raw pointer back to the slice here.
     let slice = unsafe { context.slice.get().unwrap() };
-    if context.progress >= slice.len() && !tx_status.tx_busy() {
-        uart.modify_irq_enabled(|mut value| {
-            value.set_tx(false);
-            value.set_tx_empty(false);
-            value.set_tx_status(false);
+    if context.progress >= slice.len() && interrupt_status.tx_empty() {
+        uart.modify_interrupt_enable(|value| {
             value
+                .with_tx_below_trigger(false)
+                .with_tx_empty(false)
+                .with_tx_status(false)
         });
-        uart.modify_enable(|mut value| {
-            value.set_tx(false);
-            value
-        });
+        uart.modify_enable(|value| value.with_tx(false));
         // Write back updated context structure.
         critical_section::with(|cs| {
             let context_ref = TX_CONTEXTS[idx].borrow(cs);
@@ -83,6 +81,10 @@ pub fn on_interrupt_tx(bank: Bank) {
         // register, so we can assume we are the only one writing to the data register.
         uart.write_data(Data::new_with_raw_value(slice[context.progress] as u32));
         context.progress += 1;
+    }
+    // Now we only require the TX empty interrupt.
+    if context.progress == slice.len() {
+        uart.modify_interrupt_enable(|value| value.with_tx_below_trigger(false));
     }
 
     // Write back updated context structure.
@@ -125,7 +127,7 @@ impl TxFuture {
         tx.disable();
         tx.clear_fifo();
 
-        let init_fill_count = core::cmp::min(data.len(), 16);
+        let init_fill_count = core::cmp::min(data.len(), FIFO_DEPTH);
         // We fill the FIFO.
         for data in data.iter().take(init_fill_count) {
             tx.regs.write_data(Data::new_with_raw_value(*data as u32));
@@ -139,6 +141,7 @@ impl TxFuture {
             // Ensure those are enabled inside a critical section at the same time. Can lead to
             // weird glitches otherwise.
             tx.enable_interrupts(
+                data.len() > FIFO_DEPTH,
                 #[cfg(feature = "vor4x")]
                 true,
             );

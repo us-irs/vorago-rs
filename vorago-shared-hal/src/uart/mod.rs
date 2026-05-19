@@ -47,6 +47,9 @@ pub use tx_async::*;
 pub mod rx_async;
 pub use rx_async::*;
 
+/// FIFO depth of the UART for both the RX and TX FIFO.
+pub const FIFO_DEPTH: usize = 16;
+
 //==================================================================================================
 // Type-Level support
 //==================================================================================================
@@ -731,7 +734,7 @@ impl Uart {
             Parity::Odd => (true, false),
             Parity::Even => (true, true),
         };
-        reg_block.write_ctrl(
+        reg_block.write_control(
             Control::builder()
                 .with_baud8(config.clock_config.baud_mode == BaudMode::_8)
                 .with_auto_rts(false)
@@ -813,14 +816,14 @@ impl Uart {
     }
 
     pub fn listen(&mut self, event: Event) {
-        self.tx.regs.modify_irq_enabled(|mut value| {
+        self.tx.regs.modify_interrupt_enable(|mut value| {
             match event {
                 Event::RxError => value.set_rx_status(true),
                 Event::RxFifoHalfFull => value.set_rx(true),
                 Event::RxTimeout => value.set_rx_timeout(true),
                 Event::TxEmpty => value.set_tx_empty(true),
                 Event::TxError => value.set_tx_status(true),
-                Event::TxFifoHalfFull => value.set_tx(true),
+                Event::TxFifoHalfFull => value.set_tx_below_trigger(true),
                 Event::TxCts => value.set_tx_cts(true),
             }
             value
@@ -828,14 +831,14 @@ impl Uart {
     }
 
     pub fn unlisten(&mut self, event: Event) {
-        self.tx.regs.modify_irq_enabled(|mut value| {
+        self.tx.regs.modify_interrupt_enable(|mut value| {
             match event {
                 Event::RxError => value.set_rx_status(false),
                 Event::RxFifoHalfFull => value.set_rx(false),
                 Event::RxTimeout => value.set_rx_timeout(false),
                 Event::TxEmpty => value.set_tx_empty(false),
                 Event::TxError => value.set_tx_status(false),
-                Event::TxFifoHalfFull => value.set_tx(false),
+                Event::TxFifoHalfFull => value.set_tx_below_trigger(false),
                 Event::TxCts => value.set_tx_cts(false),
             }
             value
@@ -904,7 +907,7 @@ pub fn disable_rx(uart: &mut MmioUart<'static>) {
 
 #[inline(always)]
 pub fn enable_rx_interrupts(uart: &mut MmioUart<'static>, timeout: bool) {
-    uart.modify_irq_enabled(|mut value| {
+    uart.modify_interrupt_enable(|mut value| {
         value.set_rx_status(true);
         value.set_rx(true);
         if timeout {
@@ -916,7 +919,7 @@ pub fn enable_rx_interrupts(uart: &mut MmioUart<'static>, timeout: bool) {
 
 #[inline(always)]
 pub fn disable_rx_interrupts(uart: &mut MmioUart<'static>) {
-    uart.modify_irq_enabled(|mut value| {
+    uart.modify_interrupt_enable(|mut value| {
         value.set_rx_status(false);
         value.set_rx(false);
         value.set_rx_timeout(false);
@@ -1035,6 +1038,13 @@ impl Rx {
         self.regs.read_data().raw_value()
     }
 
+    #[inline]
+    pub fn into_rx_with_interrupt(self) -> RxWithInterrupt {
+        RxWithInterrupt::new(self)
+    }
+
+    #[deprecated(since = "0.3.0", note = "Use into_rx_with_interrupt instead")]
+    #[inline]
     pub fn into_rx_with_irq(self) -> RxWithInterrupt {
         RxWithInterrupt::new(self)
     }
@@ -1101,9 +1111,9 @@ pub fn disable_tx(uart: &mut MmioUart<'static>) {
 }
 
 #[inline(always)]
-pub fn enable_tx_interrupts(uart: &mut MmioUart<'static>) {
-    uart.modify_irq_enabled(|mut value| {
-        value.set_tx(true);
+pub fn enable_tx_interrupts(tx_below_trigger: bool, uart: &mut MmioUart<'static>) {
+    uart.modify_interrupt_enable(|mut value| {
+        value.set_tx_below_trigger(tx_below_trigger);
         value.set_tx_empty(true);
         value.set_tx_status(true);
         value
@@ -1112,8 +1122,8 @@ pub fn enable_tx_interrupts(uart: &mut MmioUart<'static>) {
 
 #[inline(always)]
 pub fn disable_tx_interrupts(uart: &mut MmioUart<'static>) {
-    uart.modify_irq_enabled(|mut value| {
-        value.set_tx(false);
+    uart.modify_interrupt_enable(|mut value| {
+        value.set_tx_below_trigger(false);
         value.set_tx_empty(false);
         value.set_tx_status(false);
         value
@@ -1176,18 +1186,24 @@ impl Tx {
 
     /// Enables the IRQ_TX, IRQ_TX_STATUS and IRQ_TX_EMPTY interrupts.
     ///
-    /// - The IRQ_TX interrupt is generated when the TX FIFO is at least half empty.
+    /// - The IRQ_TX interrupt is generated when the TX FIFO is at least half empty and the
+    ///   `tx_below_trigger` parameter is set to `true`. This should be set to true if the total
+    ///   amount of data to be transmitted is larger than the FIFO size.
     /// - The IRQ_TX_STATUS interrupt is generated when write data is lost due to a FIFO overflow
     /// - The IRQ_TX_EMPTY interrupt is generated when the TX FIFO is empty and the TXBUSY signal
     ///   is 0
     #[inline]
-    pub fn enable_interrupts(&mut self, #[cfg(feature = "vor4x")] enable_in_nvic: bool) {
+    pub fn enable_interrupts(
+        &mut self,
+        tx_below_trigger: bool,
+        #[cfg(feature = "vor4x")] enable_in_nvic: bool,
+    ) {
         #[cfg(feature = "vor4x")]
         if enable_in_nvic {
             unsafe { enable_nvic_interrupt(self.id.interrupt_id_tx()) };
         }
         // Safety: We own the UART structure
-        enable_tx_interrupts(&mut self.regs);
+        enable_tx_interrupts(tx_below_trigger, &mut self.regs);
     }
 
     /// Disables the IRQ_TX, IRQ_TX_STATUS and IRQ_TX_EMPTY interrupts.
@@ -1297,6 +1313,7 @@ impl embedded_io::Write for Tx {
 pub struct RxWithInterrupt(Rx);
 
 impl RxWithInterrupt {
+    #[inline]
     pub fn new(rx: Rx) -> Self {
         Self(rx)
     }
@@ -1378,8 +1395,8 @@ impl RxWithInterrupt {
     pub fn on_interrupt(&mut self, buf: &mut [u8; 16]) -> InterruptResult {
         let mut result = InterruptResult::default();
 
-        let irq_status = self.0.regs.read_irq_status();
-        let irq_enabled = self.0.regs.read_irq_enabled();
+        let irq_status = self.0.regs.read_interrupt_status();
+        let irq_enabled = self.0.regs.read_interrupt_enable();
         let rx_enabled = irq_enabled.rx();
 
         // Half-Full interrupt. We have a guaranteed amount of data we can read.
@@ -1443,7 +1460,7 @@ impl RxWithInterrupt {
         }
         let mut result = InterruptResultMaxSizeOrTimeout::default();
 
-        let irq_status = self.0.regs.read_irq_status();
+        let irq_status = self.0.regs.read_interrupt_status();
         let rx_enabled = self.0.regs.read_enable().rx();
 
         // Half-Full interrupt. We have a guaranteed amount of data we can read.

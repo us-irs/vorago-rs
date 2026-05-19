@@ -76,7 +76,7 @@ async fn main(spawner: Spawner) {
     let uart_config = uart::Config::new_with_clock_config(clock_config);
     let uart0 = uart::Uart::new_for_uart0(dp.uart0, portg.pg0, portg.pg1, uart_config);
     let (mut tx, rx) = uart0.split();
-    let mut rx = rx.into_rx_with_irq();
+    let mut rx = rx.into_rx_with_interrupt();
     rx.start();
     RX.lock(|static_rx| {
         static_rx.borrow_mut().replace(rx);
