@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [unreleased]
 
+## [v0.6.1] 2026-05-19
+
+- Rebuild docs for correct target
+
 ## [v0.6.0] 2025-09-03
 
 - Re-generated PAC with `svd2rust` v0.37.0
@@ -88,7 +92,8 @@ defmt version v1
 - First version of the PAC which builds. Uses a patched version
   of `svd2rust`: https://github.com/rust-embedded/svd2rust
 
-[unreleased]: https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/compare/va108xx-v0.6.0...HEAD
+[unreleased]: https://egit.irs.uni-stuttgart.de/rust/vorago-rs/compare/va108xx-v0.6.1...HEAD
+[v0.6.1]: https://egit.irs.uni-stuttgart.de/rust/vorago-rs/src/tag/va108xx-v0.6.1
 [v0.6.0]: https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/compare/va108xx-v0.5.1...va108xx-v0.6.0
 [v0.5.1]: https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/compare/va108xx-v0.5.0...va108xx-v0.5.1
 [v0.5.0]: https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/compare/va108xx-v0.4.0...va108xx-v0.5.0
