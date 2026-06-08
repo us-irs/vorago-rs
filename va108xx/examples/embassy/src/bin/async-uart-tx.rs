@@ -62,7 +62,8 @@ async fn main(_spawner: Spawner) {
         InterruptConfig::new(pac::Interrupt::OC2, true, true),
     );
     let (tx, _rx) = uarta.split();
-    let mut async_tx = TxAsync::new(tx);
+    // Safety: We do not cancel futures.
+    let mut async_tx = unsafe { TxAsync::new(tx) };
     let mut ticker = Ticker::every(Duration::from_secs(1));
     let mut idx = 0;
     loop {
@@ -71,12 +72,10 @@ async fn main(_spawner: Spawner) {
         led1.toggle();
         led2.toggle();
         // Safety: We are sending static lifetime slices, and not cancelling the futures.
-        unsafe {
-            async_tx
-                .write_all(STR_LIST[idx].as_bytes())
-                .await
-                .expect("writing failed");
-        }
+        async_tx
+            .write_all(STR_LIST[idx].as_bytes())
+            .await
+            .expect("writing failed");
         idx += 1;
         if idx == STR_LIST.len() {
             idx = 0;
