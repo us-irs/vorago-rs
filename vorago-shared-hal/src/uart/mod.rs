@@ -1138,6 +1138,14 @@ pub struct Tx {
     regs: regs::MmioUart<'static>,
 }
 
+impl core::fmt::Debug for Tx {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("Tx")
+            .field("id", &self.id)
+            .finish_non_exhaustive()
+    }
+}
+
 impl Tx {
     /// Retrieve a TX pin without expecting an explicit UART structure
     ///

@@ -112,8 +112,10 @@ impl TxContext {
     }
 }
 
+#[derive(Debug)]
 pub struct TxFuture {
     id: Bank,
+    empty_buffer: bool,
 }
 
 impl TxFuture {
@@ -122,6 +124,14 @@ impl TxFuture {
     /// This function stores the raw pointer of the passed data slice. The user MUST ensure
     /// that the slice outlives the data structure.
     pub unsafe fn new(tx: &mut Tx, data: &[u8]) -> Self {
+        if data.is_empty() {
+            // We can just return a dummy future which is immediately ready, no need to set up
+            // interrupts etc.
+            return Self {
+                id: tx.id,
+                empty_buffer: true,
+            };
+        }
         TX_DONE[tx.id as usize].store(false, core::sync::atomic::Ordering::Relaxed);
         tx.disable_interrupts();
         tx.disable();
@@ -147,7 +157,10 @@ impl TxFuture {
             );
             tx.enable();
         });
-        Self { id: tx.id }
+        Self {
+            id: tx.id,
+            empty_buffer: false,
+        }
     }
 }
 
@@ -158,6 +171,9 @@ impl Future for TxFuture {
         self: core::pin::Pin<&mut Self>,
         cx: &mut core::task::Context<'_>,
     ) -> core::task::Poll<Self::Output> {
+        if self.empty_buffer {
+            return core::task::Poll::Ready(Ok(0));
+        }
         UART_TX_WAKERS[self.id as usize].register(cx.waker());
         if TX_DONE[self.id as usize].swap(false, core::sync::atomic::Ordering::Relaxed) {
             let progress = critical_section::with(|cs| {
@@ -169,16 +185,23 @@ impl Future for TxFuture {
     }
 }
 
+/// Safety note:
+///
+/// It is imperative that this `Drop` method is executed to avoid undefined behaviour on
+/// transfer. Do *NOT* use `core::mem::forget` on the `TxFuture`.
 impl Drop for TxFuture {
     fn drop(&mut self) {
         let mut reg_block = unsafe { self.id.steal_regs() };
-        if !TX_DONE[self.id as usize].load(core::sync::atomic::Ordering::Relaxed) {
+        if !TX_DONE[self.id as usize].load(core::sync::atomic::Ordering::Relaxed)
+            && !self.empty_buffer
+        {
             disable_tx_interrupts(&mut reg_block);
             disable_tx(&mut reg_block);
         }
     }
 }
 
+#[derive(Debug)]
 pub struct TxAsync(Tx);
 
 impl TxAsync {
@@ -195,9 +218,13 @@ impl TxAsync {
     ///
     /// This implementation is not side effect free, and a started future might have already
     /// written part of the passed buffer.
-    pub async fn write(&mut self, buf: &[u8]) -> Result<usize, TxOverrunError> {
-        let fut = unsafe { TxFuture::new(&mut self.0, buf) };
-        fut.await
+    ///
+    /// # Safety
+    ///
+    /// This function stores the raw pointer of the passed data slice. The user MUST ensure
+    /// that the slice outlives the data structure.
+    pub unsafe fn write(&mut self, buf: &[u8]) -> TxFuture {
+        unsafe { TxFuture::new(&mut self.0, buf) }
     }
 
     /// Write an entire buffer into this writer.
@@ -207,7 +234,12 @@ impl TxAsync {
     ///
     /// This function is not side-effect-free on cancel (AKA "cancel-safe"), i.e. if you cancel (drop) a returned
     /// future that hasn't completed yet, some bytes might have already been written.
-    pub async fn write_all(&mut self, buf: &[u8]) -> Result<(), TxOverrunError> {
+    ///
+    /// # Safety
+    ///
+    /// This function stores the raw pointer of the passed data slice. The user MUST ensure
+    /// that the slice outlives the data structure.
+    pub async unsafe fn write_all(&mut self, buf: &[u8]) -> Result<(), TxOverrunError> {
         let fut = <Self as embedded_io_async::Write>::write_all(self, buf);
         fut.await
     }
@@ -242,8 +274,16 @@ impl Write for TxAsync {
     ///
     /// This implementation is not side effect free, and a started future might have already
     /// written part of the passed buffer.
+    ///
+    /// # Safety
+    ///
+    /// This function is not `unsafe` due to the trait definition.
+    /// This function stores the raw pointer of the passed data slice. The user MUST ensure
+    /// that the slice outlives the data structure.
     async fn write(&mut self, buf: &[u8]) -> Result<usize, Self::Error> {
-        self.write(buf).await
+        // Safety: We documented the safety contract. Not much else we can do here as we are bound
+        // by the trait definition.
+        unsafe { self.write(buf).await }
     }
 
     async fn flush(&mut self) -> Result<(), Self::Error> {

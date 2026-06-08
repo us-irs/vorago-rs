@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 # [unreleased]
 
+### Changed
+
+- Async TX UART functions are explicitely marked `unsafe`.
+- Async TX UART `write` now returns a `TxFuture`
+- Empty async TX write resolves to `Poll::Ready(0)` immediately
+
 # [v0.6.0] 2025-09-03
 
 - Use `vorago-shared-hal` dependency to provide shared peripherals.
