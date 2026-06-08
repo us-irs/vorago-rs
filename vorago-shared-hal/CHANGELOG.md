@@ -8,9 +8,15 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [unreleased]
 
+### Changed
+
+- Async TX UART functions are explicitely marked `unsafe`.
+- Async TX UART `write` now returns a `TxFuture`
+- Empty async TX write resolves to `Poll::Ready(0)` immediately
+
 ## [v0.4.0] 2026-05-19
 
-## Changed
+### Changed
 
 - Naming improvements for UART register module
 - Improved UART Async TX module. Only enable TX below threshold interrupts if the FIFO

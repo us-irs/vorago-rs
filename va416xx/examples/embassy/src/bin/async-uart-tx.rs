@@ -74,10 +74,13 @@ async fn main(_spawner: Spawner) {
     loop {
         defmt::println!("Current time: {}", Instant::now().as_secs());
         led.toggle();
-        async_tx
-            .write_all(STR_LIST[idx].as_bytes())
-            .await
-            .expect("writing failed");
+        // Safety: We are sending static lifetime slices, and not cancelling the futures.
+        unsafe {
+            async_tx
+                .write_all(STR_LIST[idx].as_bytes())
+                .await
+                .expect("writing failed");
+        }
         idx += 1;
         if idx == STR_LIST.len() {
             idx = 0;
