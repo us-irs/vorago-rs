@@ -322,13 +322,19 @@ impl TransferContext {
 pub struct SpiFuture<'spi> {
     bank: super::Bank,
     spi: &'spi mut super::Spi<u8>,
+    empty_buffer: bool,
     finished_regularly: core::cell::Cell<bool>,
 }
 
 impl<'spi> SpiFuture<'spi> {
     fn new_for_read(spi: &'spi mut super::Spi<u8>, bank: super::Bank, words: &mut [u8]) -> Self {
         if words.is_empty() {
-            panic!("words length unexpectedly 0");
+            return Self {
+                bank,
+                spi,
+                empty_buffer: true,
+                finished_regularly: core::cell::Cell::new(false),
+            };
         }
         Self::generic_init_transfer(spi, bank);
 
@@ -359,13 +365,19 @@ impl<'spi> SpiFuture<'spi> {
         Self {
             bank,
             spi,
+            empty_buffer: false,
             finished_regularly: core::cell::Cell::new(false),
         }
     }
 
     fn new_for_write(spi: &'spi mut super::Spi<u8>, bank: super::Bank, words: &[u8]) -> Self {
         if words.is_empty() {
-            panic!("words length unexpectedly 0");
+            return Self {
+                bank,
+                spi,
+                empty_buffer: true,
+                finished_regularly: core::cell::Cell::new(false),
+            };
         }
         let index = bank as usize;
         let write_index = Self::generic_init_transfer_write_transfer_in_place(spi, bank, words);
@@ -388,6 +400,7 @@ impl<'spi> SpiFuture<'spi> {
         Self {
             bank,
             spi,
+            empty_buffer: false,
             finished_regularly: core::cell::Cell::new(false),
         }
     }
@@ -399,7 +412,12 @@ impl<'spi> SpiFuture<'spi> {
         write: &[u8],
     ) -> Self {
         if read.is_empty() || write.is_empty() {
-            panic!("read or write buffer unexpectedly empty");
+            return Self {
+                bank,
+                spi,
+                empty_buffer: true,
+                finished_regularly: core::cell::Cell::new(false),
+            };
         }
         let index = bank as usize;
         let full_write_len = core::cmp::max(read.len(), write.len());
@@ -433,6 +451,7 @@ impl<'spi> SpiFuture<'spi> {
         Self {
             bank,
             spi,
+            empty_buffer: false,
             finished_regularly: core::cell::Cell::new(false),
         }
     }
@@ -443,7 +462,12 @@ impl<'spi> SpiFuture<'spi> {
         words: &mut [u8],
     ) -> Self {
         if words.is_empty() {
-            panic!("read and write buffer unexpectedly empty");
+            return Self {
+                bank,
+                spi,
+                empty_buffer: true,
+                finished_regularly: core::cell::Cell::new(false),
+            };
         }
         let write_idx = Self::generic_init_transfer_write_transfer_in_place(spi, bank, words);
         critical_section::with(|cs| {
@@ -465,6 +489,7 @@ impl<'spi> SpiFuture<'spi> {
         Self {
             bank,
             spi,
+            empty_buffer: false,
             finished_regularly: core::cell::Cell::new(false),
         }
     }
@@ -522,6 +547,9 @@ impl<'spi> Future for SpiFuture<'spi> {
         self: core::pin::Pin<&mut Self>,
         cx: &mut core::task::Context<'_>,
     ) -> core::task::Poll<Self::Output> {
+        if self.empty_buffer {
+            return core::task::Poll::Ready(Ok(()));
+        }
         WAKERS[self.bank as usize].register(cx.waker());
         if DONE[self.bank as usize].swap(false, core::sync::atomic::Ordering::Relaxed) {
             let rx_overrun = critical_section::with(|cs| {
@@ -544,7 +572,7 @@ impl<'spi> Future for SpiFuture<'spi> {
 
 impl<'spi> Drop for SpiFuture<'spi> {
     fn drop(&mut self) {
-        if !self.finished_regularly.get() {
+        if !self.finished_regularly.get() && !self.empty_buffer {
             // It might be sufficient to disable and enable the SPI.. But this definitely
             // ensures the SPI is fully reset.
             self.spi.regs.write_interrupt_clear(InterruptClear::ALL);
@@ -589,36 +617,68 @@ impl SpiAsync {
         Self(spi)
     }
 
-    fn read(&mut self, words: &mut [u8]) -> Option<SpiFuture<'_>> {
-        if words.is_empty() {
-            return None;
-        }
+    /// Future which read `words` from the slave.
+    ///
+    /// Returns [None] if the provided buffer is empty.
+    ///
+    /// # Safety
+    ///
+    /// This function stores the raw pointer of the passed data buffer. The user MUST ensure
+    /// that the slice outlives the data structure. If the passed slice is stack-allocated,
+    /// the user also MUST ensure that the `Drop` method runs on transfer cancellation.
+    pub unsafe fn read(&mut self, words: &mut [u8]) -> SpiFuture<'_> {
         let id = self.0.id;
-        Some(SpiFuture::new_for_read(&mut self.0, id, words))
+        SpiFuture::new_for_read(&mut self.0, id, words)
     }
 
-    fn write(&mut self, words: &[u8]) -> Option<SpiFuture<'_>> {
-        if words.is_empty() {
-            return None;
-        }
+    /// Future which writes `words` to the slave, ignoring all the incoming words.
+    ///
+    /// Returns [None] if the provided buffer is empty.
+    ///
+    /// # Safety
+    ///
+    /// This function stores the raw pointer of the passed data. The user MUST ensure
+    /// that the slice outlives the data structure. If the passed slice is stack-allocated,
+    /// the user also MUST ensure that the `Drop` method runs on transfer cancellation.
+    pub unsafe fn write(&mut self, words: &[u8]) -> SpiFuture<'_> {
         let id = self.0.id;
-        Some(SpiFuture::new_for_write(&mut self.0, id, words))
+        SpiFuture::new_for_write(&mut self.0, id, words)
     }
 
-    fn transfer(&mut self, read: &mut [u8], write: &[u8]) -> Option<SpiFuture<'_>> {
-        if read.is_empty() || write.is_empty() {
-            return None;
-        }
+    /// Future which writes and reads simultaneously. `write` is written to the slave on MOSI and
+    /// words received on MISO are stored in `read`.
+    ///
+    /// It is allowed for `read` and `write` to have different lengths, even zero length.
+    /// The transfer runs for `max(read.len(), write.len())` words. If `read` is shorter,
+    /// incoming words after `read` has been filled will be discarded. If `write` is shorter,
+    /// the value of words sent in MOSI after all `write` has been sent is 0.
+    ///
+    /// Returns [None] if either of the provided buffers is empty.
+    ///
+    /// # Safety
+    ///
+    /// This function stores the raw pointer of the passed slices. The user MUST ensure
+    /// that the slice outlives the data structure. If the passed slice is stack-allocated,
+    /// the user also MUST ensure that the `Drop` method runs on transfer cancellation.
+    pub unsafe fn transfer(&mut self, read: &mut [u8], write: &[u8]) -> SpiFuture<'_> {
         let id = self.0.id;
-        Some(SpiFuture::new_for_transfer(&mut self.0, id, read, write))
+        SpiFuture::new_for_transfer(&mut self.0, id, read, write)
     }
 
-    fn transfer_in_place(&mut self, words: &mut [u8]) -> Option<SpiFuture<'_>> {
-        if words.is_empty() {
-            return None;
-        }
+    /// Future which writes and reads simultaneously. The contents of `words` are
+    /// written to the slave, and the received words are stored into the same
+    /// `words` buffer, overwriting it.
+    ///
+    /// Returns [None] if the provided buffer is empty.
+    ///
+    /// # Safety
+    ///
+    /// This function stores the raw pointer of the passed slice. The user MUST ensure
+    /// that the slice outlives the data structure. If the passed slice is stack-allocated,
+    /// the user also MUST ensure that the `Drop` method runs on transfer cancellation.
+    pub unsafe fn transfer_in_place(&mut self, words: &mut [u8]) -> SpiFuture<'_> {
         let id = self.0.id;
-        Some(SpiFuture::new_for_transfer_in_place(&mut self.0, id, words))
+        SpiFuture::new_for_transfer_in_place(&mut self.0, id, words)
     }
 }
 
@@ -627,32 +687,68 @@ impl embedded_hal_async::spi::ErrorType for SpiAsync {
 }
 
 impl embedded_hal_async::spi::SpiBus for SpiAsync {
+    /// Read `words` from the slave.
+    //
+    /// # Safety
+    ///
+    /// This function stores the raw pointer of the passed data buffer. The user MUST ensure
+    /// that the slice outlives the data structure. If the passed slice is stack-allocated,
+    /// the user also MUST ensure that the `Drop` method runs on transfer cancellation.
     async fn read(&mut self, words: &mut [u8]) -> Result<(), Self::Error> {
         if words.is_empty() {
             return Ok(());
         }
-        self.read(words).unwrap().await
+        unsafe { self.read(words).await }
     }
 
+    /// Write `words` to the slave, ignoring all the incoming words.
+    ///
+    /// # Safety
+    ///
+    /// This function stores the raw pointer of the passed data. The user MUST ensure
+    /// that the slice outlives the data structure. If the passed slice is stack-allocated,
+    /// the user also MUST ensure that the `Drop` method runs on transfer cancellation.
     async fn write(&mut self, words: &[u8]) -> Result<(), Self::Error> {
         if words.is_empty() {
             return Ok(());
         }
-        self.write(words).unwrap().await
+        unsafe { self.write(words).await }
     }
 
+    /// Write and read simultaneously. `write` is written to the slave on MOSI and
+    /// words received on MISO are stored in `read`.
+    ///
+    /// It is allowed for `read` and `write` to have different lengths, even zero length.
+    /// The transfer runs for `max(read.len(), write.len())` words. If `read` is shorter,
+    /// incoming words after `read` has been filled will be discarded. If `write` is shorter,
+    /// the value of words sent in MOSI after all `write` has been sent is 0.
+    ///
+    /// # Safety
+    ///
+    /// This function stores the raw pointer of the passed slices. The user MUST ensure
+    /// that the slice outlives the data structure. If the passed slice is stack-allocated,
+    /// the user also MUST ensure that the `Drop` method runs on transfer cancellation.
     async fn transfer(&mut self, read: &mut [u8], write: &[u8]) -> Result<(), Self::Error> {
         if read.is_empty() && write.is_empty() {
             return Ok(());
         }
-        self.transfer(read, write).unwrap().await
+        unsafe { self.transfer(read, write).await }
     }
 
+    /// Write and read simultaneously. The contents of `words` are
+    /// written to the slave, and the received words are stored into the same
+    /// `words` buffer, overwriting it.
+    ///
+    /// # Safety
+    ///
+    /// This function stores the raw pointer of the passed slice. The user MUST ensure
+    /// that the slice outlives the data structure. If the passed slice is stack-allocated,
+    /// the user also MUST ensure that the `Drop` method runs on transfer cancellation.
     async fn transfer_in_place(&mut self, words: &mut [u8]) -> Result<(), Self::Error> {
         if words.is_empty() {
             return Ok(());
         }
-        self.transfer_in_place(words).unwrap().await
+        unsafe { self.transfer_in_place(words).await }
     }
 
     async fn flush(&mut self) -> Result<(), Self::Error> {

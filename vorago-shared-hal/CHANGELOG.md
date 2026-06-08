@@ -12,7 +12,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 - Async TX UART functions are explicitely marked `unsafe`.
 - Async TX UART `write` now returns a `TxFuture`
-- Empty async TX write resolves to `Poll::Ready(0)` immediately
+- Empty async TX write resolves to `Poll::Ready(0)` immediately.
+- Async SPI API now always returns futures instead of optional futures.
 
 ## [v0.4.0] 2026-05-19
 
