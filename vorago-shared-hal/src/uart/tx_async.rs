@@ -13,7 +13,7 @@ use critical_section::Mutex;
 use embassy_sync::waitqueue::AtomicWaker;
 use embedded_io_async::Write;
 use portable_atomic::AtomicBool;
-use raw_slice::RawBufSlice;
+use raw_buffer::RawBufSlice;
 
 use super::*;
 

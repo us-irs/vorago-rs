@@ -4,7 +4,7 @@ use arbitrary_int::u5;
 use critical_section::Mutex;
 use embassy_sync::waitqueue::AtomicWaker;
 use portable_atomic::AtomicBool;
-use raw_slice::{RawBufSlice, RawBufSliceMut};
+use raw_buffer::{RawBufSlice, RawBufSliceMut};
 
 use crate::{
     shared::{FifoClear, TriggerLevel},
