@@ -113,19 +113,19 @@ impl TxContext {
 }
 
 #[derive(Debug)]
-pub struct TxFuture<'buf> {
+pub struct TxFuture<'uart, 'buf> {
     id: Bank,
     empty_buffer: bool,
     // Phantom used to borrow the buffer for the lifetime of the future.
-    phantom: core::marker::PhantomData<&'buf ()>,
+    phantom: core::marker::PhantomData<(&'uart (), &'buf ())>,
 }
 
-impl<'buf> TxFuture<'buf> {
+impl<'uart, 'buf> TxFuture<'uart, 'buf> {
     /// # Safety
     ///
     /// This function stores the raw pointer of the passed data slice. The user MUST ensure
     /// that the slice outlives the data structure.
-    pub unsafe fn new(tx: &mut Tx, data: &'buf [u8]) -> Self {
+    pub unsafe fn new(tx: &'uart mut Tx, data: &'buf [u8]) -> Self {
         if data.is_empty() {
             // We can just return a dummy future which is immediately ready, no need to set up
             // interrupts etc.
@@ -168,7 +168,7 @@ impl<'buf> TxFuture<'buf> {
     }
 }
 
-impl Future for TxFuture<'_> {
+impl Future for TxFuture<'_, '_> {
     type Output = Result<usize, TxOverrunError>;
 
     fn poll(
@@ -193,7 +193,7 @@ impl Future for TxFuture<'_> {
 ///
 /// It is imperative that this `Drop` method is executed to avoid undefined behaviour on
 /// transfer. Do *NOT* use `core::mem::forget` on the `TxFuture`.
-impl Drop for TxFuture<'_> {
+impl Drop for TxFuture<'_, '_> {
     fn drop(&mut self) {
         let mut reg_block = unsafe { self.id.steal_regs() };
         if !TX_DONE[self.id as usize].load(core::sync::atomic::Ordering::Relaxed)
@@ -226,7 +226,7 @@ impl TxAsync {
     ///
     /// This implementation is not side effect free, and a started future might have already
     /// written part of the passed buffer.
-    pub fn write<'buf>(&mut self, buf: &'buf [u8]) -> TxFuture<'buf> {
+    pub fn write<'buf>(&mut self, buf: &'buf [u8]) -> TxFuture<'_, 'buf> {
         unsafe { TxFuture::new(&mut self.0, buf) }
     }
 

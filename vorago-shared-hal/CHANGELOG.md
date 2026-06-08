@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### Fixed
 
 - Asynch drivers now borrow the buffers properly for the lifetime of the future.
+- Asynch UART TX driver now borrows the TX peripheral for the duration of the future.
 
 ## [v0.4.0] 2026-05-19
 
