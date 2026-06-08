@@ -1249,8 +1249,13 @@ impl Tx {
         self.regs.write_data(Data::new_with_raw_value(data));
     }
 
-    pub fn into_async(self) -> TxAsync {
-        TxAsync::new(self)
+    /// Create an asynchronous UART driver.
+    ///
+    /// # Safety
+    ///
+    /// See [TxAsync::new] for details.
+    pub unsafe fn into_async(self) -> TxAsync {
+        unsafe { TxAsync::new(self) }
     }
 }
 

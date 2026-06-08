@@ -68,19 +68,18 @@ async fn main(_spawner: Spawner) {
     let uart_config = uart::Config::new_with_clock_config(clock_config);
     let uarta = uart::Uart::new_for_uart0(dp.uart0, pinsg.pg0, pinsg.pg1, uart_config);
     let (tx, _rx) = uarta.split();
-    let mut async_tx = TxAsync::new(tx);
+    // Safety: We do not cancel futures.
+    let mut async_tx = unsafe { TxAsync::new(tx) };
     let mut ticker = Ticker::every(Duration::from_secs(1));
     let mut idx = 0;
     loop {
         defmt::println!("Current time: {}", Instant::now().as_secs());
         led.toggle();
         // Safety: We are sending static lifetime slices, and not cancelling the futures.
-        unsafe {
-            async_tx
-                .write_all(STR_LIST[idx].as_bytes())
-                .await
-                .expect("writing failed");
-        }
+        async_tx
+            .write_all(STR_LIST[idx].as_bytes())
+            .await
+            .expect("writing failed");
         idx += 1;
         if idx == STR_LIST.len() {
             idx = 0;

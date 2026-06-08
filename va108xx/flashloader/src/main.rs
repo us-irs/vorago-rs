@@ -101,7 +101,8 @@ mod app {
         tc_handler::spawn().unwrap();
         tm_tx_handler::spawn().unwrap();
 
-        let tx_async = TxAsync::new(tx);
+        // Safety: We do not cancel futures.
+        let tx_async = unsafe { TxAsync::new(tx) };
 
         static TC_PIPE: static_cell::ConstStaticCell<
             embassy_sync::pipe::Pipe<CriticalSectionRawMutex, TC_PIPE_SIZE>,
@@ -285,7 +286,7 @@ mod app {
         loop {
             let read_len = cx.local.tm_rx.read(&mut buf).await;
             // Safety: The buffer outlives the UART TX structure.
-            if let Err(e) = unsafe { cx.local.uart_tx.write_all(&buf[0..read_len]).await } {
+            if let Err(e) = cx.local.uart_tx.write_all(&buf[0..read_len]).await {
                 defmt::warn!("UART TX overrun error: {}", e);
             }
         }

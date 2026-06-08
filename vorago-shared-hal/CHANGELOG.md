@@ -10,10 +10,14 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Changed
 
-- Async TX UART functions are explicitely marked `unsafe`.
+- Async TX UART and Async SPI driver constructor is explicitely marked `unsafe`.
 - Async TX UART `write` now returns a `TxFuture`
 - Empty async TX write resolves to `Poll::Ready(0)` immediately.
 - Async SPI API now always returns futures instead of optional futures.
+
+### Fixed
+
+- Asynch drivers now borrow the buffers properly for the lifetime of the future.
 
 ## [v0.4.0] 2026-05-19
 

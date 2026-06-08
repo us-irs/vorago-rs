@@ -113,23 +113,26 @@ impl TxContext {
 }
 
 #[derive(Debug)]
-pub struct TxFuture {
+pub struct TxFuture<'buf> {
     id: Bank,
     empty_buffer: bool,
+    // Phantom used to borrow the buffer for the lifetime of the future.
+    phantom: core::marker::PhantomData<&'buf ()>,
 }
 
-impl TxFuture {
+impl<'buf> TxFuture<'buf> {
     /// # Safety
     ///
     /// This function stores the raw pointer of the passed data slice. The user MUST ensure
     /// that the slice outlives the data structure.
-    pub unsafe fn new(tx: &mut Tx, data: &[u8]) -> Self {
+    pub unsafe fn new(tx: &mut Tx, data: &'buf [u8]) -> Self {
         if data.is_empty() {
             // We can just return a dummy future which is immediately ready, no need to set up
             // interrupts etc.
             return Self {
                 id: tx.id,
                 empty_buffer: true,
+                phantom: core::marker::PhantomData,
             };
         }
         TX_DONE[tx.id as usize].store(false, core::sync::atomic::Ordering::Relaxed);
@@ -160,11 +163,12 @@ impl TxFuture {
         Self {
             id: tx.id,
             empty_buffer: false,
+            phantom: core::marker::PhantomData,
         }
     }
 }
 
-impl Future for TxFuture {
+impl Future for TxFuture<'_> {
     type Output = Result<usize, TxOverrunError>;
 
     fn poll(
@@ -189,7 +193,7 @@ impl Future for TxFuture {
 ///
 /// It is imperative that this `Drop` method is executed to avoid undefined behaviour on
 /// transfer. Do *NOT* use `core::mem::forget` on the `TxFuture`.
-impl Drop for TxFuture {
+impl Drop for TxFuture<'_> {
     fn drop(&mut self) {
         let mut reg_block = unsafe { self.id.steal_regs() };
         if !TX_DONE[self.id as usize].load(core::sync::atomic::Ordering::Relaxed)
@@ -205,7 +209,11 @@ impl Drop for TxFuture {
 pub struct TxAsync(Tx);
 
 impl TxAsync {
-    pub fn new(tx: Tx) -> Self {
+    /// # Safety
+    ///
+    /// The user MUST ensure that the `Drop` method of all futures generated with this driver
+    /// is called on transfer cancellation. By default, this does not require any special handling.
+    pub unsafe fn new(tx: Tx) -> Self {
         Self(tx)
     }
 
@@ -218,12 +226,7 @@ impl TxAsync {
     ///
     /// This implementation is not side effect free, and a started future might have already
     /// written part of the passed buffer.
-    ///
-    /// # Safety
-    ///
-    /// This function stores the raw pointer of the passed data slice. The user MUST ensure
-    /// that the slice outlives the data structure.
-    pub unsafe fn write(&mut self, buf: &[u8]) -> TxFuture {
+    pub fn write<'buf>(&mut self, buf: &'buf [u8]) -> TxFuture<'buf> {
         unsafe { TxFuture::new(&mut self.0, buf) }
     }
 
@@ -234,12 +237,7 @@ impl TxAsync {
     ///
     /// This function is not side-effect-free on cancel (AKA "cancel-safe"), i.e. if you cancel (drop) a returned
     /// future that hasn't completed yet, some bytes might have already been written.
-    ///
-    /// # Safety
-    ///
-    /// This function stores the raw pointer of the passed data slice. The user MUST ensure
-    /// that the slice outlives the data structure.
-    pub async unsafe fn write_all(&mut self, buf: &[u8]) -> Result<(), TxOverrunError> {
+    pub async fn write_all(&mut self, buf: &[u8]) -> Result<(), TxOverrunError> {
         let fut = <Self as embedded_io_async::Write>::write_all(self, buf);
         fut.await
     }
@@ -274,16 +272,8 @@ impl Write for TxAsync {
     ///
     /// This implementation is not side effect free, and a started future might have already
     /// written part of the passed buffer.
-    ///
-    /// # Safety
-    ///
-    /// This function is not `unsafe` due to the trait definition.
-    /// This function stores the raw pointer of the passed data slice. The user MUST ensure
-    /// that the slice outlives the data structure.
     async fn write(&mut self, buf: &[u8]) -> Result<usize, Self::Error> {
-        // Safety: We documented the safety contract. Not much else we can do here as we are bound
-        // by the trait definition.
-        unsafe { self.write(buf).await }
+        self.write(buf).await
     }
 
     async fn flush(&mut self) -> Result<(), Self::Error> {
