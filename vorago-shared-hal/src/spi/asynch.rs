@@ -614,7 +614,8 @@ impl SpiAsync {
     ///
     /// The user MUST ensure that the `Drop` method of all futures generated with this driver
     /// is called on transfer cancellation. By default, this does not require any special handling.
-    pub unsafe fn new(
+    /// This case was considered exotic enough to justify not making the function `unsafe`.
+    pub fn new(
         mut spi: super::Spi<u8>,
         #[cfg(feature = "vor1x")] opt_irq_cfg: Option<crate::InterruptConfig>,
     ) -> Self {

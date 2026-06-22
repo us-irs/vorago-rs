@@ -125,7 +125,8 @@ impl<'uart, 'buf> TxFuture<'uart, 'buf> {
     ///
     /// This function stores the raw pointer of the passed data slice. The user MUST ensure
     /// that the slice outlives the data structure.
-    pub unsafe fn new(tx: &'uart mut Tx, data: &'buf [u8]) -> Self {
+    /// This case was considered exotic enough to justify not making the function `unsafe`.
+    pub fn new(tx: &'uart mut Tx, data: &'buf [u8]) -> Self {
         if data.is_empty() {
             // We can just return a dummy future which is immediately ready, no need to set up
             // interrupts etc.
@@ -227,7 +228,7 @@ impl TxAsync {
     /// This implementation is not side effect free, and a started future might have already
     /// written part of the passed buffer.
     pub fn write<'buf>(&mut self, buf: &'buf [u8]) -> TxFuture<'_, 'buf> {
-        unsafe { TxFuture::new(&mut self.0, buf) }
+        TxFuture::new(&mut self.0, buf)
     }
 
     /// Write an entire buffer into this writer.
