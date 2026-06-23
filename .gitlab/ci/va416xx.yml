@@ -1,0 +1,50 @@
+# .gitlab/ci/va416xx.yml
+
+va416xx-check:
+  stage: stage1
+  extends: .rust_setup_thumbv7em
+  script:
+    - cd va416xx
+    - cargo check --target thumbv7em-none-eabihf
+    - cargo check --target thumbv7em-none-eabihf --examples
+    - cargo check -p va416xx --target thumbv7em-none-eabihf --all-features
+    - cargo check -p va416xx-hal --target thumbv7em-none-eabihf --features "defmt va41630"
+
+va416xx-build:
+  stage: stage2
+  extends: .rust_setup_thumbv7em
+  script:
+    - cd va416xx
+    - cargo build --target thumbv7em-none-eabihf
+
+va416xx-test:
+  stage: stage2
+  extends: .nextest_setup
+  script:
+    - cd va416xx
+    - cargo nextest run --features va41630 -p va416xx-hal
+
+va416xx-fmt:
+  stage: stage1
+  extends: .common_setup
+  script:
+    - cd va416xx
+    - cargo fmt --all -- --check
+
+va416xx-docs:
+  stage: stage1
+  extends: .common_setup
+  script:
+    - cd va416xx
+    - rustup install nightly
+    - rustup component add rust-src --toolchain nightly
+    - RUSTDOCFLAGS="--cfg docsrs --generate-link-to-definition -Z unstable-options" cargo +nightly doc -p va416xx
+    - RUSTDOCFLAGS="--cfg docsrs --generate-link-to-definition -Z unstable-options" cargo +nightly doc -p va416xx-hal --features va41630 --no-deps
+    - RUSTDOCFLAGS="--cfg docsrs --generate-link-to-definition -Z unstable-options" cargo +nightly doc -p vorago-peb1 --no-deps
+
+va416xx-clippy:
+  stage: stage1
+  extends: .rust_setup_thumbv7em
+  script:
+    - cd va416xx
+    - cargo clippy --target thumbv7em-none-eabihf -- -D warnings

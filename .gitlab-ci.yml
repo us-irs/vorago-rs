@@ -1,0 +1,15 @@
+# .gitlab-ci.yml
+
+image: rust:latest
+
+variables:
+  CARGO_HOME: $CI_PROJECT_DIR/.cargo_cache
+
+stages:
+  - stage1
+  - stage2
+
+include:
+  - local: '.gitlab/ci/shared-hal.yml'
+  - local: '.gitlab/ci/va108xx.yml'
+  - local: '.gitlab/ci/va416xx.yml'

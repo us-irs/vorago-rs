@@ -1,0 +1,34 @@
+# .gitlab/ci/shared-hal.yml
+
+shared-hal-check:
+  stage: stage1
+  extends: .rust_setup_both_targets
+  script:
+    - cd vorago-shared-hal
+    - cargo check --target thumbv7em-none-eabihf --features "vor4x, defmt"
+    - cargo check --target thumbv6m-none-eabi --features "vor1x, defmt"
+
+shared-hal-fmt:
+  stage: stage1
+  extends: .common_setup
+  script:
+    - cd vorago-shared-hal
+    - cargo fmt --all -- --check
+
+shared-hal-docs:
+  stage: stage1
+  extends: .rust_setup_both_targets
+  script:
+    - cd vorago-shared-hal
+    - rustup install nightly
+    - rustup component add rust-src --toolchain nightly
+    - RUSTDOCFLAGS="--cfg docsrs --generate-link-to-definition -Z unstable-options" cargo +nightly doc --target thumbv7em-none-eabihf --features "vor4x, defmt" --no-deps
+    - RUSTDOCFLAGS="--cfg docsrs --generate-link-to-definition -Z unstable-options" cargo +nightly doc --target thumbv6m-none-eabi --features "vor1x, defmt" --no-deps
+
+shared-hal-clippy:
+  stage: stage1
+  extends: .rust_setup_both_targets
+  script:
+    - cd vorago-shared-hal
+    - cargo clippy --target thumbv7em-none-eabihf --features vor4x -- -D warnings
+    - cargo clippy --target thumbv6m-none-eabi --features vor1x -- -D warnings

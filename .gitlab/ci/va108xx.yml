@@ -1,0 +1,50 @@
+# .gitlab/ci/va108xx.yml
+
+va108xx-check:
+  stage: stage1
+  extends: .rust_setup_thumbv6m
+  script:
+    - cd va108xx
+    - cargo check --target thumbv6m-none-eabi
+    - cargo check --target thumbv6m-none-eabi --examples
+    - cargo check -p va108xx --target thumbv6m-none-eabi --all-features
+    - cargo check -p va108xx-hal --target thumbv6m-none-eabi --features "defmt"
+
+va108xx-build:
+  stage: stage2
+  extends: .rust_setup_thumbv6m
+  script:
+    - cd va108xx
+    - cargo build --target thumbv6m-none-eabi
+
+va108xx-test:
+  stage: stage2
+  extends: .nextest_setup
+  script:
+    - cd va108xx
+    - cargo nextest run -p va108xx-hal --no-tests=pass
+
+va108xx-fmt:
+  stage: stage1
+  extends: .common_setup
+  script:
+    - cd va108xx
+    - cargo fmt --all -- --check
+
+va108xx-docs:
+  stage: stage1
+  extends: .common_setup
+  script:
+    - cd va108xx
+    - rustup install nightly
+    - rustup component add rust-src --toolchain nightly
+    - RUSTDOCFLAGS="--cfg docsrs --generate-link-to-definition -Z unstable-options" cargo +nightly doc -p va108xx --all-features
+    - RUSTDOCFLAGS="--cfg docsrs --generate-link-to-definition -Z unstable-options" cargo +nightly doc -p va108xx-hal --features "defmt, embassy-oc30-oc31" --no-deps
+    - RUSTDOCFLAGS="--cfg docsrs --generate-link-to-definition -Z unstable-options" cargo +nightly doc -p vorago-reb1 --no-deps
+
+va108xx-clippy:
+  stage: stage1
+  extends: .rust_setup_thumbv6m
+  script:
+    - cd va108xx
+    - cargo clippy --target thumbv6m-none-eabi -- -D warnings
