@@ -3,11 +3,42 @@
 image: rust:latest
 
 variables:
-  CARGO_HOME: $CI_PROJECT_DIR/.cargo_cache
+  CARGO_HOME: ${CI_PROJECT_DIR}/.cargo
 
 stages:
   - stage1
   - stage2
+
+.common_setup:
+  cache:
+    paths: 
+      - .cargo/registry
+      - .cargo/git
+      - .cargo/bin
+      - vorago-shared-hal/target/
+      - va108xx/target/
+      - va416xx/target/
+    key: ${CI_COMMIT_REF_SLUG}
+
+.rust_setup_thumbv7em:
+  extends: .common_setup
+  before_script:
+    - rustup target add thumbv7em-none-eabihf
+
+.rust_setup_thumbv6m:
+  extends: .common_setup
+  before_script:
+    - rustup target add thumbv6m-none-eabi
+
+.rust_setup_both_targets:
+  extends: .common_setup
+  before_script:
+    - rustup target add thumbv7em-none-eabihf thumbv6m-none-eabi
+
+.nextest_setup:
+  extends: .common_setup
+  before_script:
+    - curl -LsSf https://get.nexte.st/latest/linux | tar zxf - -C ${CARGO_HOME:-~/.cargo}/bin
 
 include:
   - local: '.gitlab/ci/shared-hal.yml'
