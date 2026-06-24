@@ -38,7 +38,7 @@ stages:
 .nextest_setup:
   extends: .common_setup
   before_script:
-    - curl -LsSf https://get.nexte.st/latest/linux | tar zxf - -C ${CARGO_HOME:-~/.cargo}/bin
+    - curl -LsSf https://get.nexte.st/latest/linux | tar zxf - -C /usr/local/bin
 
 include:
   - local: '.gitlab/ci/shared-hal.yml'
