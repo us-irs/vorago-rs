@@ -1,6 +1,6 @@
 [package]
 name = "va416xx-hal"
-version = "0.6.0"
+version = "0.7.0"
 authors = ["Robin Mueller <muellerr@irs.uni-stuttgart.de>"]
 edition = "2021"
 description = "HAL for the Vorago VA416xx family of MCUs"

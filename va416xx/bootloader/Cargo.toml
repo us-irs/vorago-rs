@@ -13,6 +13,6 @@ crc = "3"
 static_assertions = "1"
 
 [dependencies.va416xx-hal]
-version = "0.6"
+version = "0.7"
 features = ["va41630", "defmt"]
 path = "../va416xx-hal"

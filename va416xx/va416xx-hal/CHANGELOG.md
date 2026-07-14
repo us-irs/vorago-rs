@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 # [unreleased]
 
+# [v0.7.0] 2026-07-14
+
 ### Changed
 
 - Async TX UART functions are explicitely marked `unsafe`.
@@ -137,7 +139,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 - Initial release with basic HAL drivers
 
-[unreleased]: https://egit.irs.uni-stuttgart.de/rust/va416xx-rs/compare/va416xx-hal-v0.6.0...HEAD
+[unreleased]: https://github.com/us-irs/vorago-rs/compare/va416xx-hal-v0.7.0...HEAD
+[v0.7.0]: https://github.com/us-irs/vorago-rs/releases/tag/va416xx-hal-v0.7.0
 [v0.6.0]: https://egit.irs.uni-stuttgart.de/rust/va416xx-rs/compare/va416xx-hal-v0.5.1...va416xx-hal-v0.6.0
 [v0.5.1]: https://egit.irs.uni-stuttgart.de/rust/va416xx-rs/compare/va416xx-hal-v0.5.0...va416xx-hal-v0.5.1
 [v0.5.0]: https://egit.irs.uni-stuttgart.de/rust/va416xx-rs/compare/va416xx-hal-v0.4.1...va416xx-hal-v0.5.0
