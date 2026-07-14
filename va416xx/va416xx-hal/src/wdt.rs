@@ -1,5 +1,5 @@
 //! # API for the Watchdog peripheral
-use vorago_shared_hal::{enable_peripheral_clock, reset_peripheral_for_cycles, PeripheralSelect};
+use vorago_shared_hal::{PeripheralSelect, enable_peripheral_clock, reset_peripheral_for_cycles};
 
 use crate::time::Hertz;
 use crate::{clock::Clocks, pac};
@@ -24,7 +24,7 @@ pub type WdtController = Wdt;
 /// This function is `unsafe` because it can break mask-based critical sections.
 #[inline]
 pub unsafe fn enable_wdt_interrupts() {
-    enable_nvic_interrupt(pac::Interrupt::WATCHDOG)
+    unsafe { enable_nvic_interrupt(pac::Interrupt::WATCHDOG) }
 }
 
 #[inline]

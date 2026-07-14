@@ -12,7 +12,7 @@ use crate::pac;
 
 use crate::time::Hertz;
 pub use vorago_shared_hal::clock::{Clocks, HBO_FREQ};
-use vorago_shared_hal::{enable_peripheral_clock, PeripheralSelect};
+use vorago_shared_hal::{PeripheralSelect, enable_peripheral_clock};
 
 pub const XTAL_OSC_TSTART_MS: u32 = 15;
 

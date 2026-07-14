@@ -1,6 +1,6 @@
 //! API for the DMA peripheral
-use arbitrary_int::{u10, u3};
-use vorago_shared_hal::{enable_peripheral_clock, reset_peripheral_for_cycles, PeripheralSelect};
+use arbitrary_int::{u3, u10};
+use vorago_shared_hal::{PeripheralSelect, enable_peripheral_clock, reset_peripheral_for_cycles};
 
 use crate::{enable_nvic_interrupt, pac};
 
@@ -263,7 +263,7 @@ impl DmaChannel {
     ///
     /// This function is `unsafe` because it can break mask-based critical sections.
     pub unsafe fn enable_done_interrupt(&mut self) {
-        enable_nvic_interrupt(self.done_interrupt);
+        unsafe { enable_nvic_interrupt(self.done_interrupt) };
     }
 
     /// Enables the DMA_ACTIVE interrupt for the DMA channel.
@@ -272,7 +272,7 @@ impl DmaChannel {
     ///
     /// This function is `unsafe` because it can break mask-based critical sections.
     pub unsafe fn enable_active_interrupt(&mut self) {
-        enable_nvic_interrupt(self.active_interrupt);
+        unsafe { enable_nvic_interrupt(self.active_interrupt) };
     }
 
     /// Prepares a 8-bit DMA transfer from memory to memory.

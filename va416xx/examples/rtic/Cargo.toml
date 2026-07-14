@@ -9,7 +9,7 @@ defmt-rtt = "1"
 defmt = "1"
 panic-probe = { version = "1", features = ["defmt"] }
 
-va416xx-hal = { version = "0.6", path = "../../va416xx-hal", features = ["va41630"] }
+va416xx-hal = { version = "0.7", path = "../../va416xx-hal", features = ["va41630"] }
 
 [dependencies.rtic]
 version = "2"

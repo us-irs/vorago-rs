@@ -1,7 +1,7 @@
 //! Custom register definitions for the CAN register block to circumvent PAC API / SVD
 //! shortcomings.
 
-use arbitrary_int::{prelude::*, u11, u15, u2, u3, u4, u6, u7};
+use arbitrary_int::{prelude::*, u2, u3, u4, u6, u7, u11, u15};
 
 pub const CAN_0_BASE: usize = 0x4001_4000;
 pub const CAN_1_BASE: usize = 0x4001_4400;
@@ -364,7 +364,7 @@ impl Can {
     /// from multiple threads. The user must ensure that concurrent accesses are safe and do not
     /// interfere with each other.
     pub const unsafe fn new_mmio_fixed_0() -> MmioCan<'static> {
-        Self::new_mmio_at(CAN_0_BASE)
+        unsafe { Self::new_mmio_at(CAN_0_BASE) }
     }
 
     /// Create a new CAN MMIO instance for peripheral 1.
@@ -375,6 +375,6 @@ impl Can {
     /// from multiple threads. The user must ensure that concurrent accesses are safe and do not
     /// interfere with each other.
     pub const unsafe fn new_mmio_fixed_1() -> MmioCan<'static> {
-        Self::new_mmio_at(CAN_1_BASE)
+        unsafe { Self::new_mmio_at(CAN_1_BASE) }
     }
 }

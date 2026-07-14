@@ -11,7 +11,7 @@ keywords = ["no-std", "peb1", "cortex-m", "vorago", "va416xx"]
 categories = ["embedded", "no-std", "hardware-support"]
 
 [dependencies]
-va416xx-hal = { version = "0.6", path = "../va416xx-hal", features = ["va41630"] }
+va416xx-hal = { version = "0.7", path = "../va416xx-hal", features = ["va41630"] }
 lis2dh12 = { version = "0.7", features = ["out_f32"] }
 
 [features]

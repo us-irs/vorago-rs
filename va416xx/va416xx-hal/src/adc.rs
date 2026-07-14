@@ -5,7 +5,7 @@ use crate::clock::Clocks;
 use crate::pac;
 use crate::time::Hertz;
 use num_enum::{IntoPrimitive, TryFromPrimitive};
-use vorago_shared_hal::{enable_peripheral_clock, PeripheralSelect};
+use vorago_shared_hal::{PeripheralSelect, enable_peripheral_clock};
 
 pub const ADC_MIN_CLK: Hertz = Hertz::from_raw(2_000_000);
 pub const ADC_MAX_CLK: Hertz = Hertz::from_raw(12_500_000);

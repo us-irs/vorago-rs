@@ -13,7 +13,7 @@ use vorago_shared_hal::{
 
 use crate::clock::Clocks;
 use crate::pac;
-use crate::spi::{mode_to_cpo_cph_bit, spi_clk_config_from_div, SpiWord, BMSTART_BMSTOP_MASK};
+use crate::spi::{BMSTART_BMSTOP_MASK, SpiWord, mode_to_cpo_cph_bit, spi_clk_config_from_div};
 
 const NVM_CLOCK_DIV: u16 = 2;
 

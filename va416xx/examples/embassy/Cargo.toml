@@ -28,7 +28,7 @@ embassy-executor = { version = "0.10", features = [
   "executor-interrupt"
 ]}
 
-va416xx-hal = { version = "0.6", path = "../../va416xx-hal", features = ["defmt"] }
+va416xx-hal = { version = "0.7", path = "../../va416xx-hal", features = ["defmt"] }
 
 [features]
 default = ["ticks-hz-1_000", "va416xx-hal/time-driver-tim14-tim15"]
