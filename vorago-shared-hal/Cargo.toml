@@ -3,8 +3,8 @@ name = "vorago-shared-hal"
 version = "0.5.0"
 description = "Peripheral HAL components shared between Vorago families"
 edition = "2024"
-homepage = "https://egit.irs.uni-stuttgart.de/rust/vorago-rs"
-repository = "https://egit.irs.uni-stuttgart.de/rust/vorago-rs"
+homepage = "https://github.com/us-irs/vorago-rs"
+repository = "https://git.irs.uni-stuttgart.de/irs/vorago-rs"
 license = "Apache-2.0"
 
 [dependencies]
@@ -58,7 +58,7 @@ defmt = [
 _family-selected = []
 
 [package.metadata.cargo-machete]
-ignored = ["raw-slicee"]
+ignored = ["raw-buffer"]
 
 [package.metadata.docs.rs]
 features = ["vor1x", "defmt"]

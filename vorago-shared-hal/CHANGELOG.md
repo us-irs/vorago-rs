@@ -79,6 +79,7 @@ Renamed to `vorago-shared-hal`
 Init commit.
 
 [unreleased]: https://egit.irs.uni-stuttgart.de/rust/vorago-rs/compare/vorago-shared-hal-v0.4.0...HEAD
+[v0.5.0]: https://git.irs.uni-stuttgart.de/irs/vorago-rs/-/releases
 [v0.4.0]: https://egit.irs.uni-stuttgart.de/rust/vorago-rs/compare/vorago-shared-hal-v0.3.0...vorago-shared-hal-v0.4.0
 [v0.3.0]: https://egit.irs.uni-stuttgart.de/rust/vorago-rs/src/tag/vorago-shared-hal-v0.3.0
 [v0.2.0]: https://egit.irs.uni-stuttgart.de/rust/vorago-shared-hal/compare/v0.1.0...v0.2.0
