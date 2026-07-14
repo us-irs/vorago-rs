@@ -19,7 +19,7 @@ embedded-io-async = "0.7"
 embassy-time = { version = "0.5", features = ["defmt-timestamp-uptime-ms"] }
 static_cell = "2"
 postcard = { version = "1", features = ["use-defmt"] }
-spacepackets = { version = "0.17", default-features = false, features = ["defmt"] }
+spacepackets = { version = "0.18", default-features = false, features = ["defmt"] }
 serde = { version = "1", default-features = false }
 # Even though we do not use this directly, we need to activate this feature explicitely
 # so that RTIC compiles because thumv6 does not have CAS operations natively.

@@ -5,7 +5,7 @@ edition = "2024"
 
 [dependencies]
 postcard = { version = "1" }
-spacepackets = { version = "0.17", default-features = false, features = ["defmt"] }
+spacepackets = { version = "0.18", default-features = false, features = ["defmt"] }
 num_enum = { version = "0.7", default-features = false }
 defmt = { version = "1", optional = true }
 serde = { version = "1", default-features = false, features = ["derive"] }

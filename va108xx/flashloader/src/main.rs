@@ -33,7 +33,7 @@ mod app {
     use super::*;
     use cobs::CobsDecoderHeapless;
     use cortex_m::asm;
-    use embassy_sync::blocking_mutex::raw::{CriticalSectionRawMutex, NoopRawMutex};
+    use embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex;
     use embedded_io_async::Write as _;
     use models::{create_encoded_tm_packet, Response};
     use spacepackets::{CcsdsPacketReader, SpacePacketHeader};
@@ -58,9 +58,8 @@ mod app {
         nvm: M95M01,
         tc_tx: embassy_sync::pipe::Writer<'static, CriticalSectionRawMutex, TC_PIPE_SIZE>,
         tc_rx: embassy_sync::pipe::Reader<'static, CriticalSectionRawMutex, TC_PIPE_SIZE>,
-        // We are only using this in threads, and RTIC ensures there are no conflicts.
-        tm_tx: embassy_sync::pipe::Writer<'static, NoopRawMutex, TM_PIPE_SIZE>,
-        tm_rx: embassy_sync::pipe::Reader<'static, NoopRawMutex, TM_PIPE_SIZE>,
+        tm_tx: embassy_sync::pipe::Writer<'static, CriticalSectionRawMutex, TM_PIPE_SIZE>,
+        tm_rx: embassy_sync::pipe::Reader<'static, CriticalSectionRawMutex, TM_PIPE_SIZE>,
     }
 
     #[shared]
@@ -108,7 +107,7 @@ mod app {
             embassy_sync::pipe::Pipe<CriticalSectionRawMutex, TC_PIPE_SIZE>,
         > = static_cell::ConstStaticCell::new(embassy_sync::pipe::Pipe::new());
         static TM_PIPE: static_cell::ConstStaticCell<
-            embassy_sync::pipe::Pipe<NoopRawMutex, TM_PIPE_SIZE>,
+            embassy_sync::pipe::Pipe<CriticalSectionRawMutex, TM_PIPE_SIZE>,
         > = static_cell::ConstStaticCell::new(embassy_sync::pipe::Pipe::new());
         let (tc_rx, tc_tx) = TC_PIPE.take().split();
         let (tm_rx, tm_tx) = TM_PIPE.take().split();
