@@ -585,10 +585,10 @@ impl CanTx {
         } else {
             self.mode = TxState::TransmittingRemoteFrame;
         }
-        if let Ok(state) = self.ll.read_state() {
-            if state != BufferState::TxNotActive {
-                return Err(InvalidTxStateError(state.into()));
-            }
+        if let Ok(state) = self.ll.read_state()
+            && state != BufferState::TxNotActive
+        {
+            return Err(InvalidTxStateError(state.into()));
         }
         self.ll.transmit_frame_unchecked(frame);
         Ok(())

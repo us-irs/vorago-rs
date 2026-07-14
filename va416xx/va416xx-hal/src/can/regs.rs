@@ -364,7 +364,7 @@ impl Can {
     /// from multiple threads. The user must ensure that concurrent accesses are safe and do not
     /// interfere with each other.
     pub const unsafe fn new_mmio_fixed_0() -> MmioCan<'static> {
-        Self::new_mmio_at(CAN_0_BASE)
+        unsafe { Self::new_mmio_at(CAN_0_BASE) }
     }
 
     /// Create a new CAN MMIO instance for peripheral 1.
@@ -375,6 +375,6 @@ impl Can {
     /// from multiple threads. The user must ensure that concurrent accesses are safe and do not
     /// interfere with each other.
     pub const unsafe fn new_mmio_fixed_1() -> MmioCan<'static> {
-        Self::new_mmio_at(CAN_1_BASE)
+        unsafe { Self::new_mmio_at(CAN_1_BASE) }
     }
 }
