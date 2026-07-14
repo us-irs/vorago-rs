@@ -29,7 +29,7 @@ models = { path = "./models", features = ["defmt"] }
 rtic = { version = "2", features = ["thumbv6-backend"] }
 
 [dependencies.va108xx-hal]
-version = "0.13"
+version = "0.14"
 path = "../va108xx-hal"
 features = ["defmt", "embassy-oc30-oc31"]
 

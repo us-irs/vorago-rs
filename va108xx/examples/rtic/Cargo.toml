@@ -14,5 +14,5 @@ rtic = { version = "2", features = ["thumbv6-backend"] }
 rtic-monotonics = { version = "2", features = ["cortex-m-systick"] }
 ringbuf = { version = "0.5", default-features = false, features = ["portable-atomic"] }
 
-va108xx-hal = { version = "0.13", path = "../../va108xx-hal" }
+va108xx-hal = { version = "0.14", path = "../../va108xx-hal" }
 vorago-reb1 = { version = "0.10", path = "../../vorago-reb1" }
