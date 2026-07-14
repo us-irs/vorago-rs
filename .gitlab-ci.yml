@@ -1,5 +1,4 @@
 # .gitlab-ci.yml
-
 image: rust:latest
 
 variables:
