@@ -65,9 +65,9 @@ pub mod adc;
 pub mod dac;
 
 pub use vorago_shared_hal::{
-    assert_peripheral_reset, deassert_peripheral_reset, disable_nvic_interrupt,
-    disable_peripheral_clock, enable_nvic_interrupt, enable_peripheral_clock,
-    reset_peripheral_for_cycles, FunctionSelect, PeripheralSelect,
+    FunctionSelect, PeripheralSelect, assert_peripheral_reset, deassert_peripheral_reset,
+    disable_nvic_interrupt, disable_peripheral_clock, enable_nvic_interrupt,
+    enable_peripheral_clock, reset_peripheral_for_cycles,
 };
 
 #[derive(Debug, PartialEq, Eq, thiserror::Error)]

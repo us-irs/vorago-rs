@@ -1,6 +1,6 @@
 //! API for the DMA peripheral
-use arbitrary_int::{u10, u3};
-use vorago_shared_hal::{enable_peripheral_clock, reset_peripheral_for_cycles, PeripheralSelect};
+use arbitrary_int::{u3, u10};
+use vorago_shared_hal::{PeripheralSelect, enable_peripheral_clock, reset_peripheral_for_cycles};
 
 use crate::{enable_nvic_interrupt, pac};
 

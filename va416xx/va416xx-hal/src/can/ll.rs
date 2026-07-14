@@ -1,12 +1,12 @@
-use arbitrary_int::{prelude::*, u11, u15, u3, u4};
+use arbitrary_int::{prelude::*, u3, u4, u11, u15};
 use embedded_can::Frame;
 
 use super::{
+    CanFrame, CanFrameNormal, CanFrameRtr, CanId, InvalidBufferIndexError,
     regs::{
         self, BaseId, BufStatusAndControl, BufferState, ExtendedId, MmioCanMessageBuffer,
         TwoBytesData,
     },
-    CanFrame, CanFrameNormal, CanFrameRtr, CanId, InvalidBufferIndexError,
 };
 
 pub struct CanChannelLowLevel {
@@ -299,11 +299,7 @@ impl CanChannelLowLevel {
                 | (id1.mask_17_15().as_u32() << 15)
                 | id0.mask_14_0().as_u32();
             let id = embedded_can::Id::Extended(embedded_can::ExtendedId::new(id_raw).unwrap());
-            if id0.xrtr() {
-                (id, true)
-            } else {
-                (id, false)
-            }
+            if id0.xrtr() { (id, true) } else { (id, false) }
         };
         if rtr {
             CanFrameRtr::new(id, self.msg_buf.read_stat_ctrl().dlc().as_usize()).into()

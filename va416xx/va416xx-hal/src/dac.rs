@@ -2,8 +2,8 @@
 use core::ops::Deref;
 
 use vorago_shared_hal::{
-    disable_peripheral_clock, enable_peripheral_clock, reset_peripheral_for_cycles,
-    PeripheralSelect,
+    PeripheralSelect, disable_peripheral_clock, enable_peripheral_clock,
+    reset_peripheral_for_cycles,
 };
 
 use crate::{clock::Clocks, pac};

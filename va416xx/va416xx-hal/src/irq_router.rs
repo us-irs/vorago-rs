@@ -1,5 +1,5 @@
 //! IRQ Router peripheral support.
-use vorago_shared_hal::{enable_peripheral_clock, reset_peripheral_for_cycles, PeripheralSelect};
+use vorago_shared_hal::{PeripheralSelect, enable_peripheral_clock, reset_peripheral_for_cycles};
 
 use crate::pac;
 

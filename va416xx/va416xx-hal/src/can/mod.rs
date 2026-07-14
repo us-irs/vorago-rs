@@ -19,13 +19,13 @@
 //! - [CAN example](https://egit.irs.uni-stuttgart.de/rust/vorago-rs/src/branch/main/va416xx/examples/embassy/src/bin/can.rs)
 use core::sync::atomic::AtomicBool;
 
-use arbitrary_int::{prelude::*, u11, u15, u2, u3, u4, u7};
+use arbitrary_int::{prelude::*, u2, u3, u4, u7, u11, u15};
 use embedded_can::Frame;
 use ll::CanChannelLowLevel;
 use regs::{BaseId, BufferState, Control, MmioCan, TimingConfig};
 use vorago_shared_hal::enable_nvic_interrupt;
 
-use crate::{clock::Clocks, enable_peripheral_clock, time::Hertz, PeripheralSelect};
+use crate::{PeripheralSelect, clock::Clocks, enable_peripheral_clock, time::Hertz};
 use libm::roundf;
 
 pub mod frame;

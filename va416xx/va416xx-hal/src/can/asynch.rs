@@ -8,8 +8,8 @@ use arbitrary_int::u4;
 use crate::can::regs::BufferState;
 
 use super::{
-    regs::{DiagnosticRegister, InterruptClear, MmioCan, StatusPending},
     CanChannelLowLevel, CanFrame, CanId, InvalidBufferIndexError,
+    regs::{DiagnosticRegister, InterruptClear, MmioCan, StatusPending},
 };
 
 #[derive(Debug)]
