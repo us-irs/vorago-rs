@@ -55,8 +55,7 @@ async fn main(_spawner: Spawner) {
         .xtal_n_clk_with_src_freq(Hertz::from_raw(EXTCLK_FREQ))
         .freeze()
         .unwrap();
-    // Safety: Only called once here.
-    va416xx_embassy::init(dp.tim15, dp.tim14, &clocks);
+    va416xx_hal::embassy_time::init(dp.tim15, dp.tim14, &clocks);
 
     let portg = PinsG::new(dp.portg);
     let mut led = Output::new(portg.pg5, PinState::Low);

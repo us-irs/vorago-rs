@@ -1,6 +1,6 @@
 [package]
 name = "vorago-shared-hal"
-version = "0.4.0"
+version = "0.5.0"
 description = "Peripheral HAL components shared between Vorago families"
 edition = "2024"
 homepage = "https://egit.irs.uni-stuttgart.de/rust/vorago-rs"
@@ -10,7 +10,7 @@ license = "Apache-2.0"
 [dependencies]
 cortex-m = { version = "0.7" }
 cfg-if = "1"
-derive-mmio = "0.6"
+derive-mmio = "0.7"
 bitbybit = "2"
 arbitrary-int = "2"
 static_assertions = "1.1"

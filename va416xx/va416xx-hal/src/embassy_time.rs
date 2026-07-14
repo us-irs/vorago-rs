@@ -1,12 +1,6 @@
 //! # Embassy-rs support for the Vorago VA416xx MCU family
 //!
-//! This repository contains the [embassy-rs](https://github.com/embassy-rs/embassy) support for the
-//! VA416xx family. Currently, it contains the time driver to allow using embassy-rs. It uses the TIM
-//! peripherals provided by the VA416xx family for this purpose.
-//!
-//! ## Usage
-//!
-//! This library only exposes the [embassy::init] method which sets up the time driver. This
+//! This module exposes the [init] method which sets up the time driver. This
 //! function must be called once at the start of the application.
 //!
 //! This implementation requires two TIM peripherals provided by the VA108xx device.
@@ -20,30 +14,23 @@
 //! interrupts. By default, this library will define the interrupt handler inside the library
 //! itself by using the `irq-tim14-tim15` feature flag. This library exposes three combinations:
 //!
-//! - `irq-tim14-tim15`: Uses [pac::Interrupt::TIM14] for alarm and [pac::Interrupt::TIM15]
+//! - `time-driver-tim14-tim15`: Uses [crate::pac::Interrupt::TIM14] for alarm and [crate::pac::Interrupt::TIM15]
 //!   for timekeeper
-//! - `irq-tim13-tim14`: Uses [pac::Interrupt::TIM13] for alarm and [pac::Interrupt::TIM14]
+//! - `time-driver-tim13-tim14`: Uses [crate::pac::Interrupt::TIM13] for alarm and [crate::pac::Interrupt::TIM14]
 //!   for timekeeper
-//! - `irq-tim22-tim23`: Uses [pac::Interrupt::TIM22] for alarm and [pac::Interrupt::TIM23]
+//! - `time-driver-tim22-tim23`: Uses [crate::pac::Interrupt::TIM22] for alarm and [crate::pac::Interrupt::TIM23]
 //!   for timekeeper
 //!
 //! You can disable the default features and then specify one of the features above to use the
 //! documented combination of IRQs. It is also possible to specify custom IRQs by importing and
-//! using the [embassy_time_driver_irqs] macro to declare the IRQ handlers in the
-//! application code. If this is done, [embassy::init_with_custom_irqs] must be used
-//! method to pass the IRQ numbers to the library.
-//!
-//! ## Examples
-//!
-//! [embassy example projects](https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/src/branch/main/examples/embassy)
-#![no_std]
-#![cfg_attr(docsrs, feature(doc_auto_cfg))]
-use va416xx_hal::{
-    clock::Clocks,
-    irq_router::enable_and_init_irq_router,
-    pac::{self, interrupt},
-    timer::{TimInstance, TIM_IRQ_OFFSET},
-};
+//! using the [crate::embassy_time_driver_irqs] macro to declare the IRQ handlers in the
+//! application code.
+#[cfg(feature = "_irqs-in-lib")]
+use crate::pac::{self, interrupt};
+#[cfg(feature = "_irqs-in-lib")]
+use crate::timer::TIM_IRQ_OFFSET;
+use crate::{clock::Clocks, irq_router::enable_and_init_irq_router, timer::TimInstance};
+
 use vorago_shared_hal::embassy::time_driver;
 
 /// Macro to define the IRQ handlers for the time driver.
@@ -52,7 +39,7 @@ use vorago_shared_hal::embassy::time_driver;
 /// the feature flags specified. However, the macro is exported to allow users to specify the
 /// interrupt handlers themselves.
 ///
-/// Please note that you have to explicitely import the [macro@va108xx_hal::pac::interrupt]
+/// Please note that you have to explicitely import the [macro@crate::pac::interrupt]
 /// macro in the application code in case this macro is used there.
 #[macro_export]
 macro_rules! embassy_time_driver_irqs {
@@ -66,7 +53,7 @@ macro_rules! embassy_time_driver_irqs {
         #[allow(non_snake_case)]
         fn $timekeeper_irq() {
             // Safety: We call it once here.
-            unsafe { $crate::time_driver().on_interrupt_timekeeping() }
+            unsafe { $crate::embassy_time::time_driver().on_interrupt_timekeeping() }
         }
 
         const ALARM_IRQ: pac::Interrupt = pac::Interrupt::$alarm_irq;
@@ -75,18 +62,18 @@ macro_rules! embassy_time_driver_irqs {
         #[allow(non_snake_case)]
         fn $alarm_irq() {
             // Safety: We call it once here.
-            unsafe { $crate::time_driver().on_interrupt_alarm() }
+            unsafe { $crate::embassy_time::time_driver().on_interrupt_alarm() }
         }
     };
 }
 
 // Provide three combinations of IRQs for the time driver by default.
 
-#[cfg(feature = "irq-tim14-tim15")]
+#[cfg(feature = "time-driver-tim14-tim15")]
 embassy_time_driver_irqs!(timekeeper_irq = TIM15, alarm_irq = TIM14);
-#[cfg(feature = "irq-tim13-tim14")]
+#[cfg(feature = "time-driver-tim13-tim14")]
 embassy_time_driver_irqs!(timekeeper_irq = TIM14, alarm_irq = TIM13);
-#[cfg(feature = "irq-tim22-tim23")]
+#[cfg(feature = "time-driver-tim22-tim23")]
 embassy_time_driver_irqs!(timekeeper_irq = TIM23, alarm_irq = TIM22);
 
 /// Initialization method for embassy

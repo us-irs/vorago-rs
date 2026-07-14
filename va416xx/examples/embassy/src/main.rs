@@ -19,7 +19,7 @@ use va416xx_hal::{
 cfg_if::cfg_if! {
     if #[cfg(feature = "custom-irqs")] {
         use va416xx_hal::pac::interrupt;
-        va416xx_embassy::embassy_time_driver_irqs!(timekeeper_irq = TIM12, alarm_irq = TIM11);
+        va416xx_hal::embassy_time_driver_irqs!(timekeeper_irq = TIM12, alarm_irq = TIM11);
     }
 }
 
@@ -39,13 +39,13 @@ async fn main(_spawner: Spawner) {
     // Safety: Only called once here.
     cfg_if::cfg_if! {
         if #[cfg(not(feature = "custom-irqs"))] {
-            va416xx_embassy::init(
+            va416xx_hal::embassy_time::init(
                 dp.tim15,
                 dp.tim14,
                 &clocks
             );
         } else {
-            va416xx_embassy::init(
+            va416xx_hal::embassy_time::init(
                 dp.tim12,
                 dp.tim11,
                 &clocks

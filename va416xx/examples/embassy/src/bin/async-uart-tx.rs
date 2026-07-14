@@ -54,7 +54,7 @@ async fn main(_spawner: Spawner) {
         .freeze()
         .unwrap();
     // Safety: Only called once here.
-    va416xx_embassy::init(dp.tim15, dp.tim14, &clocks);
+    va416xx_hal::embassy_time::init(dp.tim15, dp.tim14, &clocks);
 
     let pinsg = PinsG::new(dp.portg);
     let mut led = Output::new(pinsg.pg5, PinState::Low);

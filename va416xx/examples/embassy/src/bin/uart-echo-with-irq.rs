@@ -62,8 +62,7 @@ async fn main(spawner: Spawner) {
         .xtal_n_clk_with_src_freq(Hertz::from_raw(EXTCLK_FREQ))
         .freeze()
         .unwrap();
-    // Safety: Only called once here.
-    va416xx_embassy::init(dp.tim15, dp.tim14, &clocks);
+    va416xx_hal::embassy_time::init(dp.tim15, dp.tim14, &clocks);
 
     let portg = PinsG::new(dp.portg);
 
@@ -89,7 +88,7 @@ async fn main(spawner: Spawner) {
     let mut ticker = Ticker::every(Duration::from_millis(50));
     let mut processing_buf: [u8; RING_BUF_SIZE] = [0; RING_BUF_SIZE];
     let mut read_bytes = 0;
-    spawner.spawn(blinky(led)).expect("failed to spawn blinky");
+    spawner.spawn(blinky(led).expect("failed to spawn blinky"));
     loop {
         RINGBUF.lock(|static_rb| {
             let mut rb_borrow = static_rb.borrow_mut();
