@@ -27,7 +27,7 @@ embassy-executor = { version = "0.10", features = [
   "executor-interrupt"
 ]}
 
-va108xx-hal = { version = "0.13", path = "../../va108xx-hal", features = ["defmt"] }
+va108xx-hal = { version = "0.14", path = "../../va108xx-hal", features = ["defmt"] }
 
 [features]
 default = ["ticks-hz-1_000", "va108xx-hal/embassy-oc30-oc31"]

@@ -1,11 +1,11 @@
 [package]
 name = "va108xx-hal"
-version = "0.13.1"
+version = "0.14.0"
 authors = ["Robin Mueller <muellerr@irs.uni-stuttgart.de>"]
 edition = "2024"
 description = "HAL for the Vorago VA108xx family of microcontrollers"
-homepage = "https://egit.irs.uni-stuttgart.de/rust/vorago-rs"
-repository = "https://egit.irs.uni-stuttgart.de/rust/vorago-rs"
+homepage = "https://github.com/us-irs/vorago-rs"
+repository = "https://git.irs.uni-stuttgart.de/irs/vorago-rs"
 license = "Apache-2.0"
 keywords = ["no-std", "hal", "cortex-m", "vorago", "va108xx"]
 categories = ["aerospace", "embedded", "no-std", "hardware-support"]

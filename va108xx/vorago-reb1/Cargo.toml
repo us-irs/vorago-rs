@@ -18,7 +18,7 @@ bitbybit = "2"
 arbitrary-int = "2"
 max116xx-10bit = "0.3"
 
-va108xx-hal = { version = "0.13", path = "../va108xx-hal", features = ["rt"] }
+va108xx-hal = { version = "0.14", path = "../va108xx-hal", features = ["rt"] }
 
 [features]
 rt = ["va108xx-hal/rt"]
