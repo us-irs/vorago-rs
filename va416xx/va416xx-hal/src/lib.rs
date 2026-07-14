@@ -43,6 +43,7 @@ pub mod can;
 pub mod clock;
 pub mod dma;
 pub mod edac;
+pub mod embassy_time;
 pub mod gpio;
 pub mod i2c;
 pub mod irq_router;

@@ -41,8 +41,8 @@ async fn main(_spawner: Spawner) {
         .xtal_n_clk_with_src_freq(Hertz::from_raw(EXTCLK_FREQ))
         .freeze()
         .unwrap();
-    // Safety: Only called once here.
-    va416xx_embassy::init(dp.tim15, dp.tim14, &clocks);
+    va416xx_hal::embassy_time::init(dp.tim15, dp.tim14, &clocks);
+
     defmt::info!("creating CAN peripheral driver");
     defmt::info!("clocks: {}", clocks);
     let clk_config = ClockConfig::from_bitrate_and_segments(&clocks, 250.kHz(), 14, 5, 4)

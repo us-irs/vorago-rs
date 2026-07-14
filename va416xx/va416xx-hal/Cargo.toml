@@ -13,9 +13,9 @@ categories = ["embedded", "no-std", "hardware-support"]
 [dependencies]
 cortex-m = { version = "0.7", features = ["critical-section-single-core"] }
 va416xx = { version = "0.5", path = "../va416xx", features = ["critical-section"], default-features = false }
-derive-mmio = "0.6.1"
+derive-mmio = "0.7"
 static_assertions = "1.1"
-vorago-shared-hal = { version = "0.4", path = "../../vorago-shared-hal", features = ["vor4x"] }
+vorago-shared-hal = { version = "0.5", path = "../../vorago-shared-hal", features = ["vor4x"] }
 
 libm = "0.2"
 nb = "1"
@@ -42,6 +42,16 @@ va41620 = ["device-selected"]
 
 va41629 = ["device-selected"]
 va41628 = ["device-selected", "vorago-shared-hal/va41628"]
+
+# This determines the reserved interrupt functions for the embassy time drivers. Only one
+# is allowed to be selected!
+time-driver-tim14-tim15 = ["_irqs-in-lib"]
+time-driver-tim13-tim14 = ["_irqs-in-lib"]
+# These TIMs are clocked slower!
+time-driver-tim22-tim23= ["_irqs-in-lib"]
+
+# Private feature.
+_irqs-in-lib = []
 
 device-selected = []
 revb = []

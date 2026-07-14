@@ -76,7 +76,7 @@ async fn main(spawner: Spawner) {
         .freeze()
         .unwrap();
     // Safety: Only called once here.
-    va416xx_embassy::init(dp.tim15, dp.tim14, &clocks);
+    va416xx_hal::embassy_time::init(dp.tim15, dp.tim14, &clocks);
 
     let porta = PinsA::new(dp.porta);
     let portb = PinsB::new(dp.portb);
@@ -93,13 +93,7 @@ async fn main(spawner: Spawner) {
         let in_pin = Input::new_floating(porta.pa1);
         let in_pin = InputPinAsync::new(in_pin).unwrap();
 
-        spawner
-            .spawn(output_task(
-                "PA0 to PA1",
-                out_pin,
-                CHANNEL_PA0_TO_PA1.receiver(),
-            ))
-            .unwrap();
+        spawner.spawn(output_task("PA0 to PA1", out_pin, CHANNEL_PA0_TO_PA1.receiver()).unwrap());
         check_pin_to_pin_async_ops("PA0 to PA1", CHANNEL_PA0_TO_PA1.sender(), in_pin).await;
         defmt::info!("Example PA0 to PA1 done");
     }
@@ -109,13 +103,7 @@ async fn main(spawner: Spawner) {
         let in_pin = Input::new_floating(portb.pb1);
         let in_pin = InputPinAsync::new(in_pin).unwrap();
 
-        spawner
-            .spawn(output_task(
-                "PB0 to PB1",
-                out_pin,
-                CHANNEL_PB0_TO_PB1.receiver(),
-            ))
-            .unwrap();
+        spawner.spawn(output_task("PB0 to PB1", out_pin, CHANNEL_PB0_TO_PB1.receiver()).unwrap());
         check_pin_to_pin_async_ops("PB0 to PB1", CHANNEL_PB0_TO_PB1.sender(), in_pin).await;
         defmt::info!("Example PB0 to PB1 done");
     }
@@ -125,12 +113,7 @@ async fn main(spawner: Spawner) {
         let in_pin = Input::new_floating(portc.pc15);
         let in_pin = InputPinAsync::new(in_pin).unwrap();
         spawner
-            .spawn(output_task(
-                "PC14 to PC15",
-                out_pin,
-                CHANNEL_PC14_TO_PC15.receiver(),
-            ))
-            .unwrap();
+            .spawn(output_task("PC14 to PC15", out_pin, CHANNEL_PC14_TO_PC15.receiver()).unwrap());
         check_pin_to_pin_async_ops("PC14 to PC15", CHANNEL_PC14_TO_PC15.sender(), in_pin).await;
         defmt::info!("Example PC14 to PC15 done");
     }
@@ -139,13 +122,7 @@ async fn main(spawner: Spawner) {
         let out_pin = Output::new(portd.pd2, PinState::Low);
         let in_pin = Input::new_floating(portd.pd3);
         let in_pin = InputPinAsync::new(in_pin).unwrap();
-        spawner
-            .spawn(output_task(
-                "PD2 to PD3",
-                out_pin,
-                CHANNEL_PD2_TO_PD3.receiver(),
-            ))
-            .unwrap();
+        spawner.spawn(output_task("PD2 to PD3", out_pin, CHANNEL_PD2_TO_PD3.receiver()).unwrap());
         check_pin_to_pin_async_ops("PD2 to PD3", CHANNEL_PD2_TO_PD3.sender(), in_pin).await;
         defmt::info!("Example PD2 to PD3 done");
     }
@@ -154,13 +131,7 @@ async fn main(spawner: Spawner) {
         let out_pin = Output::new(porte.pe0, PinState::Low);
         let in_pin = Input::new_floating(porte.pe1);
         let in_pin = InputPinAsync::new(in_pin).unwrap();
-        spawner
-            .spawn(output_task(
-                "PE0 to PE1",
-                out_pin,
-                CHANNEL_PE0_TO_PE1.receiver(),
-            ))
-            .unwrap();
+        spawner.spawn(output_task("PE0 to PE1", out_pin, CHANNEL_PE0_TO_PE1.receiver()).unwrap());
         check_pin_to_pin_async_ops("PE0 to PE1", CHANNEL_PE0_TO_PE1.sender(), in_pin).await;
         defmt::info!("Example PE0 to PE1 done");
     }
@@ -169,13 +140,7 @@ async fn main(spawner: Spawner) {
         let out_pin = Output::new(portf.pf0, PinState::Low);
         let in_pin = Input::new_floating(portf.pf1);
         let in_pin = InputPinAsync::new(in_pin).unwrap();
-        spawner
-            .spawn(output_task(
-                "PF0 to PF1",
-                out_pin,
-                CHANNEL_PF0_TO_PF1.receiver(),
-            ))
-            .unwrap();
+        spawner.spawn(output_task("PF0 to PF1", out_pin, CHANNEL_PF0_TO_PF1.receiver()).unwrap());
         check_pin_to_pin_async_ops("PF0 to PF1", CHANNEL_PF0_TO_PF1.sender(), in_pin).await;
         defmt::info!("Example PF0 to PF1 done");
     }
