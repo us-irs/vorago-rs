@@ -40,7 +40,7 @@ fn main() -> ! {
     enable_and_init_irq_router();
     let mut ms_timer = CountdownTimer::new(dp.tim0, &clocks);
     ms_timer.enable_interrupt(true);
-    ms_timer.start(1.Hz());
+    ms_timer.start(1.kHz());
     let mut second_timer = CountdownTimer::new(dp.tim1, &clocks);
     second_timer.enable_interrupt(true);
     second_timer.start(1.Hz());

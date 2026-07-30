@@ -495,56 +495,50 @@ impl CountdownTimer {
 // Delay implementations
 //==================================================================================================
 //
+impl CountdownTimer {
+    /// Busy-wait for one countdown-to-zero-and-reload cycle.
+    fn wait_for_wrap(&mut self) {
+        let mut last_count = self.counter();
+        loop {
+            let new_count = self.counter();
+            if new_count == 0 {
+                // Wait till timer has wrapped.
+                while self.counter() == 0 {
+                    cortex_m::asm::nop()
+                }
+                break;
+            }
+            // Timer has definitely wrapped.
+            if new_count > last_count {
+                break;
+            }
+            last_count = new_count;
+        }
+    }
+}
+
 impl embedded_hal::delay::DelayNs for CountdownTimer {
     fn delay_ns(&mut self, ns: u32) {
-        let ticks = (u64::from(ns)) * (u64::from(self.ref_clk.to_raw())) / 1_000_000_000;
+        let ticks = u64::from(ns) * u64::from(self.ref_clk.to_raw()) / 1_000_000_000;
 
         let full_cycles = ticks >> 32;
-        let mut last_count;
-        let mut new_count;
         if full_cycles > 0 {
             self.set_reload(u32::MAX);
             self.set_count(u32::MAX);
             self.enable();
-
             for _ in 0..full_cycles {
-                // Always ensure that both values are the same at the start.
-                new_count = self.counter();
-                last_count = new_count;
-                loop {
-                    new_count = self.counter();
-                    if new_count == 0 {
-                        // Wait till timer has wrapped.
-                        while self.counter() == 0 {
-                            cortex_m::asm::nop()
-                        }
-                        break;
-                    }
-                    // Timer has definitely wrapped.
-                    if new_count > last_count {
-                        break;
-                    }
-                    last_count = new_count;
-                }
+                self.wait_for_wrap();
             }
         }
-        let ticks = (ticks & u32::MAX as u64) as u32;
         self.disable();
-        if ticks > 1 {
-            self.set_reload(ticks);
-            self.set_count(ticks);
+
+        let remainder = (ticks & u32::MAX as u64) as u32;
+        if remainder > 1 {
+            self.set_reload(remainder);
+            self.set_count(remainder);
             self.enable();
-            last_count = ticks;
-
-            loop {
-                new_count = self.counter();
-                if new_count == 0 || (new_count > last_count) {
-                    break;
-                }
-                last_count = new_count;
-            }
+            self.wait_for_wrap();
         }
-
         self.disable();
     }
 }
