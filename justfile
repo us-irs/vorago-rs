@@ -10,7 +10,7 @@ check-fmt: check-fmt-va108xx check-fmt-va416xx
 fmt: fmt-va108xx fmt-va416xx fmt-shared-hal
 clippy: clippy-va108xx clippy-va416xx clippy-shared-hal
 docs: docs-va108xx docs-va416xx docs-shared-hal
-clean: clean-va108xx clean-va416xx
+clean: clean-va108xx clean-va416xx clean-shared-hal
 
 [working-directory: 'va108xx']
 check-va108xx:
@@ -89,4 +89,8 @@ clean-va108xx:
 
 [working-directory: 'va416xx']
 clean-va416xx:
+  cargo clean
+
+[working-directory: 'vorago-shared-hal']
+clean-shared-hal:
   cargo clean
