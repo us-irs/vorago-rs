@@ -10,9 +10,20 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Changed
 
+- The async SPI driver's interrupt handler no longer takes a critical section on every
+  interrupt. The shared transfer state moved from a `Mutex<RefCell<TransferContext>>` to plain
+  atomics, gated by an `Acquire`/`Release` flag that publishes the transfer buffers.
+- `SpiAsync` was renamed to `asynch::Spi`. Its `on_interrupt` free function became
+  `Spi::on_interrupt`. It now takes a `Bank` token obtained from the new `Spi::bank_id` instead
+  of requiring access to the driver instance, so it can be called from an interrupt handler that
+  only has a token, not the driver.
+- Added `Spi::into_async` on the blocking driver as a shortcut for `asynch::Spi::new`.
 - The async SPI driver now always enables blockmode and blockmode stalling. It marks the last
   word of a transfer with the BMSTART_BMSTOP bit, which ends the frame and deasserts a hardware
   chip select. This overrides the `blockmode` and `bmstall` settings of the passed `SpiConfig`.
+- `TxAsync::new` and `Tx::into_async` are safe again. The requirement that the `Drop` handler of
+  generated futures runs is documented instead. The corner case is exotic enough to not justify
+  an `unsafe` API.
 
 ### Fixed
 

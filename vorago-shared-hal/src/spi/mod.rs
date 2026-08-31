@@ -956,6 +956,24 @@ where
     }
 }
 
+impl Spi<u8> {
+    /// Convert this blocking driver into an asynchronous one.
+    ///
+    /// See [asynch::Spi::new] for more details.
+    #[cfg(feature = "vor1x")]
+    pub fn into_async(self, opt_irq_cfg: Option<crate::InterruptConfig>) -> asynch::Spi {
+        asynch::Spi::new(self, opt_irq_cfg)
+    }
+
+    /// Convert this blocking driver into an asynchronous one.
+    ///
+    /// See [asynch::Spi::new] for more details.
+    #[cfg(feature = "vor4x")]
+    pub fn into_async(self) -> asynch::Spi {
+        asynch::Spi::new(self)
+    }
+}
+
 impl<W: SpiWord> SpiLowLevel for Spi<W>
 where
     <W as TryFrom<u32>>::Error: core::fmt::Debug,
