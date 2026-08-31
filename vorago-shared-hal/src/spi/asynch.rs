@@ -9,10 +9,23 @@ use raw_buffer::{RawBufSlice, RawBufSliceMut};
 use crate::{
     shared::{FifoClear, TriggerLevel},
     spi::{
-        FIFO_DEPTH,
+        BMSKIPDATA_MASK, BMSTART_BMSTOP_MASK, FIFO_DEPTH,
         regs::{Data, InterruptClear, InterruptControl},
     },
 };
+
+/// Builds a FIFO data word, marking the last word of the transfer with the BMSTART_BMSTOP bit.
+///
+/// That bit is what makes the peripheral end the frame and deassert a hardware chip select after
+/// the word. Without it, blockmode keeps CS asserted and stalls the clock after the transfer.
+#[inline]
+fn data_word(value: u32, is_last: bool) -> Data {
+    if is_last {
+        Data::new_with_raw_value(value | BMSTART_BMSTOP_MASK)
+    } else {
+        Data::new_with_raw_value(value)
+    }
+}
 
 #[cfg(feature = "vor1x")]
 pub const NUM_SPIS: usize = 3;
@@ -113,8 +126,8 @@ fn on_interrupt_read(
     }
 
     // The FIFO still needs to be pumped.
-    while context.tx_progress < read_slice.len() && spi.read_status().tx_not_full() {
-        spi.write_data(Data::new_with_raw_value(0));
+    while context.tx_progress < transfer_len && spi.read_status().tx_not_full() {
+        spi.write_data(data_word(0, context.tx_progress == transfer_len - 1));
         context.tx_progress += 1;
     }
 
@@ -140,8 +153,9 @@ fn on_interrupt_write(
 
     // Data still needs to be sent
     while context.tx_progress < transfer_len && spi.read_status().tx_not_full() {
-        spi.write_data(Data::new_with_raw_value(
+        spi.write_data(data_word(
             write_slice[context.tx_progress] as u32,
+            context.tx_progress == transfer_len - 1,
         ));
         context.tx_progress += 1;
     }
@@ -163,8 +177,9 @@ fn on_interrupt_transfer(
 
     // Send data first to avoid overwriting data that still needs to be sent.
     while context.tx_progress < transfer_len && spi.read_status().tx_not_full() {
-        spi.write_data(Data::new_with_raw_value(
+        spi.write_data(data_word(
             write_slice.get(context.tx_progress).copied().unwrap_or(0) as u32,
+            context.tx_progress == transfer_len - 1,
         ));
         // Always increment this.
         context.tx_progress += 1;
@@ -193,8 +208,9 @@ fn on_interrupt_transfer_in_place(
     let transfer_len = transfer_slice.len();
     // Send data first to avoid overwriting data that still needs to be sent.
     while context.tx_progress < transfer_len && spi.read_status().tx_not_full() {
-        spi.write_data(Data::new_with_raw_value(
+        spi.write_data(data_word(
             transfer_slice[context.tx_progress] as u32,
+            context.tx_progress == transfer_len - 1,
         ));
         context.tx_progress += 1;
     }
@@ -346,8 +362,8 @@ impl<'spi, 'read, 'write> SpiFuture<'spi, 'read, 'write> {
 
         let write_index = core::cmp::min(super::FIFO_DEPTH, words.len());
         // Send dummy bytes.
-        (0..write_index).for_each(|_| {
-            spi.regs.write_data(Data::new_with_raw_value(0));
+        (0..write_index).for_each(|idx| {
+            spi.regs.write_data(data_word(0, idx == words.len() - 1));
         });
 
         Self::set_triggers(spi, write_index, words.len());
@@ -441,7 +457,8 @@ impl<'spi, 'read, 'write> SpiFuture<'spi, 'read, 'write> {
 
         for write_index in 0..fifo_prefill {
             let value = write.get(write_index).copied().unwrap_or(0);
-            spi.regs.write_data(Data::new_with_raw_value(value as u32));
+            spi.regs
+                .write_data(data_word(value as u32, write_index == full_write_len - 1));
         }
 
         Self::set_triggers(spi, fifo_prefill, full_write_len);
@@ -531,7 +548,7 @@ impl<'spi, 'read, 'write> SpiFuture<'spi, 'read, 'write> {
         let write_idx = core::cmp::min(super::FIFO_DEPTH, write.len());
         (0..write_idx).for_each(|idx| {
             spi.regs
-                .write_data(Data::new_with_raw_value(write[idx] as u32));
+                .write_data(data_word(write[idx] as u32, idx == write.len() - 1));
         });
 
         Self::set_triggers(spi, write_idx, write.len());
@@ -597,6 +614,13 @@ impl<'spi> Drop for SpiFuture<'spi, '_, '_> {
                 .regs
                 .write_interrupt_control(InterruptControl::DISABLE_ALL);
             self.spi.regs.write_fifo_clear(FifoClear::ALL);
+            // Clearing the FIFO does not end the blockmode frame, so the chip select would stay
+            // asserted for a cancelled transfer. BMSKIPDATA together with BMSTOP ends the frame
+            // without clocking out another data word. This has to happen after the FIFO clear,
+            // otherwise the word is discarded again.
+            self.spi.regs.write_data(Data::new_with_raw_value(
+                BMSTART_BMSTOP_MASK | BMSKIPDATA_MASK,
+            ));
         }
     }
 }
@@ -635,9 +659,11 @@ impl SpiAsync {
                 unsafe { crate::enable_nvic_interrupt(irq_cfg.id) };
             }
         }
-        // Disable blockmode for asynchronous mode.
+        // The async driver always drives blockmode frames explicitly by setting the
+        // BMSTART_BMSTOP bit on the last word of each transfer, which is what deasserts a
+        // hardware chip select at the end of the transfer.
         spi.regs
-            .modify_ctrl1(|v| v.with_bm_stall(false).with_blockmode(false));
+            .modify_ctrl1(|v| v.with_bm_stall(true).with_blockmode(true));
         Self(spi)
     }
 

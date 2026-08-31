@@ -30,7 +30,7 @@ async fn main(_spawner: Spawner) {
     let mut led1 = Output::new(porta.pa7, PinState::Low);
     let mut led2 = Output::new(porta.pa6, PinState::Low);
 
-    let spi_clk_cfg = SpiClockConfig::from_clk(50.MHz(), Hertz::from_raw(400_000)).unwrap();
+    let spi_clk_cfg = SpiClockConfig::from_clk(50.MHz(), 1.MHz()).unwrap();
     let spi_cfg = spi::SpiConfig::default();
     spi_cfg.clk_cfg(spi_clk_cfg);
     let (sck, mosi, miso) = (porta.pa31, porta.pa30, porta.pa29);
