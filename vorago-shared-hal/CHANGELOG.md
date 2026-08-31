@@ -8,6 +8,19 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [unreleased]
 
+### Changed
+
+- The async SPI driver now always enables blockmode and blockmode stalling. It marks the last
+  word of a transfer with the BMSTART_BMSTOP bit, which ends the frame and deasserts a hardware
+  chip select. This overrides the `blockmode` and `bmstall` settings of the passed `SpiConfig`.
+
+### Fixed
+
+- Hardware chip select is now deasserted at the end of an async SPI transfer. Previously the
+  async driver disabled blockmode and never set the BMSTART_BMSTOP bit, so CS stayed asserted.
+- Cancelling an async SPI transfer now ends the blockmode frame. Dropping a transfer future only
+  cleared the FIFOs, which leaves the frame open and the chip select asserted.
+
 ## [v0.5.0] 2026-07-14
 
 ### Changed
