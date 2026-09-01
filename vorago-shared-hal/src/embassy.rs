@@ -49,6 +49,7 @@ static SCALE: OnceCell<u64> = OnceCell::new();
 static TIMEKEEPER_TIM: OnceCell<TimId> = OnceCell::new();
 static ALARM_TIM: OnceCell<TimId> = OnceCell::new();
 
+/// Embassy time driver, implemented on top of two hardware timers.
 pub struct TimerDriver {
     periods: AtomicU32,
     /// Timestamp at which to fire alarm. u64::MAX if no alarm is scheduled.

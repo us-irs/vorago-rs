@@ -105,6 +105,7 @@ fn on_interrupt(bank: Bank) {
     context.progress.store(progress, Ordering::Relaxed);
 }
 
+/// Future returned by [Tx::write].
 #[derive(Debug)]
 pub struct TxFuture<'uart, 'buf> {
     id: Bank,
@@ -263,6 +264,7 @@ impl Tx {
         on_interrupt(bank_id);
     }
 
+    /// Access the wrapped blocking driver.
     #[inline]
     pub fn inner(&mut self) -> &mut crate::uart::Tx {
         &mut self.0
@@ -288,16 +290,19 @@ impl Tx {
         fut.await
     }
 
+    /// Wait until all written data has actually left the FIFO.
     pub async fn flush(&mut self) -> Result<(), TxOverrunError> {
         while !tx_is_drained(&self.0) {}
         Ok(())
     }
 
+    /// Release the wrapped blocking driver.
     pub fn release(self) -> crate::uart::Tx {
         self.0
     }
 }
 
+/// A write was lost because the TX FIFO overran.
 #[derive(Debug, thiserror::Error)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 #[error("TX overrun error")]

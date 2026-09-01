@@ -114,8 +114,11 @@ impl PinMiso1 for Pin<Pa18> {
     const FUN_SEL: FunctionSelect = FunctionSelect::Sel2;
 }
 
+/// SPI1 SCK pin on port A.
 pub type SpiBPortASck = Pin<Pa20>;
+/// SPI1 MOSI pin on port A.
 pub type SpiBPortAMosi = Pin<Pa19>;
+/// SPI1 MISO pin on port A.
 pub type SpiBPortAMiso = Pin<Pa18>;
 
 impl PinSck1 for Pin<Pb19> {

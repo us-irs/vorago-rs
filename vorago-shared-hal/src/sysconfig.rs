@@ -3,6 +3,7 @@ use va108xx as pac;
 #[cfg(feature = "vor4x")]
 use va416xx as pac;
 
+/// Enable the clock of a peripheral, allowing it to be accessed.
 #[inline]
 pub fn enable_peripheral_clock(clock: crate::PeripheralSelect) {
     let syscfg = unsafe { pac::Sysconfig::steal() };
@@ -11,6 +12,7 @@ pub fn enable_peripheral_clock(clock: crate::PeripheralSelect) {
         .modify(|r, w| unsafe { w.bits(r.bits() | (1 << clock as u8)) });
 }
 
+/// Disable the clock of a peripheral.
 #[inline]
 pub fn disable_peripheral_clock(clock: crate::PeripheralSelect) {
     let syscfg = unsafe { pac::Sysconfig::steal() };
@@ -19,6 +21,7 @@ pub fn disable_peripheral_clock(clock: crate::PeripheralSelect) {
         .modify(|r, w| unsafe { w.bits(r.bits() & !(1 << clock as u8)) });
 }
 
+/// Assert the reset line of a peripheral, holding it in reset.
 #[inline]
 pub fn assert_peripheral_reset(periph_sel: crate::PeripheralSelect) {
     let syscfg = unsafe { pac::Sysconfig::steal() };
@@ -27,6 +30,7 @@ pub fn assert_peripheral_reset(periph_sel: crate::PeripheralSelect) {
         .modify(|r, w| unsafe { w.bits(r.bits() & !(1 << periph_sel as u8)) });
 }
 
+/// Deassert the reset line of a peripheral, releasing it from reset.
 #[inline]
 pub fn deassert_peripheral_reset(periph_sel: crate::PeripheralSelect) {
     let syscfg = unsafe { pac::Sysconfig::steal() };
@@ -35,6 +39,7 @@ pub fn deassert_peripheral_reset(periph_sel: crate::PeripheralSelect) {
         .modify(|r, w| unsafe { w.bits(r.bits() | (1 << periph_sel as u8)) });
 }
 
+/// Assert the reset line of a peripheral for a given number of CPU cycles, then release it.
 #[inline]
 pub fn reset_peripheral_for_cycles(periph_sel: crate::PeripheralSelect, cycles: usize) {
     assert_peripheral_reset(periph_sel);

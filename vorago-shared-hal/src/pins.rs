@@ -11,10 +11,13 @@ use va416xx as pac;
 
 /// Trait implemented by data structures associated with pin identification.
 pub trait PinId {
+    /// Dynamic pin ID for this pin.
     const ID: crate::gpio::ll::DynPinId;
 }
 
+/// Trait implemented by all typed [Pin] instances, allowing type-erased access to their ID.
 pub trait AnyPin: Sealed {
+    /// Dynamic pin ID for this pin.
     const ID: DynPinId;
 }
 
@@ -263,57 +266,90 @@ cfg_if::cfg_if! {
 
 /// Resource management singleton for GPIO PORT A.
 pub struct PinsA {
+    /// GPIO pin PA0.
     pub pa0: Pin<Pa0>,
+    /// GPIO pin PA1.
     pub pa1: Pin<Pa1>,
+    /// GPIO pin PA2.
     pub pa2: Pin<Pa2>,
+    /// GPIO pin PA3.
     pub pa3: Pin<Pa3>,
+    /// GPIO pin PA4.
     pub pa4: Pin<Pa4>,
+    /// GPIO pin PA5.
     pub pa5: Pin<Pa5>,
+    /// GPIO pin PA6.
     pub pa6: Pin<Pa6>,
+    /// GPIO pin PA7.
     pub pa7: Pin<Pa7>,
+    /// GPIO pin PA8.
     pub pa8: Pin<Pa8>,
+    /// GPIO pin PA9.
     pub pa9: Pin<Pa9>,
+    /// GPIO pin PA10.
     pub pa10: Pin<Pa10>,
+    /// GPIO pin PA11.
     pub pa11: Pin<Pa11>,
+    /// GPIO pin PA12.
     pub pa12: Pin<Pa12>,
+    /// GPIO pin PA13.
     pub pa13: Pin<Pa13>,
+    /// GPIO pin PA14.
     pub pa14: Pin<Pa14>,
+    /// GPIO pin PA15.
     pub pa15: Pin<Pa15>,
     #[cfg(feature = "vor1x")]
+    /// GPIO pin PA16.
     pub pa16: Pin<Pa16>,
     #[cfg(feature = "vor1x")]
+    /// GPIO pin PA17.
     pub pa17: Pin<Pa17>,
     #[cfg(feature = "vor1x")]
+    /// GPIO pin PA18.
     pub pa18: Pin<Pa18>,
     #[cfg(feature = "vor1x")]
+    /// GPIO pin PA19.
     pub pa19: Pin<Pa19>,
     #[cfg(feature = "vor1x")]
+    /// GPIO pin PA20.
     pub pa20: Pin<Pa20>,
     #[cfg(feature = "vor1x")]
+    /// GPIO pin PA21.
     pub pa21: Pin<Pa21>,
     #[cfg(feature = "vor1x")]
+    /// GPIO pin PA22.
     pub pa22: Pin<Pa22>,
     #[cfg(feature = "vor1x")]
+    /// GPIO pin PA23.
     pub pa23: Pin<Pa23>,
     #[cfg(feature = "vor1x")]
+    /// GPIO pin PA24.
     pub pa24: Pin<Pa24>,
     #[cfg(feature = "vor1x")]
+    /// GPIO pin PA25.
     pub pa25: Pin<Pa25>,
     #[cfg(feature = "vor1x")]
+    /// GPIO pin PA26.
     pub pa26: Pin<Pa26>,
     #[cfg(feature = "vor1x")]
+    /// GPIO pin PA27.
     pub pa27: Pin<Pa27>,
     #[cfg(feature = "vor1x")]
+    /// GPIO pin PA28.
     pub pa28: Pin<Pa28>,
     #[cfg(feature = "vor1x")]
+    /// GPIO pin PA29.
     pub pa29: Pin<Pa29>,
     #[cfg(feature = "vor1x")]
+    /// GPIO pin PA30.
     pub pa30: Pin<Pa30>,
     #[cfg(feature = "vor1x")]
+    /// GPIO pin PA31.
     pub pa31: Pin<Pa31>,
 }
 
 impl PinsA {
+    /// Take ownership of GPIO PORT A and create the pin resource singleton.
     pub fn new(_port_a: pac::Porta) -> Self {
         let syscfg = unsafe { pac::Sysconfig::steal() };
         reset_peripheral_for_cycles(PeripheralSelect::PortA, 2);
@@ -378,48 +414,73 @@ impl PinsA {
 
 /// Resource management singleton for GPIO PORT B.
 pub struct PinsB {
+    /// GPIO pin PB0.
     pub pb0: Pin<Pb0>,
+    /// GPIO pin PB1.
     pub pb1: Pin<Pb1>,
+    /// GPIO pin PB2.
     pub pb2: Pin<Pb2>,
+    /// GPIO pin PB3.
     pub pb3: Pin<Pb3>,
+    /// GPIO pin PB4.
     pub pb4: Pin<Pb4>,
     #[cfg(not(feature = "va41628"))]
+    /// GPIO pin PB5.
     pub pb5: Pin<Pb5>,
     #[cfg(not(feature = "va41628"))]
+    /// GPIO pin PB6.
     pub pb6: Pin<Pb6>,
     #[cfg(not(feature = "va41628"))]
+    /// GPIO pin PB7.
     pub pb7: Pin<Pb7>,
     #[cfg(not(feature = "va41628"))]
+    /// GPIO pin PB8.
     pub pb8: Pin<Pb8>,
     #[cfg(not(feature = "va41628"))]
+    /// GPIO pin PB9.
     pub pb9: Pin<Pb9>,
     #[cfg(not(feature = "va41628"))]
+    /// GPIO pin PB10.
     pub pb10: Pin<Pb10>,
     #[cfg(not(feature = "va41628"))]
+    /// GPIO pin PB11.
     pub pb11: Pin<Pb11>,
+    /// GPIO pin PB12.
     pub pb12: Pin<Pb12>,
+    /// GPIO pin PB13.
     pub pb13: Pin<Pb13>,
+    /// GPIO pin PB14.
     pub pb14: Pin<Pb14>,
+    /// GPIO pin PB15.
     pub pb15: Pin<Pb15>,
     #[cfg(feature = "vor1x")]
+    /// GPIO pin PB16.
     pub pb16: Pin<Pb16>,
     #[cfg(feature = "vor1x")]
+    /// GPIO pin PB17.
     pub pb17: Pin<Pb17>,
     #[cfg(feature = "vor1x")]
+    /// GPIO pin PB18.
     pub pb18: Pin<Pb18>,
     #[cfg(feature = "vor1x")]
+    /// GPIO pin PB19.
     pub pb19: Pin<Pb19>,
     #[cfg(feature = "vor1x")]
+    /// GPIO pin PB20.
     pub pb20: Pin<Pb20>,
     #[cfg(feature = "vor1x")]
+    /// GPIO pin PB21.
     pub pb21: Pin<Pb21>,
     #[cfg(feature = "vor1x")]
+    /// GPIO pin PB22.
     pub pb22: Pin<Pb22>,
     #[cfg(feature = "vor1x")]
+    /// GPIO pin PB23.
     pub pb23: Pin<Pb23>,
 }
 
 impl PinsB {
+    /// Take ownership of GPIO PORT B and create the pin resource singleton.
     pub fn new(_port_b: pac::Portb) -> Self {
         let syscfg = unsafe { pac::Sysconfig::steal() };
         reset_peripheral_for_cycles(PeripheralSelect::PortB, 2);
@@ -477,27 +538,44 @@ cfg_if::cfg_if! {
     if #[cfg(feature = "vor4x")] {
         /// Resource management singleton for GPIO PORT C.
         pub struct PinsC {
+            /// GPIO pin PC0.
             pub pc0: Pin<Pc0>,
+            /// GPIO pin PC1.
             pub pc1: Pin<Pc1>,
+            /// GPIO pin PC2.
             pub pc2: Pin<Pc2>,
+            /// GPIO pin PC3.
             pub pc3: Pin<Pc3>,
+            /// GPIO pin PC4.
             pub pc4: Pin<Pc4>,
+            /// GPIO pin PC5.
             pub pc5: Pin<Pc5>,
+            /// GPIO pin PC6.
             pub pc6: Pin<Pc6>,
+            /// GPIO pin PC7.
             pub pc7: Pin<Pc7>,
+            /// GPIO pin PC8.
             pub pc8: Pin<Pc8>,
+            /// GPIO pin PC9.
             pub pc9: Pin<Pc9>,
+            /// GPIO pin PC10.
             pub pc10: Pin<Pc10>,
+            /// GPIO pin PC11.
             pub pc11: Pin<Pc11>,
+            /// GPIO pin PC12.
             pub pc12: Pin<Pc12>,
             #[cfg(not(feature = "va41628"))]
+            /// GPIO pin PC13.
             pub pc13: Pin<Pc13>,
+            /// GPIO pin PC14.
             pub pc14: Pin<Pc14>,
             #[cfg(not(feature = "va41628"))]
+            /// GPIO pin PC15.
             pub pc15: Pin<Pc15>,
         }
 
         impl PinsC {
+            /// Take ownership of GPIO PORT C and create the pin resource singleton.
             pub fn new(_port_c: pac::Portc) -> Self {
                 let syscfg = unsafe { pac::Sysconfig::steal() };
                 reset_peripheral_for_cycles(PeripheralSelect::PortC, 2);
@@ -531,34 +609,51 @@ cfg_if::cfg_if! {
         /// Resource management singleton for GPIO PORT D.
         pub struct PinsD {
             #[cfg(not(feature = "va41628"))]
+            /// GPIO pin PD0.
             pub pd0: Pin<Pd0>,
             #[cfg(not(feature = "va41628"))]
+            /// GPIO pin PD1.
             pub pd1: Pin<Pd1>,
             #[cfg(not(feature = "va41628"))]
+            /// GPIO pin PD2.
             pub pd2: Pin<Pd2>,
             #[cfg(not(feature = "va41628"))]
+            /// GPIO pin PD3.
             pub pd3: Pin<Pd3>,
             #[cfg(not(feature = "va41628"))]
+            /// GPIO pin PD4.
             pub pd4: Pin<Pd4>,
             #[cfg(not(feature = "va41628"))]
+            /// GPIO pin PD5.
             pub pd5: Pin<Pd5>,
             #[cfg(not(feature = "va41628"))]
+            /// GPIO pin PD6.
             pub pd6: Pin<Pd6>,
             #[cfg(not(feature = "va41628"))]
+            /// GPIO pin PD7.
             pub pd7: Pin<Pd7>,
             #[cfg(not(feature = "va41628"))]
+            /// GPIO pin PD8.
             pub pd8: Pin<Pd8>,
             #[cfg(not(feature = "va41628"))]
+            /// GPIO pin PD9.
             pub pd9: Pin<Pd9>,
+            /// GPIO pin PD10.
             pub pd10: Pin<Pd10>,
+            /// GPIO pin PD11.
             pub pd11: Pin<Pd11>,
+            /// GPIO pin PD12.
             pub pd12: Pin<Pd12>,
+            /// GPIO pin PD13.
             pub pd13: Pin<Pd13>,
+            /// GPIO pin PD14.
             pub pd14: Pin<Pd14>,
+            /// GPIO pin PD15.
             pub pd15: Pin<Pd15>,
         }
 
         impl PinsD {
+            /// Take ownership of GPIO PORT D and create the pin resource singleton.
             pub fn new(_port_d: pac::Portd) -> Self {
                 let syscfg = unsafe { pac::Sysconfig::steal() };
                 reset_peripheral_for_cycles(PeripheralSelect::PortD, 2);
@@ -599,27 +694,44 @@ cfg_if::cfg_if! {
 
         /// Resource management singleton for GPIO PORT E.
         pub struct PinsE {
+            /// GPIO pin PE0.
             pub pe0: Pin<Pe0>,
+            /// GPIO pin PE1.
             pub pe1: Pin<Pe1>,
+            /// GPIO pin PE2.
             pub pe2: Pin<Pe2>,
+            /// GPIO pin PE3.
             pub pe3: Pin<Pe3>,
+            /// GPIO pin PE4.
             pub pe4: Pin<Pe4>,
+            /// GPIO pin PE5.
             pub pe5: Pin<Pe5>,
+            /// GPIO pin PE6.
             pub pe6: Pin<Pe6>,
+            /// GPIO pin PE7.
             pub pe7: Pin<Pe7>,
+            /// GPIO pin PE8.
             pub pe8: Pin<Pe8>,
+            /// GPIO pin PE9.
             pub pe9: Pin<Pe9>,
             #[cfg(not(feature = "va41628"))]
+            /// GPIO pin PE10.
             pub pe10: Pin<Pe10>,
             #[cfg(not(feature = "va41628"))]
+            /// GPIO pin PE11.
             pub pe11: Pin<Pe11>,
+            /// GPIO pin PE12.
             pub pe12: Pin<Pe12>,
+            /// GPIO pin PE13.
             pub pe13: Pin<Pe13>,
+            /// GPIO pin PE14.
             pub pe14: Pin<Pe14>,
+            /// GPIO pin PE15.
             pub pe15: Pin<Pe15>,
         }
 
         impl PinsE {
+            /// Take ownership of GPIO PORT E and create the pin resource singleton.
             pub fn new(_port_e: pac::Porte) -> Self {
                 let syscfg = unsafe { pac::Sysconfig::steal() };
                 reset_peripheral_for_cycles(PeripheralSelect::PortE, 2);
@@ -652,33 +764,50 @@ cfg_if::cfg_if! {
 
         /// Resource management singleton for GPIO PORT F.
         pub struct PinsF {
+            /// GPIO pin PF0.
             pub pf0: Pin<Pf0>,
+            /// GPIO pin PF1.
             pub pf1: Pin<Pf1>,
             #[cfg(not(feature = "va41628"))]
+            /// GPIO pin PF2.
             pub pf2: Pin<Pf2>,
             #[cfg(not(feature = "va41628"))]
+            /// GPIO pin PF3.
             pub pf3: Pin<Pf3>,
             #[cfg(not(feature = "va41628"))]
+            /// GPIO pin PF4.
             pub pf4: Pin<Pf4>,
             #[cfg(not(feature = "va41628"))]
+            /// GPIO pin PF5.
             pub pf5: Pin<Pf5>,
             #[cfg(not(feature = "va41628"))]
+            /// GPIO pin PF6.
             pub pf6: Pin<Pf6>,
             #[cfg(not(feature = "va41628"))]
+            /// GPIO pin PF7.
             pub pf7: Pin<Pf7>,
             #[cfg(not(feature = "va41628"))]
+            /// GPIO pin PF8.
             pub pf8: Pin<Pf8>,
+            /// GPIO pin PF9.
             pub pf9: Pin<Pf9>,
             #[cfg(not(feature = "va41628"))]
+            /// GPIO pin PF10.
             pub pf10: Pin<Pf10>,
+            /// GPIO pin PF11.
             pub pf11: Pin<Pf11>,
+            /// GPIO pin PF12.
             pub pf12: Pin<Pf12>,
+            /// GPIO pin PF13.
             pub pf13: Pin<Pf13>,
+            /// GPIO pin PF14.
             pub pf14: Pin<Pf14>,
+            /// GPIO pin PF15.
             pub pf15: Pin<Pf15>,
         }
 
         impl PinsF {
+            /// Take ownership of GPIO PORT F and create the pin resource singleton.
             pub fn new(_port_f: pac::Portf) -> Self {
                 let syscfg = unsafe { pac::Sysconfig::steal() };
                 reset_peripheral_for_cycles(PeripheralSelect::PortF, 2);
@@ -717,17 +846,26 @@ cfg_if::cfg_if! {
 
         /// Resource management singleton for GPIO PORT G.
         pub struct PinsG {
+            /// GPIO pin PG0.
             pub pg0: Pin<Pg0>,
+            /// GPIO pin PG1.
             pub pg1: Pin<Pg1>,
+            /// GPIO pin PG2.
             pub pg2: Pin<Pg2>,
+            /// GPIO pin PG3.
             pub pg3: Pin<Pg3>,
+            /// GPIO pin PG4.
             pub pg4: Pin<Pg4>,
+            /// GPIO pin PG5.
             pub pg5: Pin<Pg5>,
+            /// GPIO pin PG6.
             pub pg6: Pin<Pg6>,
+            /// GPIO pin PG7.
             pub pg7: Pin<Pg7>,
         }
 
         impl PinsG {
+            /// Take ownership of GPIO PORT G and create the pin resource singleton.
             pub fn new(_port_g: pac::Portg) -> Self {
                 let syscfg = unsafe { pac::Sysconfig::steal() };
                 reset_peripheral_for_cycles(PeripheralSelect::PortG, 2);

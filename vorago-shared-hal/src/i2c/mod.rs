@@ -1,3 +1,4 @@
+/// Register definitions for the I2C peripheral.
 pub mod regs;
 
 use crate::{
@@ -23,20 +24,25 @@ const CLK_100K: Hertz = Hertz::from_raw(100_000);
 const CLK_400K: Hertz = Hertz::from_raw(400_000);
 const MIN_CLK_400K: Hertz = Hertz::from_raw(8_000_000);
 
+/// The configured clock is too slow to reach the requested I2C fast mode speed.
 #[derive(Debug, PartialEq, Eq, thiserror::Error)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 #[error("clock too slow for fast I2C mode")]
 pub struct ClockTooSlowForFastI2cError;
 
+/// Invalid timing parameters were passed.
 #[derive(Debug, PartialEq, Eq, thiserror::Error)]
 #[error("invalid timing parameters")]
 pub struct InvalidTimingParamsError;
 
+/// Error type for I2C transactions.
 #[derive(Debug, PartialEq, Eq, thiserror::Error)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum Error {
+    /// Arbitration was lost.
     #[error("arbitration lost")]
     ArbitrationLost,
+    /// Address not acknowledged.
     #[error("nack address")]
     NackAddr,
     /// Data not acknowledged in write operation
@@ -48,10 +54,12 @@ pub enum Error {
     /// Number of bytes in transfer too large (larger than 0x7fe)
     #[error("data too large (larger than 0x7fe)")]
     DataTooLarge,
+    /// The I2C clock was seen low for longer than the configured timeout.
     #[error("clock timeout, SCL was low for {0} clock cycles")]
     ClockTimeout(u20),
 }
 
+/// Error type for [I2cMaster::new].
 #[derive(Debug, PartialEq, Eq, thiserror::Error)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum InitError {
@@ -80,29 +88,40 @@ impl embedded_hal::i2c::Error for Error {
     }
 }
 
+/// Command written to the COMMAND register to control a transaction.
 #[derive(Debug, PartialEq, Copy, Clone)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum I2cCommand {
+    /// Issue a START condition.
     Start = 0b01,
+    /// Issue a STOP condition.
     Stop = 0b10,
+    /// Issue a START condition followed by a STOP condition.
     StartWithStop = 0b11,
+    /// Cancel the current transaction.
     Cancel = 0b100,
 }
 
+/// Slave address, either 7-bit or 10-bit.
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum I2cAddress {
+    /// 7-bit address.
     Regular(u8),
+    /// 10-bit address.
     TenBit(u16),
 }
 
 impl I2cAddress {
+    /// Whether this is a 10-bit address.
     pub fn ten_bit_addr(&self) -> bool {
         match self {
             I2cAddress::Regular(_) => false,
             I2cAddress::TenBit(_) => true,
         }
     }
+
+    /// The raw address value.
     pub fn raw(&self) -> u16 {
         match self {
             I2cAddress::Regular(addr) => *addr as u16,
@@ -114,12 +133,16 @@ impl I2cAddress {
 /// Common trait implemented by all PAC peripheral access structures. The register block
 /// format is the same for all SPI blocks.
 pub trait I2cInstance: Sealed {
+    /// I2C bank of the peripheral.
     const ID: Bank;
+    /// Peripheral selector used for clock and reset control.
     const PERIPH_SEL: PeripheralSelect;
 }
 
+/// I2C0 peripheral instance.
 #[cfg(feature = "vor1x")]
 pub type I2c0 = pac::I2ca;
+/// I2C0 peripheral instance.
 #[cfg(feature = "vor4x")]
 pub type I2c0 = pac::I2c0;
 
@@ -129,8 +152,10 @@ impl I2cInstance for I2c0 {
 }
 impl Sealed for I2c0 {}
 
+/// I2C1 peripheral instance.
 #[cfg(feature = "vor1x")]
 pub type I2c1 = pac::I2cb;
+/// I2C1 peripheral instance.
 #[cfg(feature = "vor4x")]
 pub type I2c1 = pac::I2c1;
 
@@ -171,16 +196,25 @@ fn calc_clk_div(sys_clk: Hertz, speed_mode: I2cSpeed) -> Result<u8, ClockTooSlow
     calc_clk_div_generic(sys_clk, speed_mode)
 }
 
+/// Manual override for the I2C bus timing values normally derived from the clock scale.
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct TimingConfig {
+    /// Rise time.
     pub t_rise: u4,
+    /// Fall time.
     pub t_fall: u4,
+    /// Duty cycle high time of SCL.
     pub t_high: u4,
+    /// Duty cycle low time of SCL.
     pub t_low: u4,
+    /// Setup time for STOP.
     pub tsu_stop: u4,
+    /// Setup time for START.
     pub tsu_start: u4,
+    /// Data hold time.
     pub thd_start: u4,
+    /// Bus free time between STOP and START.
     pub t_buf: u4,
 }
 
@@ -200,14 +234,18 @@ impl Default for TimingConfig {
     }
 }
 
+/// Configuration for [I2cMaster::new].
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct MasterConfig {
+    /// Behavior when the TX FIFO is empty.
     pub tx_empty_mode: TxFifoEmptyMode,
+    /// Behavior when the RX FIFO is full.
     pub rx_full_mode: RxFifoFullMode,
     /// Enable the analog delay glitch filter
     pub alg_filt: bool,
     /// Enable the digital glitch filter
     pub dlg_filt: bool,
+    /// Manual override for the bus timing values.
     pub timing_config: Option<TimingConfig>,
     /// See [I2cMaster::set_clock_low_timeout] documentation.
     pub timeout: Option<u20>,
@@ -284,6 +322,7 @@ impl Drop for TimeoutGuard {
 // I2C Master
 //==================================================================================================
 
+/// I2C master driver.
 pub struct I2cMaster<Addr = SevenBitAddress> {
     id: Bank,
     regs: regs::MmioI2c<'static>,
@@ -291,6 +330,7 @@ pub struct I2cMaster<Addr = SevenBitAddress> {
 }
 
 impl<Addr> I2cMaster<Addr> {
+    /// Create a new I2C master driver, taking ownership of the given peripheral instance.
     pub fn new<I2c: I2cInstance>(
         _i2c: I2c,
         #[cfg(feature = "vor1x")] sysclk: Hertz,
@@ -355,10 +395,12 @@ impl<Addr> I2cMaster<Addr> {
         Ok(i2c_master)
     }
 
+    /// I2C bank of this instance.
     pub const fn id(&self) -> Bank {
         self.id
     }
 
+    /// Read the peripheral ID register.
     #[inline]
     pub fn perid(&self) -> u32 {
         self.regs.read_perid()
@@ -386,6 +428,7 @@ impl<Addr> I2cMaster<Addr> {
         Ok(())
     }
 
+    /// Cancel the currently ongoing transaction.
     #[inline]
     pub fn cancel_transfer(&mut self) {
         self.regs.write_cmd(
@@ -397,6 +440,7 @@ impl<Addr> I2cMaster<Addr> {
         );
     }
 
+    /// Clear the TX FIFO.
     #[inline]
     pub fn clear_tx_fifo(&mut self) {
         self.regs.write_fifo_clear(
@@ -407,6 +451,7 @@ impl<Addr> I2cMaster<Addr> {
         );
     }
 
+    /// Clear the RX FIFO.
     #[inline]
     pub fn clear_rx_fifo(&mut self) {
         self.regs.write_fifo_clear(
@@ -429,12 +474,14 @@ impl<Addr> I2cMaster<Addr> {
             .write_clk_timeout_limit(ClockTimeoutLimit::new(clock_cycles));
     }
 
+    /// Disable the clock low timeout.
     #[inline]
     pub fn disable_clock_low_timeout(&mut self) {
         self.regs
             .write_clk_timeout_limit(ClockTimeoutLimit::new(u20::new(0)));
     }
 
+    /// Enable the peripheral.
     #[inline]
     pub fn enable(&mut self) {
         self.regs.modify_control(|mut value| {
@@ -443,6 +490,7 @@ impl<Addr> I2cMaster<Addr> {
         });
     }
 
+    /// Disable the peripheral.
     #[inline]
     pub fn disable(&mut self) {
         self.regs.modify_control(|mut value| {
@@ -461,17 +509,20 @@ impl<Addr> I2cMaster<Addr> {
         self.regs.read_data().data()
     }
 
+    /// Read the STATUS register.
     #[inline]
     pub fn read_status(&mut self) -> regs::Status {
         self.regs.read_status()
     }
 
+    /// Write a command to the COMMAND register.
     #[inline]
     pub fn write_command(&mut self, cmd: I2cCommand) {
         self.regs
             .write_cmd(regs::Command::new_with_raw_value(cmd as u32));
     }
 
+    /// Write the target address and transfer direction to the ADDRESS register.
     #[inline]
     pub fn write_address(&mut self, addr: I2cAddress, dir: regs::Direction) {
         self.regs.write_address(
