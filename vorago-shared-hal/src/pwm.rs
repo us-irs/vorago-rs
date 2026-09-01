@@ -20,9 +20,12 @@ use crate::timer::{
 
 const DUTY_MAX: u16 = u16::MAX;
 
+/// Type-state marker for [PwmPin] in the default PWM mode, driven by a single duty cycle value.
 #[derive(Debug)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum PwmA {}
+/// Type-state marker for [PwmPin] in the mode with a configurable lower limit in addition to the
+/// duty cycle.
 #[derive(Debug)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum PwmB {}
@@ -155,11 +158,13 @@ impl<Mode> PwmPin<Mode> {
         });
     }
 
+    /// The currently configured PWM period.
     #[inline]
     pub fn get_period(&self) -> Hertz {
         self.current_period
     }
 
+    /// Set the PWM period.
     #[inline]
     pub fn set_period(&mut self, period: impl Into<Hertz>) {
         self.current_period = period.into();
@@ -171,21 +176,25 @@ impl<Mode> PwmPin<Mode> {
         self.regs.write_reset_value(self.current_rst_val);
     }
 
+    /// Disable the PWM output.
     #[inline]
     pub fn disable(&mut self) {
         self.regs.write_enable_control(EnableControl::new_disable());
     }
 
+    /// Enable the PWM output.
     #[inline]
     pub fn enable(&mut self) {
         self.regs.write_enable_control(EnableControl::new_enable());
     }
 
+    /// The currently configured PWM period.
     #[inline]
     pub fn period(&self) -> Hertz {
         self.current_period
     }
 
+    /// The currently configured duty cycle.
     #[inline(always)]
     pub fn duty(&self) -> u16 {
         self.current_duty
@@ -231,11 +240,13 @@ impl From<PwmPin<PwmB>> for PwmPin<PwmA> {
 //==================================================================================================
 
 impl PwmPin<PwmB> {
+    /// The currently configured lower limit.
     #[inline(always)]
     pub fn pwmb_lower_limit(&self) -> u16 {
         self.current_lower_limit
     }
 
+    /// The currently configured upper limit.
     #[inline(always)]
     pub fn pwmb_upper_limit(&self) -> u16 {
         self.current_duty

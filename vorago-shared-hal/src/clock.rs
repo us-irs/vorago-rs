@@ -1,5 +1,6 @@
 use crate::time::Hertz;
 
+/// Frequency of the internal high-speed backup oscillator.
 pub const HBO_FREQ: Hertz = Hertz::from_raw(20_000_000);
 
 /// Frozen clock frequencies

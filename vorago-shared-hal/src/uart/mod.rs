@@ -17,6 +17,7 @@
 //! - [UART with IRQ and RTIC](https://egit.irs.uni-stuttgart.de/rust/vorago-rs/src/branch/main/va108xx/examples/rtic/src/bin/uart-echo-rtic.rs)
 //! - [Flashloader exposing a CCSDS interface via UART](https://egit.irs.uni-stuttgart.de/rust/vorago-rs/src/branch/main/va108xx/flashloader)
 use core::convert::Infallible;
+/// Register definitions for the UART peripheral.
 pub mod regs;
 #[cfg(feature = "vor1x")]
 use crate::InterruptConfig;
@@ -54,32 +55,50 @@ pub const FIFO_DEPTH: usize = 16;
 // Type-Level support
 //==================================================================================================
 
+/// Marker trait for pins usable as the TX pin of UART0.
 pub trait TxPin0: AnyPin {
+    /// UART bank this pin belongs to.
     const BANK: Bank = Bank::Uart0;
+    /// Alternate function to select to route this pin to the UART peripheral.
     const FUNC_SEL: FunctionSelect;
 }
+/// Marker trait for pins usable as the RX pin of UART0.
 pub trait RxPin0: AnyPin {
+    /// UART bank this pin belongs to.
     const BANK: Bank = Bank::Uart0;
+    /// Alternate function to select to route this pin to the UART peripheral.
     const FUNC_SEL: FunctionSelect;
 }
 
+/// Marker trait for pins usable as the TX pin of UART1.
 pub trait TxPin1: AnyPin {
+    /// UART bank this pin belongs to.
     const BANK: Bank = Bank::Uart1;
+    /// Alternate function to select to route this pin to the UART peripheral.
     const FUNC_SEL: FunctionSelect;
 }
+/// Marker trait for pins usable as the RX pin of UART1.
 pub trait RxPin1: AnyPin {
+    /// UART bank this pin belongs to.
     const BANK: Bank = Bank::Uart1;
+    /// Alternate function to select to route this pin to the UART peripheral.
     const FUNC_SEL: FunctionSelect;
 }
 
+/// Marker trait for pins usable as the TX pin of UART2.
 #[cfg(feature = "vor4x")]
 pub trait TxPin2: AnyPin {
+    /// UART bank this pin belongs to.
     const BANK: Bank = Bank::Uart2;
+    /// Alternate function to select to route this pin to the UART peripheral.
     const FUNC_SEL: FunctionSelect;
 }
+/// Marker trait for pins usable as the RX pin of UART2.
 #[cfg(feature = "vor4x")]
 pub trait RxPin2: AnyPin {
+    /// UART bank this pin belongs to.
     const BANK: Bank = Bank::Uart2;
+    /// Alternate function to select to route this pin to the UART peripheral.
     const FUNC_SEL: FunctionSelect;
 }
 
@@ -87,41 +106,45 @@ pub trait RxPin2: AnyPin {
 // Regular Definitions
 //==================================================================================================
 
+/// No interrupt ID was configured for the given UART instance.
 #[derive(Debug, PartialEq, Eq, thiserror::Error)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 #[error("no interrupt ID was set")]
 pub struct NoInterruptIdWasSet;
 
+/// A transfer is already pending and cannot be started again.
 #[derive(Debug, PartialEq, Eq, thiserror::Error)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 #[error("transer is pending")]
 pub struct TransferPendingError;
 
+/// UART interrupt events, see [Uart::listen] and [Uart::unlisten].
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum Event {
-    // Receiver FIFO interrupt enable. Generates interrupt
-    // when FIFO is at least half full. Half full is defined as FIFO
-    // count >= RXFIFOIRQTRG
+    /// Receiver FIFO interrupt enable. Generates interrupt
+    /// when FIFO is at least half full. Half full is defined as FIFO
+    /// count >= RXFIFOIRQTRG
     RxFifoHalfFull,
-    // Framing error, Overrun error, Parity Error and Break error
+    /// Framing error, Overrun error, Parity Error and Break error
     RxError,
-    // Event for timeout condition: Data in the FIFO and no receiver
-    // FIFO activity for 4 character times
+    /// Event for timeout condition: Data in the FIFO and no receiver
+    /// FIFO activity for 4 character times
     RxTimeout,
 
-    // Transmitter FIFO interrupt enable. Generates interrupt
-    // when FIFO is at least half full. Half full is defined as FIFO
-    // count >= TXFIFOIRQTRG
+    /// Transmitter FIFO interrupt enable. Generates interrupt
+    /// when FIFO is at least half full. Half full is defined as FIFO
+    /// count >= TXFIFOIRQTRG
     TxFifoHalfFull,
-    // FIFO overflow error
+    /// FIFO overflow error
     TxError,
-    // Generate interrupt when transmit FIFO is empty and TXBUSY is 0
+    /// Generate interrupt when transmit FIFO is empty and TXBUSY is 0
     TxEmpty,
-    // Interrupt when CTSn changes value
+    /// Interrupt when CTSn changes value
     TxCts,
 }
 
+/// Baud clock mode, see [ClockConfig::calculate].
 #[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum BaudMode {
@@ -133,6 +156,7 @@ pub enum BaudMode {
 }
 
 impl BaudMode {
+    /// Baud clock multiplier for this mode.
     pub const fn multiplier(&self) -> u32 {
         match self {
             BaudMode::_16 => 16,
@@ -141,14 +165,19 @@ impl BaudMode {
     }
 }
 
+/// UART parity configuration.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum Parity {
+    /// No parity bit.
     None,
+    /// Odd parity.
     Odd,
+    /// Even parity.
     Even,
 }
 
+/// UART baud rate clock configuration.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct ClockConfig {
@@ -156,10 +185,12 @@ pub struct ClockConfig {
     pub div: u18,
     /// Fractional divide value in 1/64 units.
     pub frac: u6,
+    /// Baud clock mode.
     pub baud_mode: BaudMode,
 }
 
 impl ClockConfig {
+    /// Calculate the clock configuration for the given reference clock and target baudrate.
     pub const fn calculate(ref_clk: Hertz, baudrate: Hertz, baud_mode: BaudMode) -> Self {
         // This is the calculation: (64.0 * (x - integer_part as f32) + 0.5) as u32 without floating
         // point calculations.
@@ -176,6 +207,8 @@ impl ClockConfig {
         }
     }
 
+    /// Calculate the clock configuration for the given UART bank's reference clock and target
+    /// baudrate.
     #[cfg(feature = "vor4x")]
     pub fn calculate_with_clocks(
         uart_id: Bank,
@@ -192,18 +225,27 @@ impl ClockConfig {
     }
 }
 
+/// Configuration for [Uart::new_for_uart0] and related constructors.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct Config {
+    /// Clock configuration, determining the baudrate.
     pub clock_config: ClockConfig,
+    /// Parity configuration.
     pub parity: Parity,
+    /// Number of stop bits.
     pub stopbits: Stopbits,
+    /// Word size.
     pub wordsize: WordSize,
+    /// Enable the transmitter.
     pub enable_tx: bool,
+    /// Enable the receiver.
     pub enable_rx: bool,
 }
 
 impl Config {
+    /// Create a new configuration with the given clock configuration and the remaining fields
+    /// set to their default values.
     pub fn new_with_clock_config(clock_config: ClockConfig) -> Self {
         Config {
             clock_config,
@@ -215,31 +257,37 @@ impl Config {
         }
     }
 
+    /// Set the clock configuration.
     pub fn with_clock_config(mut self, clock_config: ClockConfig) -> Self {
         self.clock_config = clock_config;
         self
     }
 
+    /// Disable parity.
     pub fn with_parity_none(mut self) -> Self {
         self.parity = Parity::None;
         self
     }
 
+    /// Use even parity.
     pub fn with_parity_even(mut self) -> Self {
         self.parity = Parity::Even;
         self
     }
 
+    /// Use odd parity.
     pub fn with_parity_odd(mut self) -> Self {
         self.parity = Parity::Odd;
         self
     }
 
+    /// Set the number of stop bits.
     pub fn with_stopbits(mut self, stopbits: Stopbits) -> Self {
         self.stopbits = stopbits;
         self
     }
 
+    /// Set the word size.
     pub fn with_wordsize(mut self, wordsize: WordSize) -> Self {
         self.wordsize = wordsize;
         self
@@ -250,15 +298,19 @@ impl Config {
 // IRQ Definitions
 //==================================================================================================
 
+/// State tracked across interrupts for
+/// [RxWithInterrupt::on_interrupt_max_size_or_timeout_based].
 #[derive(Debug, Copy, Clone)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct InterruptContextTimeoutOrMaxSize {
     rx_idx: usize,
     mode: InterruptReceptionMode,
+    /// Maximum length of the packet to receive.
     pub max_len: usize,
 }
 
 impl InterruptContextTimeoutOrMaxSize {
+    /// Create a new context for a packet with the given maximum length.
     pub fn new(max_len: usize) -> Self {
         InterruptContextTimeoutOrMaxSize {
             rx_idx: 0,
@@ -269,6 +321,7 @@ impl InterruptContextTimeoutOrMaxSize {
 }
 
 impl InterruptContextTimeoutOrMaxSize {
+    /// Reset the context to start receiving a new packet.
     pub fn reset(&mut self) {
         self.rx_idx = 0;
         self.mode = InterruptReceptionMode::Idle;
@@ -279,7 +332,9 @@ impl InterruptContextTimeoutOrMaxSize {
 #[derive(Debug, Default)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct InterruptResult {
+    /// Number of bytes read.
     pub bytes_read: usize,
+    /// Receiver errors encountered, if any.
     pub errors: Option<UartErrors>,
 }
 
@@ -289,11 +344,14 @@ pub struct InterruptResult {
 pub struct InterruptResultMaxSizeOrTimeout {
     complete: bool,
     timeout: bool,
+    /// Receiver errors encountered, if any.
     pub errors: Option<UartErrors>,
+    /// Number of bytes read so far.
     pub bytes_read: usize,
 }
 
 impl InterruptResultMaxSizeOrTimeout {
+    /// Create a new, empty result.
     pub fn new() -> Self {
         InterruptResultMaxSizeOrTimeout {
             complete: false,
@@ -304,31 +362,37 @@ impl InterruptResultMaxSizeOrTimeout {
     }
 }
 impl InterruptResultMaxSizeOrTimeout {
+    /// Whether any receiver errors were encountered.
     #[inline]
     pub fn has_errors(&self) -> bool {
         self.errors.is_some()
     }
 
+    /// Whether an overflow error was encountered.
     #[inline]
     pub fn overflow_error(&self) -> bool {
         self.errors.is_some_and(|e| e.overflow)
     }
 
+    /// Whether a framing error was encountered.
     #[inline]
     pub fn framing_error(&self) -> bool {
         self.errors.is_some_and(|e| e.framing)
     }
 
+    /// Whether a parity error was encountered.
     #[inline]
     pub fn parity_error(&self) -> bool {
         self.errors.is_some_and(|e| e.parity)
     }
 
+    /// Whether the transfer completed due to a hardware timeout.
     #[inline]
     pub fn timeout(&self) -> bool {
         self.timeout
     }
 
+    /// Whether the transfer completed.
     #[inline]
     pub fn complete(&self) -> bool {
         self.complete
@@ -342,6 +406,7 @@ enum InterruptReceptionMode {
     Pending,
 }
 
+/// Receiver error flags.
 #[derive(Default, Debug, Copy, Clone)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct UartErrors {
@@ -352,21 +417,25 @@ pub struct UartErrors {
 }
 
 impl UartErrors {
+    /// FIFO overflow error.
     #[inline(always)]
     pub fn overflow(&self) -> bool {
         self.overflow
     }
 
+    /// Framing error.
     #[inline(always)]
     pub fn framing(&self) -> bool {
         self.framing
     }
 
+    /// Parity error.
     #[inline(always)]
     pub fn parity(&self) -> bool {
         self.parity
     }
 
+    /// Any other error.
     #[inline(always)]
     pub fn other(&self) -> bool {
         self.other
@@ -374,12 +443,14 @@ impl UartErrors {
 }
 
 impl UartErrors {
+    /// Whether any error is set.
     #[inline(always)]
     pub fn error(&self) -> bool {
         self.overflow || self.framing || self.parity || self.other
     }
 }
 
+/// The provided buffer is shorter than the maximum expected packet length.
 #[derive(Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct BufferTooShortError {
@@ -391,24 +462,35 @@ pub struct BufferTooShortError {
 // UART peripheral wrapper
 //==================================================================================================
 
+/// Common trait implemented by the PAC peripheral access structure for UART0.
 pub trait Uart0Instance: Sealed {
+    /// UART bank of the peripheral.
     const ID: Bank = Bank::Uart0;
+    /// Peripheral selector used for clock and reset control.
     const PERIPH_SEL: PeripheralSelect;
 }
 
+/// Common trait implemented by the PAC peripheral access structure for UART1.
 pub trait Uart1Instance: Sealed {
+    /// UART bank of the peripheral.
     const ID: Bank = Bank::Uart1;
+    /// Peripheral selector used for clock and reset control.
     const PERIPH_SEL: PeripheralSelect;
 }
 
+/// Common trait implemented by the PAC peripheral access structure for UART2.
 #[cfg(feature = "vor4x")]
 pub trait Uart2Instance: Sealed {
+    /// UART bank of the peripheral.
     const ID: Bank = Bank::Uart2;
+    /// Peripheral selector used for clock and reset control.
     const PERIPH_SEL: PeripheralSelect;
 }
 
+/// UART0 peripheral instance.
 #[cfg(feature = "vor1x")]
 pub type Uart0 = pac::Uarta;
+/// UART0 peripheral instance.
 #[cfg(feature = "vor4x")]
 pub type Uart0 = pac::Uart0;
 
@@ -418,8 +500,10 @@ impl Uart0Instance for Uart0 {
 }
 impl Sealed for Uart0 {}
 
+/// UART1 peripheral instance.
 #[cfg(feature = "vor1x")]
 pub type Uart1 = pac::Uartb;
+/// UART1 peripheral instance.
 #[cfg(feature = "vor4x")]
 pub type Uart1 = pac::Uart1;
 
@@ -778,26 +862,31 @@ impl Uart {
         }
     }
 
+    /// Read the peripheral ID register.
     #[inline]
     pub fn peripheral_id(&self) -> u32 {
         self.tx.perid()
     }
 
+    /// Enable the receiver.
     #[inline]
     pub fn enable_rx(&mut self) {
         self.rx.enable();
     }
 
+    /// Disable the receiver.
     #[inline]
     pub fn disable_rx(&mut self) {
         self.rx.disable();
     }
 
+    /// Enable the transmitter.
     #[inline]
     pub fn enable_tx(&mut self) {
         self.tx.enable();
     }
 
+    /// Disable the transmitter.
     #[inline]
     pub fn disable_tx(&mut self) {
         self.tx.disable();
@@ -815,6 +904,7 @@ impl Uart {
         self.tx.clear_fifo();
     }
 
+    /// Enable the interrupt for the given event.
     pub fn listen(&mut self, event: Event) {
         self.tx.regs.modify_interrupt_enable(|mut value| {
             match event {
@@ -830,6 +920,7 @@ impl Uart {
         });
     }
 
+    /// Disable the interrupt for the given event.
     pub fn unlisten(&mut self, event: Event) {
         self.tx.regs.modify_interrupt_enable(|mut value| {
             match event {
@@ -850,6 +941,7 @@ impl Uart {
         self.rx.poll_errors()
     }
 
+    /// Split the driver into its transmitter and receiver halves.
     pub fn split(self) -> (Tx, Rx) {
         (self.tx, self.rx)
     }
@@ -889,6 +981,7 @@ impl embedded_hal_nb::serial::Write<u8> for Uart {
     }
 }
 
+/// Enable the receiver on the given register block.
 #[inline(always)]
 pub fn enable_rx(uart: &mut MmioUart<'static>) {
     uart.modify_enable(|mut value| {
@@ -897,6 +990,7 @@ pub fn enable_rx(uart: &mut MmioUart<'static>) {
     });
 }
 
+/// Disable the receiver on the given register block.
 #[inline(always)]
 pub fn disable_rx(uart: &mut MmioUart<'static>) {
     uart.modify_enable(|mut value| {
@@ -905,6 +999,7 @@ pub fn disable_rx(uart: &mut MmioUart<'static>) {
     });
 }
 
+/// Enable the RX interrupts on the given register block.
 #[inline(always)]
 pub fn enable_rx_interrupts(uart: &mut MmioUart<'static>, timeout: bool) {
     uart.modify_interrupt_enable(|mut value| {
@@ -917,6 +1012,7 @@ pub fn enable_rx_interrupts(uart: &mut MmioUart<'static>, timeout: bool) {
     });
 }
 
+/// Disable the RX interrupts on the given register block.
 #[inline(always)]
 pub fn disable_rx_interrupts(uart: &mut MmioUart<'static>) {
     uart.modify_interrupt_enable(|mut value| {
@@ -962,6 +1058,7 @@ impl Rx {
         }
     }
 
+    /// Poll and clear receiver errors.
     pub fn poll_errors(&self) -> Option<UartErrors> {
         let mut errors = UartErrors::default();
 
@@ -978,22 +1075,26 @@ impl Rx {
         Some(errors)
     }
 
+    /// Read the peripheral ID register.
     #[inline]
     pub fn perid(&self) -> u32 {
         self.regs.read_perid()
     }
 
+    /// Clear the RX FIFO.
     #[inline]
     pub fn clear_fifo(&mut self) {
         self.regs
             .write_fifo_clr(FifoClear::builder().with_tx(false).with_rx(true).build());
     }
 
+    /// Disable the RX interrupts.
     #[inline]
     pub fn disable_interrupts(&mut self) {
         disable_rx_interrupts(&mut self.regs);
     }
 
+    /// Enable the RX interrupts.
     #[inline]
     pub fn enable_interrupts(
         &mut self,
@@ -1009,11 +1110,13 @@ impl Rx {
         enable_rx_interrupts(&mut self.regs, timeout);
     }
 
+    /// Enable the receiver.
     #[inline]
     pub fn enable(&mut self) {
         enable_rx(&mut self.regs);
     }
 
+    /// Disable the receiver.
     #[inline]
     pub fn disable(&mut self) {
         disable_rx(&mut self.regs);
@@ -1046,11 +1149,13 @@ impl Rx {
         self.regs.read_data().raw_value()
     }
 
+    /// Convert this driver into an interrupt-driven receiver.
     #[inline]
     pub fn into_rx_with_interrupt(self) -> RxWithInterrupt {
         RxWithInterrupt::new(self)
     }
 
+    /// Convert this driver into an interrupt-driven receiver.
     #[deprecated(since = "0.3.0", note = "Use into_rx_with_interrupt instead")]
     #[inline]
     pub fn into_rx_with_irq(self) -> RxWithInterrupt {
@@ -1102,6 +1207,7 @@ impl embedded_io::Read for Rx {
     }
 }
 
+/// Enable the transmitter on the given register block.
 #[inline(always)]
 pub fn enable_tx(uart: &mut MmioUart<'static>) {
     uart.modify_enable(|mut value| {
@@ -1110,6 +1216,7 @@ pub fn enable_tx(uart: &mut MmioUart<'static>) {
     });
 }
 
+/// Disable the transmitter on the given register block.
 #[inline(always)]
 pub fn disable_tx(uart: &mut MmioUart<'static>) {
     uart.modify_enable(|mut value| {
@@ -1118,6 +1225,7 @@ pub fn disable_tx(uart: &mut MmioUart<'static>) {
     });
 }
 
+/// Enable the TX interrupts on the given register block.
 #[inline(always)]
 pub fn enable_tx_interrupts(tx_below_trigger: bool, uart: &mut MmioUart<'static>) {
     uart.modify_interrupt_enable(|mut value| {
@@ -1128,6 +1236,7 @@ pub fn enable_tx_interrupts(tx_below_trigger: bool, uart: &mut MmioUart<'static>
     });
 }
 
+/// Disable the TX interrupts on the given register block.
 #[inline(always)]
 pub fn disable_tx_interrupts(uart: &mut MmioUart<'static>) {
     uart.modify_interrupt_enable(|mut value| {
@@ -1173,17 +1282,20 @@ impl Tx {
         }
     }
 
+    /// Read the peripheral ID register.
     #[inline]
     pub fn perid(&self) -> u32 {
         self.regs.read_perid()
     }
 
+    /// Clear the TX FIFO.
     #[inline]
     pub fn clear_fifo(&mut self) {
         self.regs
             .write_fifo_clr(FifoClear::builder().with_tx(true).with_rx(false).build());
     }
 
+    /// Enable the transmitter.
     #[inline]
     pub fn enable(&mut self) {
         self.regs.modify_enable(|mut value| {
@@ -1192,6 +1304,7 @@ impl Tx {
         });
     }
 
+    /// Disable the transmitter.
     #[inline]
     pub fn disable(&mut self) {
         self.regs.modify_enable(|mut value| {
@@ -1344,6 +1457,7 @@ impl core::fmt::Write for Tx {
 pub struct RxWithInterrupt(Rx);
 
 impl RxWithInterrupt {
+    /// Wrap an [Rx] driver to enable interrupt-driven reception.
     #[inline]
     pub fn new(rx: Rx) -> Self {
         Self(rx)
@@ -1371,6 +1485,7 @@ impl RxWithInterrupt {
         self.0.enable();
     }
 
+    /// The wrapped [Rx] driver.
     #[inline(always)]
     pub fn rx(&self) -> &Rx {
         &self.0
@@ -1421,6 +1536,7 @@ impl RxWithInterrupt {
         self.0.disable_interrupts();
     }
 
+    /// Cancel the current reception, disabling interrupts and clearing the RX FIFO.
     pub fn cancel_transfer(&mut self) {
         self.disable_interrupts();
         self.0.clear_fifo();

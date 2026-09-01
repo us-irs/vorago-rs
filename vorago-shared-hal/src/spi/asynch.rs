@@ -25,8 +25,10 @@ fn data_word(value: u32, is_last: bool) -> Data {
     }
 }
 
+/// Number of SPI peripherals.
 #[cfg(feature = "vor1x")]
 pub const NUM_SPIS: usize = 3;
+/// Number of SPI peripherals.
 #[cfg(feature = "vor4x")]
 pub const NUM_SPIS: usize = 4;
 
@@ -37,6 +39,7 @@ static TRANSFER_CONTEXTS: [TransferContext; NUM_SPIS] =
 // critical section.
 static DONE: [AtomicBool; NUM_SPIS] = [const { AtomicBool::new(false) }; NUM_SPIS];
 
+/// The RX FIFO overran during an async SPI transfer.
 #[derive(Debug, Clone, Copy, thiserror::Error)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 #[error("SPI RX FIFO overrun")]
@@ -340,13 +343,18 @@ fn reset_trigger_levels(spi: &mut super::regs::MmioSpi<'static>) {
     spi.write_tx_fifo_trigger(TriggerLevel::new(u5::new(0x00)));
 }
 
+/// Kind of transfer an async [SpiFuture] is performing.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 #[repr(u8)]
 pub enum TransferType {
+    /// A read transfer, see [Spi::read].
     Read = 0,
+    /// A write transfer, see [Spi::write].
     Write = 1,
+    /// A simultaneous read and write transfer, see [Spi::transfer].
     Transfer = 2,
+    /// A simultaneous read and write transfer into the same buffer, see [Spi::transfer_in_place].
     TransferInPlace = 3,
 }
 
@@ -492,6 +500,7 @@ impl TransferContext {
     }
 }
 
+/// Future returned by the async transfer methods on [Spi].
 pub struct SpiFuture<'spi, 'read, 'write> {
     bank: super::Bank,
     spi: &'spi mut super::Spi<u8>,

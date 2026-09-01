@@ -13,7 +13,7 @@ categories = ["embedded", "no-std", "hardware-support"]
 [dependencies]
 cortex-m = { version = "0.7", features = ["critical-section-single-core"] }
 va416xx = { version = "0.5", path = "../va416xx", features = ["critical-section"], default-features = false }
-derive-mmio = "0.7"
+derive-mmio = "0.8"
 static_assertions = "1.1"
 vorago-shared-hal = { version = "0.5", path = "../../vorago-shared-hal", features = ["vor4x"] }
 

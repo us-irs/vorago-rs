@@ -7,7 +7,9 @@ pub use embedded_hal::digital::PinState;
 pub use ll::{DynPinId, InterruptEdge, InterruptLevel, Port, Pull};
 
 pub mod asynch;
+/// Low-level GPIO register access shared between the typed pin wrappers.
 pub mod ll;
+/// Register definitions for the GPIO peripheral.
 pub mod regs;
 
 /// Push-Pull output pin.
@@ -15,27 +17,32 @@ pub mod regs;
 pub struct Output(ll::LowLevelGpio);
 
 impl Output {
+    /// Configure the given pin as a push-pull output with the given initial level.
     pub fn new<I: PinId>(_pin: Pin<I>, init_level: PinState) -> Self {
         let mut ll = ll::LowLevelGpio::new(I::ID);
         ll.configure_as_output_push_pull(init_level);
         Output(ll)
     }
 
+    /// GPIO port this pin belongs to.
     #[inline]
     pub fn port(&self) -> Port {
         self.0.port()
     }
 
+    /// Offset of this pin within its port.
     #[inline]
     pub fn offset(&self) -> usize {
         self.0.offset()
     }
 
+    /// Drive the pin high.
     #[inline]
     pub fn set_high(&mut self) {
         self.0.set_high();
     }
 
+    /// Drive the pin to the given state.
     #[inline]
     pub fn set_state(&mut self, state: PinState) {
         match state {
@@ -44,16 +51,19 @@ impl Output {
         }
     }
 
+    /// Drive the pin low.
     #[inline]
     pub fn set_low(&mut self) {
         self.0.set_low();
     }
 
+    /// Whether the pin output is currently driven high.
     #[inline]
     pub fn is_set_high(&self) -> bool {
         self.0.is_set_high()
     }
 
+    /// Whether the pin output is currently driven low.
     #[inline]
     pub fn is_set_low(&self) -> bool {
         self.0.is_set_low()
@@ -65,11 +75,13 @@ impl Output {
         self.0.toggle();
     }
 
+    /// Configure pulse mode, driving the pin to `default_state` a fixed time after each toggle.
     #[inline]
     pub fn configure_pulse_mode(&mut self, enable: bool, default_state: PinState) {
         self.0.configure_pulse_mode(enable, default_state);
     }
 
+    /// Configure the output delay stages.
     #[inline]
     pub fn configure_delay(&mut self, delay_1: bool, delay_2: bool) {
         self.0.configure_delay(delay_1, delay_2);
@@ -115,23 +127,28 @@ impl embedded_hal::digital::StatefulOutputPin for Output {
 pub struct Input(ll::LowLevelGpio);
 
 impl Input {
+    /// Configure the given pin as a floating input.
     pub fn new_floating<I: PinId>(_pin: Pin<I>) -> Self {
         let mut ll = ll::LowLevelGpio::new(I::ID);
         ll.configure_as_input_floating();
         Input(ll)
     }
 
+    /// Configure the given pin as an input with the given pull resistor direction.
     pub fn new_with_pull<I: PinId>(_pin: Pin<I>, pull: Pull) -> Self {
         let mut ll = ll::LowLevelGpio::new(I::ID);
         ll.configure_as_input_with_pull(pull);
         Input(ll)
     }
 
+    /// Dynamic pin ID of this pin.
     #[inline]
     pub fn id(&self) -> DynPinId {
         self.0.id()
     }
 
+    /// Enable the GPIO peripheral interrupt bit for this pin, without touching IRQSEL or NVIC
+    /// routing.
     #[inline]
     pub fn enable_interrupt_gpio_only(&mut self) {
         self.0.enable_interrupt_gpio_only();
@@ -162,31 +179,37 @@ impl Input {
         self.0.enable_interrupt(enable_in_nvic, gpio)
     }
 
+    /// Configure the edge that triggers the interrupt.
     #[inline]
     pub fn configure_edge_interrupt(&mut self, edge: InterruptEdge) {
         self.0.configure_edge_interrupt(edge);
     }
 
+    /// Configure the level that triggers the interrupt.
     #[inline]
     pub fn configure_level_interrupt(&mut self, edge: InterruptLevel) {
         self.0.configure_level_interrupt(edge);
     }
 
+    /// Configure the input delay stages.
     #[inline]
     pub fn configure_delay(&mut self, delay_1: bool, delay_2: bool) {
         self.0.configure_delay(delay_1, delay_2);
     }
 
+    /// Configure the input glitch filter.
     #[inline]
     pub fn configure_filter_type(&mut self, filter: FilterType, clksel: FilterClockSelect) {
         self.0.configure_filter_type(filter, clksel);
     }
 
+    /// Whether the pin input is currently low.
     #[inline]
     pub fn is_low(&self) -> bool {
         self.0.is_low()
     }
 
+    /// Whether the pin input is currently high.
     #[inline]
     pub fn is_high(&self) -> bool {
         self.0.is_high()
@@ -207,20 +230,27 @@ impl embedded_hal::digital::InputPin for Input {
     }
 }
 
+/// Current configuration of a [Flex] pin.
 #[derive(Debug)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum PinMode {
+    /// Floating input.
     InputFloating,
+    /// Input with a pull resistor.
     InputWithPull(Pull),
+    /// Push-pull output.
     OutputPushPull,
+    /// Open-drain output.
     OutputOpenDrain,
 }
 
 impl PinMode {
+    /// Whether this mode is an input mode.
     pub fn is_input(&self) -> bool {
         matches!(self, PinMode::InputFloating | PinMode::InputWithPull(_))
     }
 
+    /// Whether this mode is an output mode.
     pub fn is_output(&self) -> bool {
         !self.is_input()
     }
@@ -243,6 +273,7 @@ pub struct Flex {
 }
 
 impl Flex {
+    /// Configure the given pin as a floating input, the default state of a [Flex] pin.
     pub fn new<I: PinId>(_pin: Pin<I>) -> Self {
         let mut ll = ll::LowLevelGpio::new(I::ID);
         ll.configure_as_input_floating();
@@ -252,11 +283,13 @@ impl Flex {
         }
     }
 
+    /// GPIO port this pin belongs to.
     #[inline]
     pub fn port(&self) -> Port {
         self.ll.port()
     }
 
+    /// Offset of this pin within its port.
     #[inline]
     pub fn offset(&self) -> usize {
         self.ll.offset()
@@ -292,6 +325,7 @@ impl Flex {
         self.ll.set_high();
     }
 
+    /// Drive the pin to the given state.
     #[inline]
     pub fn set_state(&mut self, state: PinState) {
         match state {
@@ -363,6 +397,7 @@ pub struct IoPeriphPin {
 }
 
 impl IoPeriphPin {
+    /// Configure the given typed pin as an IO peripheral pin.
     pub fn new_with_pin<I: PinId>(
         _pin: Pin<I>,
         fun_sel: FunctionSelect,
@@ -373,20 +408,24 @@ impl IoPeriphPin {
         IoPeriphPin { ll, fun_sel }
     }
 
+    /// Configure the pin with the given dynamic pin ID as an IO peripheral pin.
     pub fn new(pin_id: DynPinId, fun_sel: FunctionSelect, pull: Option<Pull>) -> Self {
         let mut ll = ll::LowLevelGpio::new(pin_id);
         ll.configure_as_peripheral_pin(fun_sel, pull);
         IoPeriphPin { ll, fun_sel }
     }
 
+    /// GPIO port this pin belongs to.
     pub fn port(&self) -> Port {
         self.ll.port()
     }
 
+    /// Offset of this pin within its port.
     pub fn offset(&self) -> usize {
         self.ll.offset()
     }
 
+    /// Configured alternate function of this pin.
     pub fn fun_sel(&self) -> FunctionSelect {
         self.fun_sel
     }

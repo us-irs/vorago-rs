@@ -7,12 +7,14 @@ const BASE_ADDR: usize = 0x4002_0000;
 #[cfg(feature = "vor4x")]
 const BASE_ADDR: usize = 0x4001_8000;
 
+/// Source used to drive the timer's STATUS output pin, see [Control::status_sel].
 #[bitbybit::bitenum(u3)]
 #[derive(Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum StatusSelect {
     /// Pulse when timer reaches 0.
     OneCyclePulse = 0b000,
+    /// The ACTIVE bit.
     OutputActiveBit = 0b001,
     /// Creates a divide by two output clock of the timer.
     ToggleOnEachCycle = 0b010,
@@ -21,20 +23,25 @@ pub enum StatusSelect {
     /// 1 when count value < PWM A value and >= PWM B, 0 when counter value >= PWM A value or < PWM
     /// B value
     PwmbOutput = 0b100,
+    /// The ENABLE bit.
     EnabledBit = 0b101,
     /// 1 when counter value <= PWM A value and 0 otherwise.
     PwmaActiveBit = 0b110,
 }
 
+/// CONTROL register.
 #[bitbybit::bitfield(u32, debug, defmt_fields(feature = "defmt"))]
 pub struct Control {
     /// The counter is requested to stop on the next normal count cycle.
     #[bit(9, rw)]
     request_stop: bool,
+    /// Invert the STATUS output.
     #[bit(8, rw)]
     status_invert: bool,
+    /// Source driving the STATUS output pin.
     #[bits(5..=7, rw)]
     status_sel: Option<StatusSelect>,
+    /// Enable the timer interrupt.
     #[bit(4, rw)]
     irq_enable: bool,
     /// Only applies if the Auto-Disable bit is 0. The ACTIVE bit goes to 0 when the count reaches
@@ -45,36 +52,45 @@ pub struct Control {
     /// and ACTIVE bits go to 0.
     #[bit(2, rw)]
     auto_disable: bool,
+    /// The counter is currently active.
     #[bit(1, r)]
     active: bool,
+    /// Enable the counter.
     #[bit(0, rw)]
     enable: bool,
 }
 
+/// ENABLE_CONTROL register.
 #[derive(Debug)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct EnableControl(arbitrary_int::UInt<u32, 1>);
 
 impl EnableControl {
+    /// Value which disables the timer.
     pub fn new_disable() -> Self {
         EnableControl(arbitrary_int::UInt::<u32, 1>::from_u32(0))
     }
 
+    /// Value which enables the timer.
     pub fn new_enable() -> Self {
         EnableControl(arbitrary_int::UInt::<u32, 1>::from_u32(1))
     }
 
+    /// Whether this value enables the timer.
     pub fn enabled(&self) -> bool {
         self.0.value() != 0
     }
 }
 
+/// Polarity of a cascade source.
 #[bitbybit::bitenum(u1, exhaustive = true)]
 #[derive(Default, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum CascadeInvert {
+    /// The cascade source is active high.
     #[default]
     ActiveHigh = 0,
+    /// The cascade source is active low.
     ActiveLow = 1,
 }
 
@@ -83,11 +99,14 @@ pub enum CascadeInvert {
 #[derive(Default, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum DualCascadeOp {
+    /// Both cascade sources must be active.
     #[default]
     LogicalAnd = 0,
+    /// Either cascade source must be active.
     LogicalOr = 1,
 }
 
+/// CASCADE_CONTROL register.
 #[bitbybit::bitfield(u32, default = 0x0, debug, defmt_fields(feature = "defmt"))]
 pub struct CascadeControl {
     /// The counter is automatically disabled if the corresponding Cascade 2 level-sensitive input
@@ -95,6 +114,7 @@ pub struct CascadeControl {
     /// ignored.
     #[bit(10, rw)]
     trigger2: bool,
+    /// Inversion bit for Cascade 2.
     #[bit(9, rw)]
     inv2: CascadeInvert,
     /// Enable Cascade 2 signal active as a requirement to stop counting. This mode is similar
@@ -126,49 +146,77 @@ pub struct CascadeControl {
     en0: bool,
 }
 
+/// The given cascade source ID is out of range.
 #[derive(Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct InvalidCascadeSourceId;
 
+/// Source which can be used as a cascade signal, see [CascadeControl].
 #[cfg(feature = "vor1x")]
 #[derive(Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 #[repr(u8)]
 pub enum CascadeSource {
+    /// A pin on port A, identified by its offset.
     PortA(u8),
+    /// A pin on port B, identified by its offset.
     PortB(u8),
+    /// A timer, identified by its index.
     Tim(u8),
+    /// RAM single bit error.
     RamSbe = 96,
+    /// RAM multi bit error.
     RamMbe = 97,
+    /// ROM single bit error.
     RomSbe = 98,
+    /// ROM multi bit error.
     RomMbe = 99,
+    /// Transmit event.
     Txev = 100,
+    /// A clock divider output, identified by its index.
     ClockDivider(u8),
 }
 
+/// Source which can be used as a cascade signal, see [CascadeControl].
 #[cfg(feature = "vor4x")]
 #[derive(Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 #[repr(u8)]
 pub enum CascadeSource {
+    /// A pin on port A, identified by its offset.
     PortA(u8),
+    /// A pin on port B, identified by its offset.
     PortB(u8),
+    /// A pin on port C, identified by its offset.
     PortC(u8),
+    /// A pin on port D, identified by its offset.
     PortD(u8),
+    /// A pin on port E, identified by its offset.
     PortE(u8),
+    /// A timer, identified by its index.
     Tim(u8),
+    /// Transmit event.
     TxEv,
+    /// ADC interrupt.
     AdcIrq,
+    /// ROM single bit error.
     RomSbe,
+    /// ROM multi bit error.
     RomMbe,
+    /// RAM0 single bit error.
     Ram0Sbe,
+    /// RAM0 multi bit error.
     Ram0Mbe,
+    /// RAM1 single bit error.
     Ram1Sbe,
+    /// RAM1 multi bit error.
     Ram1Mbe,
+    /// Watchdog interrupt.
     WdogIrq,
 }
 
 impl CascadeSource {
+    /// The raw cascade source ID used by the CASCADEn registers.
     #[cfg(feature = "vor1x")]
     pub fn id(&self) -> Result<u7, InvalidCascadeSourceId> {
         let port_check = |base: u8, id: u8, len: u8| -> Result<u7, InvalidCascadeSourceId> {
@@ -222,6 +270,7 @@ impl CascadeSource {
         }
     }
 
+    /// Construct a cascade source from the raw ID used by the CASCADEn registers.
     #[cfg(feature = "vor1x")]
     pub fn from_raw(raw: u32) -> Result<Self, InvalidCascadeSourceId> {
         let id = u7::new((raw & 0x7F) as u8);
@@ -247,6 +296,7 @@ impl CascadeSource {
             _ => Err(InvalidCascadeSourceId),
         }
     }
+    /// Construct a cascade source from the raw ID used by the CASCADEn registers.
     #[cfg(feature = "vor4x")]
     pub fn from_raw(raw: u32) -> Result<Self, InvalidCascadeSourceId> {
         use crate::NUM_PORT_DEFAULT;
@@ -284,23 +334,28 @@ impl CascadeSource {
     }
 }
 
+/// One of the CASCADEn registers.
 #[bitbybit::bitfield(u32)]
 pub struct CascadeSourceReg {
+    /// The raw cascade source ID.
     #[bits(0..=6, rw)]
     raw: u7,
 }
 
 impl CascadeSourceReg {
+    /// Create a register value selecting the given cascade source.
     pub fn new(source: CascadeSource) -> Result<Self, InvalidCascadeSourceId> {
         let id = source.id()?;
         Ok(Self::new_with_raw_value(id.as_u32()))
     }
 
+    /// The cascade source currently selected by this register value.
     pub fn as_cascade_source(&self) -> Result<CascadeSource, InvalidCascadeSourceId> {
         CascadeSource::from_raw(self.raw().as_u32())
     }
 }
 
+/// Timer peripheral register block.
 #[derive(derive_mmio::Mmio)]
 #[mmio(no_ctors)]
 #[repr(C)]
@@ -333,15 +388,18 @@ cfg_if::cfg_if! {
     }
 }
 
+/// The given timer index is out of range.
 #[derive(Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct InvalidTimerIndex(pub usize);
 
+/// Timer peripheral index.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct TimId(u8);
 
 impl TimId {
+    /// Constructor which checks that the index is valid.
     pub const fn new(index: usize) -> Result<Self, InvalidTimerIndex> {
         if index > 23 {
             return Err(InvalidTimerIndex(index));
@@ -349,6 +407,7 @@ impl TimId {
         Ok(TimId(index as u8))
     }
 
+    /// Unchecked constructor which panics on an invalid index.
     pub const fn new_unchecked(index: usize) -> Self {
         if index > 23 {
             panic!("invalid timer index");
@@ -365,10 +424,12 @@ impl TimId {
         Timer::new_mmio(*self)
     }
 
+    /// The raw timer index.
     pub const fn value(&self) -> u8 {
         self.0
     }
 
+    /// The interrupt vector used by this timer.
     #[cfg(feature = "vor4x")]
     pub const fn interrupt_id(&self) -> va416xx::Interrupt {
         match self.value() {
@@ -409,6 +470,7 @@ impl Timer {
         }
     }
 
+    /// Get an MMIO accessor for the register block of the given timer.
     pub const fn new_mmio(id: TimId) -> MmioTimer<'static> {
         if cfg!(feature = "vor1x") {
             Timer::new_mmio_at(BASE_ADDR + 0x1000 * id.value() as usize)
@@ -416,6 +478,9 @@ impl Timer {
             Timer::new_mmio_at(BASE_ADDR + 0x400 * id.value() as usize)
         }
     }
+
+    /// Get an MMIO accessor for the register block of the timer with the given index, checking
+    /// that the index is valid.
     pub fn new_mmio_with_raw_index(
         timer_index: usize,
     ) -> Result<MmioTimer<'static>, InvalidTimerIndex> {

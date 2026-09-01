@@ -10,7 +10,7 @@ license = "Apache-2.0"
 [dependencies]
 cortex-m = { version = "0.7" }
 cfg-if = "1"
-derive-mmio = "0.7"
+derive-mmio = "0.8"
 bitbybit = "2"
 arbitrary-int = "2"
 static_assertions = "1.1"

@@ -12,11 +12,15 @@ use va416xx as pac;
 
 pub use regs::{Bank, HwChipSelectId};
 
+/// Async SPI support.
 pub mod asynch;
+/// Register definitions for the SPI peripheral.
 pub mod regs;
 
+/// Depth of the TX and RX hardware FIFOs.
 pub const FIFO_DEPTH: usize = 16;
 
+/// Configure the given pin as a hardware chip select pin and return its ID.
 pub fn configure_pin_as_hw_cs_pin<P: AnyPin + HwCsProvider>(_pin: P) -> HwChipSelectId {
     IoPeriphPin::new(P::ID, P::FUN_SEL, None);
     P::CS_ID
@@ -26,55 +30,87 @@ pub fn configure_pin_as_hw_cs_pin<P: AnyPin + HwCsProvider>(_pin: P) -> HwChipSe
 // Pins and traits.
 //==================================================================================================
 
+/// Marker trait for pins usable as the SCK pin of SPI0.
 pub trait PinSck0: AnyPin {
+    /// SPI bank this pin belongs to.
     const SPI_ID: Bank = Bank::Spi0;
+    /// Alternate function to select to route this pin to the SPI peripheral.
     const FUN_SEL: FunctionSelect;
 }
 
+/// Marker trait for pins usable as the MOSI pin of SPI0.
 pub trait PinMosi0: AnyPin {
+    /// SPI bank this pin belongs to.
     const SPI_ID: Bank = Bank::Spi0;
+    /// Alternate function to select to route this pin to the SPI peripheral.
     const FUN_SEL: FunctionSelect;
 }
 
+/// Marker trait for pins usable as the MISO pin of SPI0.
 pub trait PinMiso0: AnyPin {
+    /// SPI bank this pin belongs to.
     const SPI_ID: Bank = Bank::Spi0;
+    /// Alternate function to select to route this pin to the SPI peripheral.
     const FUN_SEL: FunctionSelect;
 }
 
+/// Marker trait for pins usable as the SCK pin of SPI1.
 pub trait PinSck1: AnyPin {
+    /// SPI bank this pin belongs to.
     const SPI_ID: Bank = Bank::Spi1;
+    /// Alternate function to select to route this pin to the SPI peripheral.
     const FUN_SEL: FunctionSelect;
 }
 
+/// Marker trait for pins usable as the MOSI pin of SPI1.
 pub trait PinMosi1: AnyPin {
+    /// SPI bank this pin belongs to.
     const SPI_ID: Bank = Bank::Spi1;
+    /// Alternate function to select to route this pin to the SPI peripheral.
     const FUN_SEL: FunctionSelect;
 }
 
+/// Marker trait for pins usable as the MISO pin of SPI1.
 pub trait PinMiso1: AnyPin {
+    /// SPI bank this pin belongs to.
     const SPI_ID: Bank = Bank::Spi1;
+    /// Alternate function to select to route this pin to the SPI peripheral.
     const FUN_SEL: FunctionSelect;
 }
 
+/// Marker trait for pins usable as the SCK pin of SPI2.
 pub trait PinSck2: AnyPin {
+    /// SPI bank this pin belongs to.
     const SPI_ID: Bank = Bank::Spi2;
+    /// Alternate function to select to route this pin to the SPI peripheral.
     const FUN_SEL: FunctionSelect;
 }
 
+/// Marker trait for pins usable as the MOSI pin of SPI2.
 pub trait PinMosi2: AnyPin {
+    /// SPI bank this pin belongs to.
     const SPI_ID: Bank = Bank::Spi2;
+    /// Alternate function to select to route this pin to the SPI peripheral.
     const FUN_SEL: FunctionSelect;
 }
 
+/// Marker trait for pins usable as the MISO pin of SPI2.
 pub trait PinMiso2: AnyPin {
+    /// SPI bank this pin belongs to.
     const SPI_ID: Bank = Bank::Spi2;
+    /// Alternate function to select to route this pin to the SPI peripheral.
     const FUN_SEL: FunctionSelect;
 }
 
+/// Trait implemented by pins usable as a hardware chip select pin.
 pub trait HwCsProvider {
+    /// Dynamic pin ID of the chip select pin.
     const PIN_ID: DynPinId;
+    /// SPI bank this pin belongs to.
     const SPI_ID: Bank;
+    /// Alternate function to select to route this pin to the SPI peripheral.
     const FUN_SEL: FunctionSelect;
+    /// Hardware chip select ID controlled by this pin.
     const CS_ID: HwChipSelectId;
 }
 
@@ -100,6 +136,7 @@ mod macros {
             pub struct $name(Pin<$pin_id>);
 
             impl $name {
+                /// Wrap the pin as a HW CS pin.
                 pub fn new(pin: Pin<$pin_id>) -> Self {
                     Self(pin)
                 }
@@ -120,6 +157,7 @@ mod macros {
         };
     }
 
+    /// Implement [`crate::spi::HwCsProvider`] for a set of pins on a given SPI bank.
     #[macro_export]
     macro_rules! hw_cs_pins {
         ($SpiId:path, $(($Px:ident, $FunSel:path, $HwCsIdent:path)$(,)?)+) => {
@@ -135,8 +173,10 @@ mod macros {
     }
 }
 
+/// SPI pin type aliases for Vorago 1x devices.
 #[cfg(feature = "vor1x")]
 pub mod pins_vor1x;
+/// SPI pin type aliases for Vorago 4x devices.
 #[cfg(feature = "vor4x")]
 pub mod pins_vor4x;
 
@@ -147,34 +187,51 @@ pub mod pins_vor4x;
 // FIFO has a depth of 16.
 const FILL_DEPTH: usize = 12;
 
+/// Bit set on a written word to mark the start or stop of a blockmode frame.
 pub const BMSTART_BMSTOP_MASK: u32 = 1 << 31;
+/// Bit set on a written word to skip storing the received word in the RX FIFO.
 pub const BMSKIPDATA_MASK: u32 = 1 << 30;
 
+/// Default SPI clock divider used by [Config::default].
 pub const DEFAULT_CLK_DIV: u16 = 2;
 
+/// Common trait implemented by the PAC peripheral access structure for SPI0.
 pub trait Spi0Instance: Sealed {
+    /// SPI bank of the peripheral.
     const ID: Bank = Bank::Spi0;
+    /// Peripheral selector used for clock and reset control.
     const PERIPH_SEL: PeripheralSelect;
 }
 
+/// Common trait implemented by the PAC peripheral access structure for SPI1.
 pub trait Spi1Instance: Sealed {
+    /// SPI bank of the peripheral.
     const ID: Bank = Bank::Spi1;
+    /// Peripheral selector used for clock and reset control.
     const PERIPH_SEL: PeripheralSelect;
 }
 
+/// Common trait implemented by the PAC peripheral access structure for SPI2.
 pub trait Spi2Instance: Sealed {
+    /// SPI bank of the peripheral.
     const ID: Bank = Bank::Spi2;
+    /// Peripheral selector used for clock and reset control.
     const PERIPH_SEL: PeripheralSelect;
 }
 
+/// Common trait implemented by the PAC peripheral access structure for SPI3.
 #[cfg(feature = "vor4x")]
 pub trait Spi3Instance: Sealed {
+    /// SPI bank of the peripheral.
     const ID: Bank = Bank::Spi3;
+    /// Peripheral selector used for clock and reset control.
     const PERIPH_SEL: PeripheralSelect;
 }
 
+/// SPI0 peripheral instance.
 #[cfg(feature = "vor1x")]
 pub type Spi0 = pac::Spia;
+/// SPI0 peripheral instance.
 #[cfg(feature = "vor4x")]
 pub type Spi0 = pac::Spi0;
 
@@ -184,8 +241,10 @@ impl Spi0Instance for Spi0 {
 }
 impl Sealed for Spi0 {}
 
+/// SPI1 peripheral instance.
 #[cfg(feature = "vor1x")]
 pub type Spi1 = pac::Spib;
+/// SPI1 peripheral instance.
 #[cfg(feature = "vor4x")]
 pub type Spi1 = pac::Spi1;
 
@@ -195,8 +254,10 @@ impl Spi1Instance for Spi1 {
 }
 impl Sealed for Spi1 {}
 
+/// SPI2 peripheral instance.
 #[cfg(feature = "vor1x")]
 pub type Spi2 = pac::Spic;
+/// SPI2 peripheral instance.
 #[cfg(feature = "vor4x")]
 pub type Spi2 = pac::Spi2;
 
@@ -218,11 +279,17 @@ impl Sealed for pac::Spi3 {}
 // Config
 //==================================================================================================
 
+/// Trait implemented by types which can supply per-transfer SPI configuration.
 pub trait TransferConfigProvider {
+    /// Set slave output disable.
     fn sod(&mut self, sod: bool);
+    /// Set blockmode.
     fn blockmode(&mut self, blockmode: bool);
+    /// Set the SPI mode.
     fn mode(&mut self, mode: Mode);
+    /// Set the clock configuration.
     fn clk_cfg(&mut self, clk_cfg: ClockConfig);
+    /// Hardware chip select ID.
     fn hw_cs_id(&self) -> u8;
 }
 
@@ -231,8 +298,11 @@ pub trait TransferConfigProvider {
 #[derive(Copy, Clone, Debug)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct TransferConfig {
+    /// Clock configuration. If `None`, the previously configured clock is kept.
     pub clk_cfg: Option<ClockConfig>,
+    /// SPI mode. If `None`, the previously configured mode is kept.
     pub mode: Option<Mode>,
+    /// Slave output disable.
     pub sod: bool,
     /// If this is enabled, all data in the FIFO is transmitted in a single frame unless
     /// the BMSTOP bit is set on a dataword. A frame is defined as CSn being active for the
@@ -241,10 +311,12 @@ pub struct TransferConfig {
     /// Only used when blockmode is used. The SCK will be stalled until an explicit stop bit
     /// is set on a written word.
     pub bmstall: bool,
+    /// Hardware chip select to use for this transfer.
     pub hw_cs: Option<HwChipSelectId>,
 }
 
 impl TransferConfig {
+    /// Create a new transfer configuration using the given hardware chip select.
     pub fn new_with_hw_cs(
         clk_cfg: Option<ClockConfig>,
         mode: Option<Mode>,
@@ -271,7 +343,7 @@ impl TransferConfig {
 pub struct Config {
     /// Clock configuration.
     pub clock: ClockConfig,
-    // SPI mode configuration.
+    /// SPI mode configuration.
     pub mode: Mode,
     /// If this is enabled, all data in the FIFO is transmitted in a single frame unless
     /// the BMSTOP bit is set on a dataword. A frame is defined as CSn being active for the
@@ -289,6 +361,7 @@ pub struct Config {
 }
 
 impl Config {
+    /// Create a new configuration with the given mode and clock configuration.
     #[inline]
     pub const fn new(mode: Mode, clock: ClockConfig) -> Self {
         Self {
@@ -317,8 +390,11 @@ impl Default for Config {
 /// Configuration trait for the Word Size
 /// used by the SPI peripheral
 pub trait SpiWord: Copy + Default + Into<u32> + TryFrom<u32> + 'static {
+    /// Bit mask covering the valid bits of a word of this size.
     const MASK: u32;
+    /// Word size to write to the CTRL0 register.
     const WORD_SIZE: regs::WordSize;
+    /// Raw word size register value.
     fn word_reg() -> u8;
 }
 
@@ -372,6 +448,7 @@ pub trait SpiLowLevel {
     fn read_fifo_unchecked(&mut self) -> u32;
 }
 
+/// Convert an [embedded_hal::spi::Mode] to the corresponding CPOL/CPHA bit pair.
 #[inline(always)]
 pub fn mode_to_cpo_cph_bit(mode: embedded_hal::spi::Mode) -> (bool, bool) {
     match mode {
@@ -382,6 +459,7 @@ pub fn mode_to_cpo_cph_bit(mode: embedded_hal::spi::Mode) -> (bool, bool) {
     }
 }
 
+/// SPI clock configuration, expressed as a prescaler and a serial clock rate divider.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct ClockConfig {
@@ -390,15 +468,19 @@ pub struct ClockConfig {
 }
 
 impl ClockConfig {
+    /// Raw clock prescaler value.
     pub fn prescale_val(&self) -> u8 {
         self.prescale_val
     }
+
+    /// Raw serial clock rate divider value.
     pub fn scrdv(&self) -> u8 {
         self.scrdv
     }
 }
 
 impl ClockConfig {
+    /// Create a clock configuration from raw prescaler and divider values.
     pub fn new(prescale_val: u8, scrdv: u8) -> Self {
         Self {
             prescale_val,
@@ -406,37 +488,46 @@ impl ClockConfig {
         }
     }
 
+    /// Create a clock configuration from a total clock division value.
     pub fn from_div(div: u16) -> Result<Self, SpiClockConfigError> {
         spi_clk_config_from_div(div)
     }
 
+    /// Create a clock configuration from the given system clock and a target SPI clock speed.
     #[cfg(feature = "vor1x")]
     pub fn from_clk(sys_clk: Hertz, spi_clk: Hertz) -> Option<Self> {
         clk_div_for_target_clock(sys_clk, spi_clk).map(|div| spi_clk_config_from_div(div).unwrap())
     }
 
+    /// Create a clock configuration from the APB1 clock and a target SPI clock speed.
     #[cfg(feature = "vor4x")]
     pub fn from_clks(clks: &crate::clock::Clocks, spi_clk: Hertz) -> Option<Self> {
         Self::from_apb1_clk(clks.apb1(), spi_clk)
     }
 
+    /// Create a clock configuration from the given APB1 clock and a target SPI clock speed.
     #[cfg(feature = "vor4x")]
     pub fn from_apb1_clk(apb1_clk: Hertz, spi_clk: Hertz) -> Option<Self> {
         clk_div_for_target_clock(apb1_clk, spi_clk).map(|div| spi_clk_config_from_div(div).unwrap())
     }
 }
 
+/// Error type for [ClockConfig::from_div] and [spi_clk_config_from_div].
 #[derive(Debug, thiserror::Error)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum SpiClockConfigError {
+    /// Division value was zero.
     #[error("division by zero")]
     DivIsZero,
+    /// Division value is not even.
     #[error("divide value is not even")]
     DivideValueNotEven,
+    /// The resulting SCRDV value is too large to fit into 8 bits.
     #[error("scrdv value is too large")]
     ScrdvValueTooLarge,
 }
 
+/// Derive a [ClockConfig] from a total clock division value.
 #[inline]
 pub fn spi_clk_config_from_div(mut div: u16) -> Result<ClockConfig, SpiClockConfigError> {
     if div == 0 {
@@ -469,6 +560,8 @@ pub fn spi_clk_config_from_div(mut div: u16) -> Result<ClockConfig, SpiClockConf
     })
 }
 
+/// Calculate the total clock division value needed to reach a target SPI clock from a source
+/// clock, rounding up conservatively.
 #[inline]
 pub fn clk_div_for_target_clock(sys_clk: Hertz, spi_clk: Hertz) -> Option<u16> {
     if spi_clk > sys_clk {
@@ -590,6 +683,8 @@ where
         Self::new_generic(Spi::ID, Spi::PERIPH_SEL, spi_cfg)
     }
 
+    /// Create a new SPI peripheral driver for the given bank and peripheral selector, without
+    /// configuring any pins.
     pub fn new_generic(spi_sel: Bank, periph_sel: PeripheralSelect, spi_cfg: Config) -> Self {
         enable_peripheral_clock(periph_sel);
         let mut regs = regs::Spi::new_mmio(spi_sel);
@@ -639,6 +734,7 @@ where
         }
     }
 
+    /// Apply the given clock configuration.
     #[inline]
     pub fn cfg_clock(&mut self, cfg: ClockConfig) {
         self.regs.modify_ctrl0(|mut value| {
@@ -649,10 +745,12 @@ where
             .write_clkprescale(regs::ClockPrescaler::new(cfg.prescale_val));
     }
 
+    /// Set the fill word used for read-only SPI transactions.
     pub fn set_fill_word(&mut self, fill_word: Word) {
         self.fill_word = fill_word;
     }
 
+    /// Apply a clock configuration derived from the given total clock division value.
     #[inline]
     pub fn configure_clock_from_div(&mut self, div: u16) -> Result<(), SpiClockConfigError> {
         let val = spi_clk_config_from_div(div)?;
@@ -660,6 +758,7 @@ where
         Ok(())
     }
 
+    /// Apply the given SPI mode.
     #[inline]
     pub fn configure_mode(&mut self, mode: Mode) {
         let (cpo_bit, cph_bit) = mode_to_cpo_cph_bit(mode);
@@ -670,11 +769,13 @@ where
         });
     }
 
+    /// Fill word used for read-only SPI transactions.
     #[inline]
     pub fn fill_word(&self) -> Word {
         self.fill_word
     }
 
+    /// Clear the TX FIFO.
     #[inline]
     pub fn clear_tx_fifo(&mut self) {
         self.regs.write_fifo_clear(
@@ -685,6 +786,7 @@ where
         );
     }
 
+    /// Clear the RX FIFO.
     #[inline]
     pub fn clear_rx_fifo(&mut self) {
         self.regs.write_fifo_clear(
@@ -695,6 +797,7 @@ where
         );
     }
 
+    /// Read the peripheral ID register.
     #[inline]
     pub fn peripheral_id(&self) -> u32 {
         self.regs.read_perid()
@@ -826,6 +929,7 @@ where
         current_write_idx
     }
 
+    /// Blocking read transaction, sending the configured fill word for each received word.
     pub fn read(&mut self, words: &mut [Word]) {
         self.transfer_preparation(words);
         let mut current_read_idx = 0;
@@ -852,6 +956,7 @@ where
         }
     }
 
+    /// Blocking write transaction, discarding all received words.
     pub fn write(&mut self, words: &[Word]) {
         self.transfer_preparation(words);
         let mut current_write_idx = self.initial_send_fifo_pumping_with_words(words);
@@ -870,6 +975,7 @@ where
         }
     }
 
+    /// Blocking full-duplex transaction with independent read and write buffers.
     pub fn transfer(&mut self, read: &mut [Word], write: &[Word]) {
         self.transfer_preparation(write);
         let mut current_read_idx = 0;
@@ -902,6 +1008,7 @@ where
         }
     }
 
+    /// Blocking full-duplex transaction, writing and reading back into the same buffer.
     pub fn transfer_in_place(&mut self, words: &mut [Word]) {
         self.transfer_preparation(words);
         let mut current_read_idx = 0;
@@ -928,6 +1035,7 @@ where
         }
     }
 
+    /// Block until the TX FIFO is empty, the RX FIFO is empty, and the bus is idle.
     pub fn flush(&mut self) {
         self.flush_internal();
     }
@@ -1062,6 +1170,7 @@ pub struct HwCsPin {
 }
 
 impl HwCsPin {
+    /// Configure the given pin as a hardware chip select pin and wrap it.
     pub fn new<P: HwCsProvider + AnyPin>(pin: P) -> Self {
         configure_pin_as_hw_cs_pin(pin);
         Self {

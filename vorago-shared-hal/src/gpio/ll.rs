@@ -13,18 +13,25 @@ use crate::pins::PinId;
 
 use super::Pin;
 
+/// Edge type for an edge-triggered pin interrupt.
 #[derive(Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum InterruptEdge {
+    /// Trigger on a high-to-low transition.
     HighToLow,
+    /// Trigger on a low-to-high transition.
     LowToHigh,
+    /// Trigger on both edges.
     BothEdges,
 }
 
+/// Level for a level-triggered pin interrupt.
 #[derive(Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum InterruptLevel {
+    /// Trigger while the pin is low.
     Low = 0,
+    /// Trigger while the pin is high.
     High = 1,
 }
 
@@ -37,6 +44,7 @@ pub struct DynPinId {
     offset: u8,
 }
 
+/// Port G has no associated interrupt vector.
 #[derive(Debug, thiserror::Error)]
 #[cfg(feature = "vor4x")]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
@@ -55,6 +63,7 @@ impl DynPinId {
         }
     }
 
+    /// Constructor which checks that the offset is valid for the given port.
     pub const fn new(port: Port, offset: usize) -> Result<Self, InvalidOffsetError> {
         if offset >= port.max_offset() {
             return Err(InvalidOffsetError { offset, port });
@@ -65,10 +74,12 @@ impl DynPinId {
         })
     }
 
+    /// The port this pin belongs to.
     pub const fn port(&self) -> Port {
         self.port
     }
 
+    /// The pin's offset within its port.
     pub const fn offset(&self) -> usize {
         self.offset as usize
     }
@@ -238,21 +249,25 @@ impl LowLevelGpio {
         }
     }
 
+    /// The pin's ID.
     #[inline]
     pub fn id(&self) -> DynPinId {
         self.id
     }
 
+    /// The port this pin belongs to.
     #[inline]
     pub fn port(&self) -> Port {
         self.id.port()
     }
 
+    /// The pin's offset within its port.
     #[inline]
     pub fn offset(&self) -> usize {
         self.id.offset()
     }
 
+    /// Configure the pin as a floating input.
     pub fn configure_as_input_floating(&mut self) {
         self.ioconfig.modify_pin_config(self.id, |mut config| {
             config.set_funsel(FunctionSelect::Sel0);
@@ -271,6 +286,7 @@ impl LowLevelGpio {
         });
     }
 
+    /// Configure the pin as an input with a pull resistor.
     pub fn configure_as_input_with_pull(&mut self, pull: Pull) {
         self.ioconfig.modify_pin_config(self.id, |mut config| {
             config.set_funsel(FunctionSelect::Sel0);
@@ -290,6 +306,7 @@ impl LowLevelGpio {
         });
     }
 
+    /// Configure the pin as a push-pull output with the given initial level.
     pub fn configure_as_output_push_pull(&mut self, init_level: PinState) {
         self.ioconfig.modify_pin_config(self.id, |mut config| {
             config.set_funsel(FunctionSelect::Sel0);
@@ -312,6 +329,7 @@ impl LowLevelGpio {
         });
     }
 
+    /// Configure the pin as an open-drain output with the given initial level.
     pub fn configure_as_output_open_drain(&mut self, init_level: PinState) {
         self.ioconfig.modify_pin_config(self.id, |mut config| {
             config.set_funsel(FunctionSelect::Sel0);
@@ -336,6 +354,7 @@ impl LowLevelGpio {
         });
     }
 
+    /// Configure the pin for use by a peripheral, selecting its alternate function.
     pub fn configure_as_peripheral_pin(&mut self, fun_sel: FunctionSelect, pull: Option<Pull>) {
         self.ioconfig.modify_pin_config(self.id, |mut config| {
             config.set_funsel(fun_sel);
@@ -349,36 +368,43 @@ impl LowLevelGpio {
         });
     }
 
+    /// Whether the pin input level is currently high.
     #[inline]
     pub fn is_high(&self) -> bool {
         (self.gpio.read_data_in() >> self.offset()) & 1 == 1
     }
 
+    /// Whether the pin input level is currently low.
     #[inline]
     pub fn is_low(&self) -> bool {
         !self.is_high()
     }
 
+    /// Drive the pin output high.
     #[inline]
     pub fn set_high(&mut self) {
         self.gpio.write_set_out(self.mask_32());
     }
 
+    /// Drive the pin output low.
     #[inline]
     pub fn set_low(&mut self) {
         self.gpio.write_clr_out(self.mask_32());
     }
 
+    /// Whether the pin output is currently driven high.
     #[inline]
     pub fn is_set_high(&self) -> bool {
         (self.gpio.read_data_out() >> self.offset()) & 1 == 1
     }
 
+    /// Whether the pin output is currently driven low.
     #[inline]
     pub fn is_set_low(&self) -> bool {
         !self.is_set_high()
     }
 
+    /// Toggle the pin output level.
     #[inline]
     pub fn toggle(&mut self) {
         self.gpio.write_tog_out(self.mask_32());
@@ -434,6 +460,7 @@ impl LowLevelGpio {
         Ok(())
     }
 
+    /// Disable the interrupt for this pin, optionally also resetting its IRQSEL routing.
     #[cfg(feature = "vor1x")]
     pub fn disable_interrupt(&mut self, reset_irqsel: bool) {
         if reset_irqsel {
@@ -446,6 +473,7 @@ impl LowLevelGpio {
         });
     }
 
+    /// Disable the interrupt for this pin.
     #[cfg(feature = "vor4x")]
     pub fn disable_interrupt(&mut self) {
         self.gpio.modify_irq_enable(|mut value| {
@@ -598,6 +626,7 @@ impl LowLevelGpio {
         }
     }
 
+    /// The pin's bit mask within its 32-bit port register.
     #[inline(always)]
     pub const fn mask_32(&self) -> u32 {
         1 << self.id.offset()

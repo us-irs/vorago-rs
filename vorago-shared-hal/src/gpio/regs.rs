@@ -24,6 +24,7 @@ cfg_if::cfg_if! {
     }
 }
 
+/// GPIO port register block.
 #[derive(derive_mmio::Mmio)]
 #[mmio(no_ctors)]
 #[repr(C)]
@@ -87,6 +88,7 @@ impl Gpio {
         }
     }
 
+    /// Get an MMIO accessor for the register block of the given port.
     pub const fn new_mmio(port: Port) -> MmioGpio<'static> {
         match port {
             Port::A => Self::new_mmio_at(GPIO_0_BASE),
@@ -106,6 +108,7 @@ impl Gpio {
 }
 
 impl MmioGpio<'_> {
+    /// The port this register block belongs to, derived from its base address.
     pub fn port(&self) -> Port {
         match unsafe { self.ptr() } as usize {
             GPIO_0_BASE => Port::A,
