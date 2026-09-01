@@ -26,7 +26,7 @@ use va416xx_hal::{
     pac::{self, interrupt},
     pins::PinsA,
     prelude::*,
-    spi::{self, Bank, SpiClockConfig},
+    spi::{self, Bank, ClockConfig},
     time::Hertz,
 };
 
@@ -64,8 +64,9 @@ async fn main(_spawner: Spawner) {
     let mut led = Output::new(porta.pa10, PinState::Low);
     spi::HwCsPin::new(porta.pa4);
 
-    let spi_clk_cfg = SpiClockConfig::from_clks(&clocks, 1.MHz()).unwrap();
-    let spi_cfg = spi::SpiConfig::default().clk_cfg(spi_clk_cfg);
+    let spi_clk_cfg = ClockConfig::from_clks(&clocks, 1.MHz()).unwrap();
+    let mut spi_cfg = spi::Config::default();
+    spi_cfg.clock = spi_clk_cfg;
     let (sck, miso, mosi) = (porta.pa5, porta.pa6, porta.pa7);
     let mut spi = spi::Spi::<u8>::new_for_spi2(dp.spi2, (sck, miso, mosi), spi_cfg).into_async();
 

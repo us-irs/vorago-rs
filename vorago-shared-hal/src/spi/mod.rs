@@ -222,7 +222,7 @@ pub trait TransferConfigProvider {
     fn sod(&mut self, sod: bool);
     fn blockmode(&mut self, blockmode: bool);
     fn mode(&mut self, mode: Mode);
-    fn clk_cfg(&mut self, clk_cfg: SpiClockConfig);
+    fn clk_cfg(&mut self, clk_cfg: ClockConfig);
     fn hw_cs_id(&self) -> u8;
 }
 
@@ -231,7 +231,7 @@ pub trait TransferConfigProvider {
 #[derive(Copy, Clone, Debug)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct TransferConfig {
-    pub clk_cfg: Option<SpiClockConfig>,
+    pub clk_cfg: Option<ClockConfig>,
     pub mode: Option<Mode>,
     pub sod: bool,
     /// If this is enabled, all data in the FIFO is transmitted in a single frame unless
@@ -246,7 +246,7 @@ pub struct TransferConfig {
 
 impl TransferConfig {
     pub fn new_with_hw_cs(
-        clk_cfg: Option<SpiClockConfig>,
+        clk_cfg: Option<ClockConfig>,
         mode: Option<Mode>,
         blockmode: bool,
         bmstall: bool,
@@ -267,10 +267,12 @@ impl TransferConfig {
 /// Configuration options for the whole SPI bus. See Programmer Guide p.92 for more details
 #[derive(Debug, Copy, Clone)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
-pub struct SpiConfig {
-    clk: SpiClockConfig,
-    // SPI mode configuration
-    pub init_mode: Mode,
+#[non_exhaustive]
+pub struct Config {
+    /// Clock configuration.
+    pub clock: ClockConfig,
+    // SPI mode configuration.
+    pub mode: Mode,
     /// If this is enabled, all data in the FIFO is transmitted in a single frame unless
     /// the BMSTOP bit is set on a dataword. A frame is defined as CSn being active for the
     /// duration of multiple data words. Defaults to true.
@@ -286,50 +288,25 @@ pub struct SpiConfig {
     pub master_delayer_capture: bool,
 }
 
-impl Default for SpiConfig {
-    fn default() -> Self {
+impl Config {
+    #[inline]
+    pub const fn new(mode: Mode, clock: ClockConfig) -> Self {
         Self {
-            init_mode: MODE_0,
+            clock,
+            mode,
             blockmode: true,
             bmstall: true,
-            // Default value is definitely valid.
-            clk: SpiClockConfig::from_div(DEFAULT_CLK_DIV).unwrap(),
-            slave_output_disable: Default::default(),
-            loopback_mode: Default::default(),
-            master_delayer_capture: Default::default(),
+            slave_output_disable: false,
+            loopback_mode: false,
+            master_delayer_capture: false,
         }
     }
 }
 
-impl SpiConfig {
-    pub fn loopback(mut self, enable: bool) -> Self {
-        self.loopback_mode = enable;
-        self
-    }
-
-    pub fn blockmode(mut self, enable: bool) -> Self {
-        self.blockmode = enable;
-        self
-    }
-
-    pub fn bmstall(mut self, enable: bool) -> Self {
-        self.bmstall = enable;
-        self
-    }
-
-    pub fn mode(mut self, mode: Mode) -> Self {
-        self.init_mode = mode;
-        self
-    }
-
-    pub fn clk_cfg(mut self, clk_cfg: SpiClockConfig) -> Self {
-        self.clk = clk_cfg;
-        self
-    }
-
-    pub fn slave_output_disable(mut self, sod: bool) -> Self {
-        self.slave_output_disable = sod;
-        self
+impl Default for Config {
+    #[inline]
+    fn default() -> Self {
+        Self::new(MODE_0, ClockConfig::from_div(DEFAULT_CLK_DIV).unwrap())
     }
 }
 
@@ -407,12 +384,12 @@ pub fn mode_to_cpo_cph_bit(mode: embedded_hal::spi::Mode) -> (bool, bool) {
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
-pub struct SpiClockConfig {
+pub struct ClockConfig {
     prescale_val: u8,
     scrdv: u8,
 }
 
-impl SpiClockConfig {
+impl ClockConfig {
     pub fn prescale_val(&self) -> u8 {
         self.prescale_val
     }
@@ -421,7 +398,7 @@ impl SpiClockConfig {
     }
 }
 
-impl SpiClockConfig {
+impl ClockConfig {
     pub fn new(prescale_val: u8, scrdv: u8) -> Self {
         Self {
             prescale_val,
@@ -461,7 +438,7 @@ pub enum SpiClockConfigError {
 }
 
 #[inline]
-pub fn spi_clk_config_from_div(mut div: u16) -> Result<SpiClockConfig, SpiClockConfigError> {
+pub fn spi_clk_config_from_div(mut div: u16) -> Result<ClockConfig, SpiClockConfigError> {
     if div == 0 {
         return Err(SpiClockConfigError::DivIsZero);
     }
@@ -486,7 +463,7 @@ pub fn spi_clk_config_from_div(mut div: u16) -> Result<SpiClockConfig, SpiClockC
     if div > u8::MAX as u16 + 1 {
         return Err(SpiClockConfigError::ScrdvValueTooLarge);
     }
-    Ok(SpiClockConfig {
+    Ok(ClockConfig {
         prescale_val: prescale_val as u8,
         scrdv: (div - 1) as u8,
     })
@@ -541,7 +518,7 @@ where
     /// * `spi` - SPI bus to use
     /// * `spi_cfg` - Configuration specific to the SPI bus
     #[cfg(feature = "vor1x")]
-    pub fn new_for_rom<Spi: Spi2Instance>(_spi: Spi, spi_cfg: SpiConfig) -> Self {
+    pub fn new_for_rom<Spi: Spi2Instance>(_spi: Spi, spi_cfg: Config) -> Self {
         Self::new_generic(Spi::ID, Spi::PERIPH_SEL, spi_cfg)
     }
 
@@ -552,7 +529,7 @@ where
     /// * `spi` - SPI bus to use
     /// * `spi_cfg` - Configuration specific to the SPI bus
     #[cfg(feature = "vor4x")]
-    pub fn new_for_rom<Spi: Spi3Instance>(_spi: Spi, spi_cfg: SpiConfig) -> Self {
+    pub fn new_for_rom<Spi: Spi3Instance>(_spi: Spi, spi_cfg: Config) -> Self {
         Self::new_generic(Spi::ID, Spi::PERIPH_SEL, spi_cfg)
     }
 
@@ -567,7 +544,7 @@ where
     pub fn new_for_spi0<Spi: Spi0Instance, Sck: PinSck0, Miso: PinMiso0, Mosi: PinMosi0>(
         _spi: Spi,
         _pins: (Sck, Miso, Mosi),
-        spi_cfg: SpiConfig,
+        spi_cfg: Config,
     ) -> Self {
         IoPeriphPin::new(Sck::ID, Sck::FUN_SEL, None);
         IoPeriphPin::new(Miso::ID, Miso::FUN_SEL, None);
@@ -586,7 +563,7 @@ where
     pub fn new_for_spi1<Spi: Spi1Instance, Sck: PinSck1, Miso: PinMiso1, Mosi: PinMosi1>(
         _spi: Spi,
         _pins: (Sck, Miso, Mosi),
-        spi_cfg: SpiConfig,
+        spi_cfg: Config,
     ) -> Self {
         IoPeriphPin::new(Sck::ID, Sck::FUN_SEL, None);
         IoPeriphPin::new(Miso::ID, Miso::FUN_SEL, None);
@@ -605,7 +582,7 @@ where
     pub fn new_for_spi2<Spi: Spi2Instance, Sck: PinSck2, Miso: PinMiso2, Mosi: PinMosi2>(
         _spi: Spi,
         _pins: (Sck, Miso, Mosi),
-        spi_cfg: SpiConfig,
+        spi_cfg: Config,
     ) -> Self {
         IoPeriphPin::new(Sck::ID, Sck::FUN_SEL, None);
         IoPeriphPin::new(Miso::ID, Miso::FUN_SEL, None);
@@ -613,13 +590,13 @@ where
         Self::new_generic(Spi::ID, Spi::PERIPH_SEL, spi_cfg)
     }
 
-    pub fn new_generic(spi_sel: Bank, periph_sel: PeripheralSelect, spi_cfg: SpiConfig) -> Self {
+    pub fn new_generic(spi_sel: Bank, periph_sel: PeripheralSelect, spi_cfg: Config) -> Self {
         enable_peripheral_clock(periph_sel);
         let mut regs = regs::Spi::new_mmio(spi_sel);
-        let (cpo_bit, cph_bit) = mode_to_cpo_cph_bit(spi_cfg.init_mode);
+        let (cpo_bit, cph_bit) = mode_to_cpo_cph_bit(spi_cfg.mode);
         regs.write_ctrl0(
             regs::Control0::builder()
-                .with_scrdv(spi_cfg.clk.scrdv)
+                .with_scrdv(spi_cfg.clock.scrdv)
                 .with_sph(cph_bit)
                 .with_spo(cpo_bit)
                 .with_word_size(Word::WORD_SIZE)
@@ -639,7 +616,7 @@ where
                 .with_lbm(spi_cfg.loopback_mode)
                 .build(),
         );
-        regs.write_clkprescale(ClockPrescaler::new(spi_cfg.clk.prescale_val));
+        regs.write_clkprescale(ClockPrescaler::new(spi_cfg.clock.prescale_val));
         regs.write_fifo_clear(
             FifoClear::builder()
                 .with_tx_fifo(true)
@@ -663,7 +640,7 @@ where
     }
 
     #[inline]
-    pub fn cfg_clock(&mut self, cfg: SpiClockConfig) {
+    pub fn cfg_clock(&mut self, cfg: ClockConfig) {
         self.regs.modify_ctrl0(|mut value| {
             value.set_scrdv(cfg.scrdv);
             value

@@ -46,7 +46,7 @@ pub mod regs {
 use regs::*;
 use va108xx_hal::{
     pac,
-    spi::{Spi, SpiClockConfig, SpiConfig, SpiLowLevel, BMSTART_BMSTOP_MASK},
+    spi::{ClockConfig, Config, Spi, SpiLowLevel, BMSTART_BMSTOP_MASK},
 };
 
 pub type RomSpi = Spi<u8>;
@@ -62,8 +62,10 @@ pub struct M95M01 {
 pub struct PageBoundaryExceededError;
 
 impl M95M01 {
-    pub fn new(spi: pac::Spic, clk_config: SpiClockConfig) -> Self {
-        let spi = RomSpi::new_for_rom(spi, SpiConfig::default().clk_cfg(clk_config));
+    pub fn new(spi: pac::Spic, clk_config: ClockConfig) -> Self {
+        let mut spi_config = Config::default();
+        spi_config.clock = clk_config;
+        let spi = RomSpi::new_for_rom(spi, spi_config);
         let mut spi_dev = Self { spi };
         spi_dev.clear_block_protection();
         spi_dev

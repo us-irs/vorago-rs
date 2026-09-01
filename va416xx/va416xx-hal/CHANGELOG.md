@@ -18,9 +18,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   of requiring access to the driver instance, so it can be called from an interrupt handler that
   only has a token, not the driver.
 - Added `Spi::into_async` on the blocking driver as a shortcut for `asynch::Spi::new`.
+- `SpiConfig` was renamed to `Config` and reworked: it is now `#[non_exhaustive]` with public
+  fields (`clock`, `mode`, `blockmode`, ...) instead of a builder-method API, plus a
+  `Config::new(mode, clock)` constructor for the two fields without a sensible default.
+  `SpiClockConfig` was renamed to `ClockConfig`.
 - The async SPI driver now always enables blockmode and blockmode stalling. It marks the last
   word of a transfer with the BMSTART_BMSTOP bit, which ends the frame and deasserts a hardware
-  chip select. This overrides the `blockmode` and `bmstall` settings of the passed `SpiConfig`.
+  chip select. This overrides the `blockmode` and `bmstall` settings of the passed `Config`.
 - `TxAsync::new` and `Tx::into_async` are safe again. The requirement that the `Drop` handler of
   generated futures runs is documented instead. The corner case is exotic enough to not justify
   an `unsafe` API.

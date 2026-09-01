@@ -16,12 +16,12 @@ use panic_rtt_target as _;
 use rtt_target::{rprintln, rtt_init_print};
 use va108xx_hal::gpio::{Input, Output, PinState, Port};
 use va108xx_hal::pins::PinsA;
-use va108xx_hal::spi::{configure_pin_as_hw_cs_pin, SpiClockConfig};
+use va108xx_hal::spi::{configure_pin_as_hw_cs_pin, ClockConfig};
 use va108xx_hal::timer::CountdownTimer;
 use va108xx_hal::{
     pac,
     prelude::*,
-    spi::{HwChipSelectId, Spi, SpiConfig},
+    spi::{Config, HwChipSelectId, Spi},
 };
 use va108xx_hal::{port_function_select, FunctionSelect};
 use vorago_reb1::max11619::{
@@ -112,10 +112,11 @@ fn main() -> ! {
     }
 
     let pinsa = PinsA::new(dp.porta);
-    let spi_cfg = SpiConfig::default()
-        .clk_cfg(SpiClockConfig::from_clk(SYS_CLK, 3.MHz()).unwrap())
-        .mode(MODE_0)
-        .blockmode(true);
+    let mut spi_cfg = Config::default();
+    let clock_config = ClockConfig::from_clk(SYS_CLK, 3.MHz()).unwrap();
+    spi_cfg.clock = clock_config;
+    spi_cfg.mode = MODE_0;
+
     let (sck, mosi, miso) = (pinsa.pa20, pinsa.pa19, pinsa.pa18);
 
     if MUX_MODE == MuxMode::PortB19to17 {

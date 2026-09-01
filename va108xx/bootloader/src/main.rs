@@ -10,7 +10,7 @@ use num_enum::TryFromPrimitive;
 use panic_probe as _;
 // Import logger.
 use defmt_rtt as _;
-use va108xx_hal::{pac, spi::SpiClockConfig, time::Hertz, timer::CountdownTimer};
+use va108xx_hal::{pac, spi::ClockConfig, time::Hertz, timer::CountdownTimer};
 use vorago_reb1::m95m01::M95M01;
 
 // Useful for debugging and see what the bootloader is doing. Enabled currently, because
@@ -106,7 +106,7 @@ fn main() -> ! {
     let cp = cortex_m::Peripherals::take().unwrap();
     let mut timer = CountdownTimer::new(dp.tim0, CLOCK_FREQ);
 
-    let clk_config = SpiClockConfig::new(2, 4);
+    let clk_config = ClockConfig::new(2, 4);
     let mut nvm = M95M01::new(dp.spic, clk_config);
 
     if FLASH_SELF {

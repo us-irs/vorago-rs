@@ -13,13 +13,12 @@ use cortex_m_rt::entry;
 use embedded_hal::spi::{Mode, MODE_0};
 use simple_examples::peb1;
 use va416xx_hal::clock::ClockConfigurator;
-use va416xx_hal::spi::{Spi, SpiClockConfig};
 use va416xx_hal::timer::CountdownTimer;
 use va416xx_hal::{
     pac,
     pins::{PinsB, PinsC},
-    spi::SpiConfig,
-    time::Hertz,
+    prelude::*,
+    spi,
 };
 
 #[derive(PartialEq, Debug)]
@@ -50,18 +49,17 @@ fn main() -> ! {
     let pins_b = PinsB::new(dp.portb);
     let pins_c = PinsC::new(dp.portc);
 
-    let mut spi_cfg = SpiConfig::default()
-        .clk_cfg(
-            SpiClockConfig::from_clks(&clocks, Hertz::from_raw(SPI_SPEED_KHZ))
-                .expect("invalid target clock"),
-        )
-        .mode(SPI_MODE)
-        .blockmode(BLOCKMODE);
+    let mut spi_cfg = spi::Config::default();
+    spi_cfg.clock =
+        spi::ClockConfig::from_clks(&clocks, SPI_SPEED_KHZ.kHz()).expect("invalid target clock");
+    spi_cfg.blockmode = BLOCKMODE;
+    spi_cfg.mode = SPI_MODE;
+
     if EXAMPLE_SEL == ExampleSelect::Loopback {
-        spi_cfg = spi_cfg.loopback(true)
+        spi_cfg.loopback_mode = true;
     }
     // Create SPI peripheral.
-    let mut spi0 = Spi::new_for_spi0(dp.spi0, (pins_b.pb15, pins_c.pc0, pins_c.pc1), spi_cfg);
+    let mut spi0 = spi::Spi::new_for_spi0(dp.spi0, (pins_b.pb15, pins_c.pc0, pins_c.pc1), spi_cfg);
     spi0.set_fill_word(FILL_WORD);
     loop {
         let tx_buf: [u8; 4] = [1, 2, 3, 0];

@@ -5,7 +5,7 @@ use cortex_m_rt::entry;
 use embedded_hal::delay::DelayNs;
 use panic_rtt_target as _;
 use rtt_target::{rprintln, rtt_init_print};
-use va108xx_hal::{pac, spi::SpiClockConfig, time::Hertz, timer::CountdownTimer};
+use va108xx_hal::{pac, spi::ClockConfig, time::Hertz, timer::CountdownTimer};
 use vorago_reb1::m95m01::{M95M01, PAGE_SIZE};
 
 const CLOCK_FREQ: Hertz = Hertz::from_raw(50_000_000);
@@ -18,7 +18,7 @@ fn main() -> ! {
     let dp = pac::Peripherals::take().unwrap();
 
     let mut delay = CountdownTimer::new(dp.tim0, CLOCK_FREQ);
-    let clk_config = SpiClockConfig::new(2, 4);
+    let clk_config = ClockConfig::new(2, 4);
     let mut nvm = M95M01::new(dp.spic, clk_config);
     let status_reg = nvm.read_status_reg();
     if status_reg.zero_segment().value() == 0b111 {
