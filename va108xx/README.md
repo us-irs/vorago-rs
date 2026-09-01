@@ -37,14 +37,17 @@ The majority of the HAL implementation and the Embassy-rs support are contained 
 
 ## Using the `.cargo/config.toml` file
 
-Use the following command to have a starting `config.toml` file
+`va108xx-hal`'s `build.rs` copies `.cargo/config.toml.template` to `.cargo/config.toml`
+automatically on first build, so you only need to run this manually if you want to reset it:
 
 ```sh
 cp .cargo/config.toml.template .cargo/config.toml
 ```
 
 You then can adapt the `config.toml` to your needs. For example, you can configure runners
-to conveniently flash with `cargo run`.
+to conveniently flash with `cargo run`. On a fresh clone, the very first `cargo build` may still
+fail with a target-related error, since Cargo picks the target before the build script can create
+`config.toml`. Just run it again.
 
 ## Using the sample VS Code files
 

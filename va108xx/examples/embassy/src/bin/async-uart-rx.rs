@@ -1,8 +1,14 @@
 //! Asynchronous UART reception example application.
 //!
-//! This application receives data on two UARTs permanently using a ring buffer.
-//! The ring buffer are read them asynchronously. UART A is received on ports PA8 and PA9.
-//! UART B is received on ports PA2 and PA3.
+//! This application receives data on two UARTs permanently. UART A is received on ports PA8 and
+//! PA9. UART B is received on ports PA2 and PA3.
+//!
+//! Both UARTs use [uart::RxWithInterrupt::on_interrupt] to drain the RX FIFO into a small stack
+//! buffer directly in the interrupt handler, and forward the bytes into an
+//! [embassy_sync::pipe::Pipe]. The async tasks below just await that pipe, decoupling reception
+//! (which must keep running regardless of whether anyone is currently reading) from how often the
+//! echo tasks get around to reading it. See [uart::asynch] for why there is no dedicated async RX
+//! driver instead.
 //!
 //! Instructions:
 //!
@@ -16,36 +22,28 @@
 // This imports the logger and the panic handler.
 use embassy_example as _;
 
-use core::cell::RefCell;
-use critical_section::Mutex;
 use embassy_executor::Spawner;
+use embassy_sync::{blocking_mutex::raw::CriticalSectionRawMutex, pipe::Pipe};
 use embassy_time::Instant;
 use embedded_io::Write;
-use embedded_io_async::Read;
-use heapless::spsc::{Consumer, Producer, Queue};
+use once_cell::sync::OnceCell;
 use va108xx_hal::{
-    gpio::{Output, PinState},
+    gpio,
     pac::{self, interrupt},
-    pins::PinsA,
+    pins,
     prelude::*,
-    uart::{
-        self, on_interrupt_rx_overwriting,
-        rx_async::{on_interrupt_rx, RxAsync},
-        Bank, RxAsyncOverwriting, Tx,
-    },
-    InterruptConfig,
+    uart, InterruptConfig,
 };
 
 const SYSCLK_FREQ: Hertz = Hertz::from_raw(50_000_000);
 
-static QUEUE_UART_A: static_cell::ConstStaticCell<Queue<u8, 256>> =
-    static_cell::ConstStaticCell::new(Queue::new());
-static PRODUCER_UART_A: Mutex<RefCell<Option<Producer<u8>>>> = Mutex::new(RefCell::new(None));
+static PIPE_UART_A: Pipe<CriticalSectionRawMutex, 256> = Pipe::new();
+static PIPE_UART_B: Pipe<CriticalSectionRawMutex, 256> = Pipe::new();
 
-static QUEUE_UART_B: static_cell::ConstStaticCell<Queue<u8, 256>> =
-    static_cell::ConstStaticCell::new(Queue::new());
-static PRODUCER_UART_B: Mutex<RefCell<Option<Producer<u8>>>> = Mutex::new(RefCell::new(None));
-static CONSUMER_UART_B: Mutex<RefCell<Option<Consumer<u8>>>> = Mutex::new(RefCell::new(None));
+/// Tokens identifying the UART A/B peripherals, set once at construction and read by the
+/// interrupt handlers, which do not have access to an owned [uart::RxWithInterrupt] instance.
+static UART_A_TOKEN: OnceCell<uart::Bank> = OnceCell::new();
+static UART_B_TOKEN: OnceCell<uart::Bank> = OnceCell::new();
 
 // main is itself an async function.
 #[embassy_executor::main]
@@ -57,10 +55,10 @@ async fn main(spawner: Spawner) {
     // Safety: Only called once here.
     va108xx_hal::embassy_time::init(dp.tim23, dp.tim22, SYSCLK_FREQ);
 
-    let porta = PinsA::new(dp.porta);
-    let mut led0 = Output::new(porta.pa10, PinState::Low);
-    let mut led1 = Output::new(porta.pa7, PinState::Low);
-    let mut led2 = Output::new(porta.pa6, PinState::Low);
+    let porta = pins::PinsA::new(dp.porta);
+    let mut led0 = gpio::Output::new(porta.pa10, gpio::PinState::Low);
+    let mut led1 = gpio::Output::new(porta.pa7, gpio::PinState::Low);
+    let mut led2 = gpio::Output::new(porta.pa6, gpio::PinState::Low);
 
     let tx_uart_a = porta.pa9;
     let rx_uart_a = porta.pa8;
@@ -87,28 +85,27 @@ async fn main(spawner: Spawner) {
     );
     let (mut tx_uart_a, rx_uart_a) = uarta.split();
     let (tx_uart_b, rx_uart_b) = uartb.split();
-    let (prod_uart_a, cons_uart_a) = QUEUE_UART_A.take().split();
-    // Pass the producer to the interrupt handler.
-    let (prod_uart_b, cons_uart_b) = QUEUE_UART_B.take().split();
-    critical_section::with(|cs| {
-        *PRODUCER_UART_A.borrow(cs).borrow_mut() = Some(prod_uart_a);
-        *PRODUCER_UART_B.borrow(cs).borrow_mut() = Some(prod_uart_b);
-        *CONSUMER_UART_B.borrow(cs).borrow_mut() = Some(cons_uart_b);
-    });
-    let mut async_rx_uart_a = RxAsync::new(rx_uart_a, cons_uart_a);
-    let async_rx_uart_b = RxAsyncOverwriting::new(rx_uart_b, &CONSUMER_UART_B);
-    spawner.spawn(uart_b_task(async_rx_uart_b, tx_uart_b).unwrap());
+
+    let mut rx_uart_a = rx_uart_a.into_rx_with_interrupt();
+    rx_uart_a.start();
+    UART_A_TOKEN.set(rx_uart_a.bank_id()).unwrap();
+
+    let mut rx_uart_b = rx_uart_b.into_rx_with_interrupt();
+    rx_uart_b.start();
+    UART_B_TOKEN.set(rx_uart_b.bank_id()).unwrap();
+    spawner.spawn(uart_b_echo_task(tx_uart_b).unwrap());
+
     let mut buf = [0u8; 256];
     loop {
         defmt::info!("Current time UART A: {}", Instant::now().as_secs());
         led0.toggle();
         led1.toggle();
         led2.toggle();
-        let read_bytes = async_rx_uart_a.read(&mut buf).await.unwrap();
-        let read_str = core::str::from_utf8(&buf[..read_bytes]).unwrap();
+        let bytes_read = PIPE_UART_A.read(&mut buf).await;
+        let read_str = core::str::from_utf8(&buf[..bytes_read]).unwrap();
         defmt::info!(
             "Read {} bytes asynchronously on UART A: {:?}",
-            read_bytes,
+            bytes_read,
             read_str
         );
         tx_uart_a.write_all(read_str.as_bytes()).unwrap();
@@ -116,44 +113,54 @@ async fn main(spawner: Spawner) {
 }
 
 #[embassy_executor::task]
-async fn uart_b_task(mut async_rx: RxAsyncOverwriting, mut tx: Tx) {
+async fn uart_b_echo_task(mut tx: uart::Tx) {
     let mut buf = [0u8; 256];
     loop {
-        defmt::info!("Current time UART B: {}", Instant::now().as_secs());
-        // Infallible asynchronous operation.
-        let read_bytes = async_rx.read(&mut buf).await.unwrap();
-        let read_str = core::str::from_utf8(&buf[..read_bytes]).unwrap();
+        let bytes_read = PIPE_UART_B.read(&mut buf).await;
+        let read_str = core::str::from_utf8(&buf[..bytes_read]).unwrap();
         defmt::info!(
             "Read {} bytes asynchronously on UART B: {:?}",
-            read_bytes,
+            bytes_read,
             read_str
         );
         tx.write_all(read_str.as_bytes()).unwrap();
     }
 }
 
+/// `Pipe` has no `try_write_all` yet, and `try_write` can write fewer bytes than given (e.g. when
+/// the write wraps around the ring buffer). Retry until everything is written or the pipe
+/// reports it is full.
+fn pipe_try_write_all(pipe: &Pipe<CriticalSectionRawMutex, 256>, mut buf: &[u8]) {
+    while !buf.is_empty() {
+        match pipe.try_write(buf) {
+            Ok(n) if n > 0 => buf = &buf[n..],
+            _ => break,
+        }
+    }
+}
+
 #[interrupt]
 #[allow(non_snake_case)]
 fn OC2() {
-    let mut prod =
-        critical_section::with(|cs| PRODUCER_UART_A.borrow(cs).borrow_mut().take().unwrap());
-    let errors = on_interrupt_rx(Bank::Uart0, &mut prod);
-    critical_section::with(|cs| *PRODUCER_UART_A.borrow(cs).borrow_mut() = Some(prod));
-    // In a production app, we could use a channel to send the errors to the main task.
-    if let Err(errors) = errors {
-        defmt::info!("UART A errors: {:?}", errors);
+    let mut buf = [0u8; 16];
+    let result = uart::RxWithInterrupt::on_interrupt(*UART_A_TOKEN.get().unwrap(), &mut buf);
+    if result.bytes_read > 0 {
+        pipe_try_write_all(&PIPE_UART_A, &buf[..result.bytes_read]);
+    }
+    if let Some(errors) = result.errors {
+        defmt::warn!("UART A errors: {:?}", errors);
     }
 }
 
 #[interrupt]
 #[allow(non_snake_case)]
 fn OC3() {
-    let mut prod =
-        critical_section::with(|cs| PRODUCER_UART_B.borrow(cs).borrow_mut().take().unwrap());
-    let errors = on_interrupt_rx_overwriting(Bank::Uart1, &mut prod, &CONSUMER_UART_B);
-    critical_section::with(|cs| *PRODUCER_UART_B.borrow(cs).borrow_mut() = Some(prod));
-    // In a production app, we could use a channel to send the errors to the main task.
-    if let Err(errors) = errors {
-        defmt::info!("UART B errors: {:?}", errors);
+    let mut buf = [0u8; 16];
+    let result = uart::RxWithInterrupt::on_interrupt(*UART_B_TOKEN.get().unwrap(), &mut buf);
+    if result.bytes_read > 0 {
+        pipe_try_write_all(&PIPE_UART_B, &buf[..result.bytes_read]);
+    }
+    if let Some(errors) = result.errors {
+        defmt::warn!("UART B errors: {:?}", errors);
     }
 }

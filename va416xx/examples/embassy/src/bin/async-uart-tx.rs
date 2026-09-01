@@ -19,6 +19,7 @@ use defmt_rtt as _;
 use embassy_example::EXTCLK_FREQ;
 use embassy_executor::Spawner;
 use embassy_time::{Duration, Instant, Ticker};
+use once_cell::sync::OnceCell;
 use va416xx_hal::{
     clock::ClockConfigurator,
     gpio::{Output, PinState},
@@ -26,12 +27,12 @@ use va416xx_hal::{
     pins::PinsG,
     prelude::*,
     time::Hertz,
-    uart::{
-        self,
-        tx_async::{on_interrupt_tx, TxAsync},
-        Bank,
-    },
+    uart::{self, asynch, Bank},
 };
+
+/// Token identifying the UART0 peripheral, set once at construction and read by the interrupt
+/// handler, which does not have access to the [asynch::Tx] driver itself.
+static TX_TOKEN: OnceCell<Bank> = OnceCell::new();
 
 const STR_LIST: &[&str] = &[
     "Hello World\r\n",
@@ -69,7 +70,8 @@ async fn main(_spawner: Spawner) {
     let uarta = uart::Uart::new_for_uart0(dp.uart0, pinsg.pg0, pinsg.pg1, uart_config);
     let (tx, _rx) = uarta.split();
     // Safety: We do not cancel futures.
-    let mut async_tx = TxAsync::new(tx);
+    let mut async_tx = asynch::Tx::new(tx);
+    TX_TOKEN.set(async_tx.bank_id()).unwrap();
     let mut ticker = Ticker::every(Duration::from_secs(1));
     let mut idx = 0;
     loop {
@@ -91,5 +93,5 @@ async fn main(_spawner: Spawner) {
 #[interrupt]
 #[allow(non_snake_case)]
 fn UART0_TX() {
-    on_interrupt_tx(Bank::Uart0);
+    asynch::Tx::on_interrupt(*TX_TOKEN.get().unwrap());
 }

@@ -38,6 +38,7 @@ va108xx-docs:
     - cd va108xx
     - rustup install nightly
     - rustup component add rust-src --toolchain nightly
+    - rustup target add thumbv6m-none-eabi --toolchain nightly
     - RUSTDOCFLAGS="--cfg docsrs --generate-link-to-definition -Z unstable-options" cargo +nightly doc -p va108xx --all-features
     - RUSTDOCFLAGS="--cfg docsrs --generate-link-to-definition -Z unstable-options" cargo +nightly doc -p va108xx-hal --features "defmt, embassy-oc30-oc31" --no-deps
     - RUSTDOCFLAGS="--cfg docsrs --generate-link-to-definition -Z unstable-options" cargo +nightly doc -p vorago-reb1 --no-deps

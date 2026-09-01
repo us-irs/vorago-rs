@@ -6,7 +6,10 @@
 //! back to the sender.
 //!
 //! This application uses the interrupt support of the VA416xx to read the data arriving
-//! on the UART without requiring polling.
+//! on the UART without requiring polling. [uart::RxWithInterrupt::on_interrupt] drains the RX
+//! FIFO into a small stack buffer directly in the interrupt handler, and forwards the bytes into
+//! an [embassy_sync::pipe::Pipe]. The main loop just awaits that pipe. See [uart::asynch] for why
+//! there is no dedicated async RX driver instead.
 #![no_std]
 #![no_main]
 // Import panic provider.
@@ -14,18 +17,12 @@ use panic_probe as _;
 // Import logger.
 use defmt_rtt as _;
 
-use core::cell::RefCell;
-
 use embassy_example::EXTCLK_FREQ;
 use embassy_executor::Spawner;
-use embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex;
-use embassy_sync::blocking_mutex::Mutex;
+use embassy_sync::{blocking_mutex::raw::CriticalSectionRawMutex, pipe::Pipe};
 use embassy_time::{Duration, Ticker};
 use embedded_io::Write;
-use ringbuf::{
-    traits::{Consumer, Observer, Producer},
-    StaticRb,
-};
+use once_cell::sync::OnceCell;
 use va416xx_hal::{
     clock::ClockConfigurator,
     gpio::{Output, PinState},
@@ -35,21 +32,15 @@ use va416xx_hal::{
     uart,
 };
 
-pub type SharedUart = Mutex<CriticalSectionRawMutex, RefCell<Option<uart::RxWithInterrupt>>>;
-static RX: SharedUart = Mutex::new(RefCell::new(None));
-
 const BAUDRATE: u32 = 115200;
 
-// Ring buffer size.
-const RING_BUF_SIZE: usize = 2048;
+const PIPE_SIZE: usize = 2048;
+static PIPE: Pipe<CriticalSectionRawMutex, PIPE_SIZE> = Pipe::new();
 
-pub type SharedRingBuf =
-    Mutex<CriticalSectionRawMutex, RefCell<Option<StaticRb<u8, RING_BUF_SIZE>>>>;
-// Ring buffers to handling variable sized telemetry
-static RINGBUF: SharedRingBuf = Mutex::new(RefCell::new(None));
+/// Token identifying the UART0 peripheral, set once at construction and read by the interrupt
+/// handler, which does not have access to an owned [uart::RxWithInterrupt] instance.
+static UART0_TOKEN: OnceCell<uart::Bank> = OnceCell::new();
 
-// See https://embassy.dev/book/#_sharing_using_a_mutex for background information about sharing
-// a peripheral with embassy.
 #[embassy_executor::main]
 async fn main(spawner: Spawner) {
     defmt::println!("VA416xx UART-Embassy Example");
@@ -77,29 +68,17 @@ async fn main(spawner: Spawner) {
     let (mut tx, rx) = uart0.split();
     let mut rx = rx.into_rx_with_interrupt();
     rx.start();
-    RX.lock(|static_rx| {
-        static_rx.borrow_mut().replace(rx);
-    });
-    RINGBUF.lock(|static_rb| {
-        static_rb.borrow_mut().replace(StaticRb::default());
-    });
+    UART0_TOKEN.set(rx.bank_id()).unwrap();
 
     let led = Output::new(portg.pg5, PinState::Low);
-    let mut ticker = Ticker::every(Duration::from_millis(50));
-    let mut processing_buf: [u8; RING_BUF_SIZE] = [0; RING_BUF_SIZE];
-    let mut read_bytes = 0;
     spawner.spawn(blinky(led).expect("failed to spawn blinky"));
+
+    let mut buf = [0u8; PIPE_SIZE];
     loop {
-        RINGBUF.lock(|static_rb| {
-            let mut rb_borrow = static_rb.borrow_mut();
-            let rb_mut = rb_borrow.as_mut().unwrap();
-            read_bytes = rb_mut.occupied_len();
-            rb_mut.pop_slice(&mut processing_buf[0..read_bytes]);
-        });
+        let bytes_read = PIPE.read(&mut buf).await;
         // Simply send back all received data.
-        tx.write_all(&processing_buf[0..read_bytes])
+        tx.write_all(&buf[..bytes_read])
             .expect("sending back read data failed");
-        ticker.next().await;
     }
 }
 
@@ -112,39 +91,27 @@ async fn blinky(mut led: Output) {
     }
 }
 
+/// `Pipe` has no `try_write_all` yet, and `try_write` can write fewer bytes than given (e.g. when
+/// the write wraps around the ring buffer). Retry until everything is written or the pipe
+/// reports it is full.
+fn pipe_try_write_all(pipe: &Pipe<CriticalSectionRawMutex, PIPE_SIZE>, mut buf: &[u8]) {
+    while !buf.is_empty() {
+        match pipe.try_write(buf) {
+            Ok(n) if n > 0 => buf = &buf[n..],
+            _ => break,
+        }
+    }
+}
+
 #[interrupt]
 #[allow(non_snake_case)]
 fn UART0_RX() {
-    let mut buf: [u8; 16] = [0; 16];
-    let mut read_len: usize = 0;
-    let mut errors = None;
-    RX.lock(|static_rx| {
-        let mut rx_borrow = static_rx.borrow_mut();
-        let rx_mut_ref = rx_borrow.as_mut().unwrap();
-        let result = rx_mut_ref.on_interrupt(&mut buf);
-        read_len = result.bytes_read;
-        if result.errors.is_some() {
-            errors = result.errors;
-        }
-    });
-    let mut ringbuf_full = false;
-    if read_len > 0 {
-        // Send the received buffer to the main thread for processing via a ring buffer.
-        RINGBUF.lock(|static_rb| {
-            let mut rb_borrow = static_rb.borrow_mut();
-            let rb_mut_ref = rb_borrow.as_mut().unwrap();
-            if rb_mut_ref.vacant_len() < read_len {
-                ringbuf_full = true;
-                for _ in rb_mut_ref.pop_iter() {}
-            }
-            rb_mut_ref.push_slice(&buf[0..read_len]);
-        });
+    let mut buf = [0u8; 16];
+    let result = uart::RxWithInterrupt::on_interrupt(*UART0_TOKEN.get().unwrap(), &mut buf);
+    if result.bytes_read > 0 {
+        pipe_try_write_all(&PIPE, &buf[..result.bytes_read]);
     }
-
-    if errors.is_some() {
+    if let Some(errors) = result.errors {
         defmt::info!("UART error: {:?}", errors);
-    }
-    if ringbuf_full {
-        defmt::info!("ringbuffer is full, deleted oldest data");
     }
 }

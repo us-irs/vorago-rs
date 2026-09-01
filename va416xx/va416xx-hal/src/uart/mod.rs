@@ -4,6 +4,6 @@
 //! The RX structure also has a dedicated [RxWithInterrupt] variant which allows reading the receiver
 //! using interrupts.
 //!
-//! The [rx_async] and [tx_async] modules provide an asynchronous non-blocking API for the UART
-//! peripheral.
+//! The [asynch] module provides an asynchronous, non-blocking TX driver. See its docs for how
+//! to build async RX reception on top of [RxWithInterrupt] instead.
 pub use vorago_shared_hal::uart::*;

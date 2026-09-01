@@ -38,6 +38,7 @@ va416xx-docs:
     - cd va416xx
     - rustup install nightly
     - rustup component add rust-src --toolchain nightly
+    - rustup target add thumbv7em-none-eabihf --toolchain nightly
     - RUSTDOCFLAGS="--cfg docsrs --generate-link-to-definition -Z unstable-options" cargo +nightly doc -p va416xx
     - RUSTDOCFLAGS="--cfg docsrs --generate-link-to-definition -Z unstable-options" cargo +nightly doc -p va416xx-hal --features va41630 --no-deps
     - RUSTDOCFLAGS="--cfg docsrs --generate-link-to-definition -Z unstable-options" cargo +nightly doc -p vorago-peb1 --no-deps

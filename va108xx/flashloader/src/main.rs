@@ -39,7 +39,7 @@ mod app {
     use spacepackets::{CcsdsPacketReader, SpacePacketHeader};
     use va108xx_hal::pins::PinsA;
     use va108xx_hal::spi::ClockConfig;
-    use va108xx_hal::uart::{self, TxAsync};
+    use va108xx_hal::uart::{self, asynch};
     use va108xx_hal::{pac, InterruptConfig};
     use vorago_reb1::m95m01::M95M01;
 
@@ -54,7 +54,7 @@ mod app {
     #[local]
     struct Local {
         uart_rx: uart::RxWithInterrupt,
-        uart_tx: uart::TxAsync,
+        uart_tx: asynch::Tx,
         nvm: M95M01,
         tc_tx: embassy_sync::pipe::Writer<'static, CriticalSectionRawMutex, TC_PIPE_SIZE>,
         tc_rx: embassy_sync::pipe::Reader<'static, CriticalSectionRawMutex, TC_PIPE_SIZE>,
@@ -101,7 +101,7 @@ mod app {
         tm_tx_handler::spawn().unwrap();
 
         // Safety: We do not cancel futures.
-        let tx_async = TxAsync::new(tx);
+        let tx_async = asynch::Tx::new(tx);
 
         static TC_PIPE: static_cell::ConstStaticCell<
             embassy_sync::pipe::Pipe<CriticalSectionRawMutex, TC_PIPE_SIZE>,
@@ -143,7 +143,7 @@ mod app {
     )]
     fn uart_irq(cx: uart_irq::Context) {
         let mut buf: [u8; 16] = [0; 16];
-        let result = cx.local.uart_rx.on_interrupt(&mut buf);
+        let result = cx.local.uart_rx.on_interrupt_owned(&mut buf);
         if result.bytes_read > 0 {
             let mut written_so_far = 0;
             while written_so_far < result.bytes_read {
@@ -158,7 +158,7 @@ mod app {
                 written_so_far += write_result.unwrap();
             }
         }
-        va108xx_hal::uart::tx_async::on_interrupt_tx(UART_BANK);
+        va108xx_hal::uart::asynch::Tx::on_interrupt(UART_BANK);
     }
 
     #[task(
