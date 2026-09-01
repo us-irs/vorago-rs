@@ -37,14 +37,17 @@ Some parts of the HAL implementation and the Embassy-rs support are contained in
 
 ## Using the `.cargo/config.toml` file
 
-Use the following command to have a starting `config.toml` file
+`va416xx-hal`'s `build.rs` copies `.cargo/config.toml.template` to `.cargo/config.toml`
+automatically on first build, so you only need to run this manually if you want to reset it:
 
 ```sh
 cp .cargo/config.toml.template .cargo/config.toml
 ```
 
 You then can adapt the `config.toml` to your needs. For example, you can configure runners
-to conveniently flash with `cargo run`.
+to conveniently flash with `cargo run`. On a fresh clone, the very first `cargo build` may still
+fail with a target-related error, since Cargo picks the target before the build script can create
+`config.toml`. Just run it again.
 
 ## Using the sample VS Code files
 
@@ -94,7 +97,7 @@ probe-rs run --chip VA416xx_RAM --protocol jtag target/thumbv7em-none-eabihf/deb
 to flash and run the blinky program on the RAM. There is also a `VA416xx` chip target
 available for persistent flashing.
 
-Runner configuration is available in the `.cargo/def-config.toml` file to use `probe-rs` for
+Runner configuration is available in the `.cargo/config.toml.template` file to use `probe-rs` for
 convenience. `probe-rs` is also able to process and display `defmt` strings directly.
 
 ### Using VS Code

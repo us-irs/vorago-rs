@@ -26,13 +26,13 @@ use va416xx_hal::{
     pac::{self, interrupt},
     pins::PinsA,
     prelude::*,
-    spi::{self, Bank, ClockConfig},
+    spi,
     time::Hertz,
 };
 
 /// Token identifying the SPI2 peripheral, set once at construction and read by the interrupt
 /// handlers, which do not have access to the [spi::asynch::Spi] driver itself.
-static SPI_TOKEN: OnceCell<Bank> = OnceCell::new();
+static SPI_TOKEN: OnceCell<spi::Bank> = OnceCell::new();
 
 /// Drop a transfer future which is still in flight, once per cycle.
 ///
@@ -64,7 +64,7 @@ async fn main(_spawner: Spawner) {
     let mut led = Output::new(porta.pa10, PinState::Low);
     spi::HwCsPin::new(porta.pa4);
 
-    let spi_clk_cfg = ClockConfig::from_clks(&clocks, 1.MHz()).unwrap();
+    let spi_clk_cfg = spi::ClockConfig::from_clks(&clocks, 1.MHz()).unwrap();
     let mut spi_cfg = spi::Config::default();
     spi_cfg.clock = spi_clk_cfg;
     let (sck, miso, mosi) = (porta.pa5, porta.pa6, porta.pa7);

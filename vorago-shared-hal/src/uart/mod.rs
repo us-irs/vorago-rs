@@ -4,8 +4,12 @@
 //! The RX structure also has a dedicated [RxWithInterrupt] variant which allows reading the receiver
 //! using interrupts.
 //!
-//! The [rx_async] and [tx_async] modules provide an asynchronous non-blocking API for the UART
-//! peripheral.
+//! The [asynch] module provides an asynchronous, non-blocking TX driver. There is no equivalent
+//! async RX driver: instead, drain [RxWithInterrupt::on_interrupt] into a queue of your choice
+//! from your own interrupt handler (e.g. an `embassy_sync::pipe::Pipe`, which already gives you
+//! an async `read`), and await that queue from your task. This is a handful of lines and gives
+//! you full control over buffering; see [asynch] and the `async-uart-rx` examples for the exact
+//! pattern.
 //!
 //! ## Examples
 //!
@@ -41,11 +45,7 @@ use va108xx as pac;
 #[cfg(feature = "vor4x")]
 use va416xx as pac;
 
-pub mod tx_async;
-pub use tx_async::*;
-
-pub mod rx_async;
-pub use rx_async::*;
+pub mod asynch;
 
 /// FIFO depth of the UART for both the RX and TX FIFO.
 pub const FIFO_DEPTH: usize = 16;
@@ -935,6 +935,14 @@ pub struct Rx {
     regs: regs::MmioUart<'static>,
 }
 
+impl core::fmt::Debug for Rx {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("Rx")
+            .field("id", &self.id)
+            .finish_non_exhaustive()
+    }
+}
+
 impl Rx {
     /// Retrieve a TX pin without expecting an explicit UART structure
     ///
@@ -1251,11 +1259,9 @@ impl Tx {
 
     /// Create an asynchronous UART driver.
     ///
-    /// # Safety
-    ///
-    /// See [TxAsync::new] for details.
-    pub fn into_async(self) -> TxAsync {
-        TxAsync::new(self)
+    /// See [asynch::Tx::new] for details.
+    pub fn into_async(self) -> asynch::Tx {
+        asynch::Tx::new(self)
     }
 }
 
@@ -1307,6 +1313,12 @@ impl embedded_io::Write for Tx {
     }
 }
 
+impl core::fmt::Write for Tx {
+    fn write_str(&mut self, s: &str) -> core::fmt::Result {
+        <Self as embedded_io::Write>::write_all(self, s.as_bytes()).map_err(|_| core::fmt::Error)
+    }
+}
+
 /// Serial receiver, using interrupts to offload reading to the hardware.
 ///
 /// You can use [Rx::into_rx_with_irq] to convert a normal [Rx] structure into this structure.
@@ -1316,13 +1328,19 @@ impl embedded_io::Write for Tx {
 /// of the UART.
 ///
 ///  1. The first way simply empties the FIFO on an interrupt into a user provided buffer. You
-///     can simply use [Self::start] to prepare the peripheral and then call the
-///     [Self::on_interrupt] in the interrupt service routine.
+///     can simply use [Self::start] to prepare the peripheral and then call [Self::on_interrupt]
+///     (bare interrupt handler with no owned instance, e.g. embassy's `#[interrupt] fn`) or
+///     [Self::on_interrupt_owned] (owned instance, e.g. an RTIC `local` resource) in the
+///     interrupt service routine.
 ///  2. The second way reads packets bounded by a maximum size or a baudtick based timeout. You
 ///     can use [Self::read_fixed_len_or_timeout_based_using_irq] to prepare the peripheral and
 ///     then call the [Self::on_interrupt_max_size_or_timeout_based] in the interrupt service
 ///     routine. You have to call [Self::read_fixed_len_or_timeout_based_using_irq] in the ISR to
 ///     start reading the next packet.
+///
+/// For continuous reception from an async task, call [Self::on_interrupt] from the ISR and
+/// forward the drained bytes into a queue of your choice (e.g. an `embassy_sync::pipe::Pipe`),
+/// then await that queue from the task. See the `async-uart-rx` examples.
 pub struct RxWithInterrupt(Rx);
 
 impl RxWithInterrupt {
@@ -1356,6 +1374,17 @@ impl RxWithInterrupt {
     #[inline(always)]
     pub fn rx(&self) -> &Rx {
         &self.0
+    }
+
+    /// Token identifying the UART peripheral driven by this instance.
+    ///
+    /// Pass this to [Self::on_interrupt] to service the peripheral's RX interrupts from a bare
+    /// interrupt handler that has no access to an owned instance (e.g. a plain
+    /// `#[interrupt] fn ...()`, as opposed to an RTIC task with a `local` resource). Since it is
+    /// `Copy`, stash it in a `Mutex<Cell<_>>`/`OnceCell` and hand it to the interrupt handler.
+    #[inline]
+    pub fn bank_id(&self) -> Bank {
+        self.0.id
     }
 
     /// This function is used together with the [Self::on_interrupt_max_size_or_timeout_based]
@@ -1397,6 +1426,16 @@ impl RxWithInterrupt {
         self.0.clear_fifo();
     }
 
+    /// Drains the RX FIFO into `buf`, using the token returned by [Self::bank_id] rather than an
+    /// owned instance, so it can be called from a bare interrupt handler that was never handed
+    /// this driver. See [Self::on_interrupt_owned] for the semantics; this performs the same
+    /// operation on a freshly [Self::steal]ed instance.
+    pub fn on_interrupt(bank_id: Bank, buf: &mut [u8; 16]) -> InterruptResult {
+        // Safety: Only touches this bank's registers for the duration of this call, same as any
+        // other interrupt handler in this crate.
+        unsafe { Self::steal(bank_id) }.on_interrupt_owned(buf)
+    }
+
     /// This function should be called in the user provided UART interrupt handler.
     ///
     /// It simply empties any bytes in the FIFO into the user provided buffer and returns the
@@ -1405,7 +1444,10 @@ impl RxWithInterrupt {
     /// This function will not disable the RX interrupts, so you don't need to call any other
     /// API after calling this function to continue emptying the FIFO. RX errors are handled
     /// as partial errors and are returned as part of the [InterruptResult].
-    pub fn on_interrupt(&mut self, buf: &mut [u8; 16]) -> InterruptResult {
+    ///
+    /// Prefer [Self::on_interrupt] if you do not already have an owned instance available in
+    /// your interrupt handler (e.g. an RTIC `local` resource); that takes a `Bank` token instead.
+    pub fn on_interrupt_owned(&mut self, buf: &mut [u8; 16]) -> InterruptResult {
         let mut result = InterruptResult::default();
 
         let irq_status = self.0.regs.read_interrupt_status();

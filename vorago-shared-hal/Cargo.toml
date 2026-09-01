@@ -15,14 +15,12 @@ bitbybit = "2"
 arbitrary-int = "2"
 static_assertions = "1.1"
 nb = "1"
-heapless = "0.9"
 critical-section = "1"
 embedded-hal = "1.0"
 embedded-hal-async = "1"
 embedded-hal-nb = "1"
 embedded-io = "0.7"
 embedded-io-async = "0.7"
-raw-buffer = "0.1"
 thiserror = { version = "2", default-features = false }
 paste = "1"
 fugit = "0.4"
@@ -56,9 +54,6 @@ defmt = [
 ]
 
 _family-selected = []
-
-[package.metadata.cargo-machete]
-ignored = ["raw-buffer"]
 
 [package.metadata.docs.rs]
 features = ["vor1x", "defmt"]

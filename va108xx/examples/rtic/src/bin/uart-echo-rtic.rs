@@ -98,7 +98,7 @@ mod app {
     fn reception_task(mut cx: reception_task::Context) {
         let mut buf: [u8; 16] = [0; 16];
         let mut ringbuf_full = false;
-        let result = cx.local.rx.on_interrupt(&mut buf);
+        let result = cx.local.rx.on_interrupt_owned(&mut buf);
         if result.bytes_read > 0 && result.errors.is_none() {
             cx.shared.rb.lock(|rb| {
                 if rb.vacant_len() < result.bytes_read {

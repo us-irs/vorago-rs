@@ -15,16 +15,20 @@ use embassy_example as _;
 
 use embassy_executor::Spawner;
 use embassy_time::{Duration, Instant, Ticker};
+use once_cell::sync::OnceCell;
 use va108xx_hal::{
-    gpio::{Output, PinState},
+    gpio,
     pac::{self, interrupt},
-    pins::PinsA,
+    pins,
     prelude::*,
-    uart::{self, on_interrupt_tx, Bank, TxAsync},
-    InterruptConfig,
+    uart, InterruptConfig,
 };
 
 const SYSCLK_FREQ: Hertz = Hertz::from_raw(50_000_000);
+
+/// Token identifying the UART0 peripheral, set once at construction and read by the interrupt
+/// handler, which does not have access to the [uart::asynch::Tx] driver itself.
+static TX_TOKEN: OnceCell<uart::Bank> = OnceCell::new();
 
 const STR_LIST: &[&str] = &[
     "Hello World\r\n",
@@ -43,11 +47,11 @@ async fn main(_spawner: Spawner) {
     // Safety: Only called once here.
     va108xx_hal::embassy_time::init(dp.tim23, dp.tim22, SYSCLK_FREQ);
 
-    let porta = PinsA::new(dp.porta);
+    let porta = pins::PinsA::new(dp.porta);
 
-    let mut led0 = Output::new(porta.pa10, PinState::Low);
-    let mut led1 = Output::new(porta.pa7, PinState::Low);
-    let mut led2 = Output::new(porta.pa6, PinState::Low);
+    let mut led0 = gpio::Output::new(porta.pa10, gpio::PinState::Low);
+    let mut led1 = gpio::Output::new(porta.pa7, gpio::PinState::Low);
+    let mut led2 = gpio::Output::new(porta.pa6, gpio::PinState::Low);
 
     let tx = porta.pa9;
     let rx = porta.pa8;
@@ -63,7 +67,8 @@ async fn main(_spawner: Spawner) {
     );
     let (tx, _rx) = uarta.split();
     // Safety: We do not cancel futures.
-    let mut async_tx = TxAsync::new(tx);
+    let mut async_tx = uart::asynch::Tx::new(tx);
+    TX_TOKEN.set(async_tx.bank_id()).unwrap();
     let mut ticker = Ticker::every(Duration::from_secs(1));
     let mut idx = 0;
     loop {
@@ -87,5 +92,5 @@ async fn main(_spawner: Spawner) {
 #[interrupt]
 #[allow(non_snake_case)]
 fn OC2() {
-    on_interrupt_tx(Bank::Uart0);
+    uart::asynch::Tx::on_interrupt(*TX_TOKEN.get().unwrap());
 }
