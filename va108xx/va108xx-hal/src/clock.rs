@@ -4,6 +4,7 @@
 pub use vorago_shared_hal::gpio::FilterClockSelect;
 pub use vorago_shared_hal::sysconfig::{disable_peripheral_clock, enable_peripheral_clock};
 
+/// Set the clock divider register for the given IOCONFIG filter clock.
 pub fn set_clk_div_register(syscfg: &mut va108xx::Sysconfig, clk_sel: FilterClockSelect, div: u32) {
     match clk_sel {
         FilterClockSelect::SysClk => (),

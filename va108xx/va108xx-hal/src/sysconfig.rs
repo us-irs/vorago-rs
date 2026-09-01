@@ -1,3 +1,4 @@
+/// The given scrub rate is invalid, see [enable_rom_scrubbing] and [enable_ram_scrubbing].
 #[derive(PartialEq, Eq, Debug)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct InvalidCounterResetVal(pub(crate) ());
@@ -15,6 +16,7 @@ pub fn enable_rom_scrubbing(scrub_rate: u32) -> Result<(), InvalidCounterResetVa
     Ok(())
 }
 
+/// Disable ROM scrubbing.
 pub fn disable_rom_scrubbing() {
     let syscfg = unsafe { va108xx::Sysconfig::steal() };
     syscfg.rom_scrub().write(|w| unsafe { w.bits(0) });
@@ -33,6 +35,7 @@ pub fn enable_ram_scrubbing(scrub_rate: u32) -> Result<(), InvalidCounterResetVa
     Ok(())
 }
 
+/// Disable RAM scrubbing.
 pub fn disable_ram_scrubbing() {
     let syscfg = unsafe { va108xx::Sysconfig::steal() };
     syscfg.ram_scrub().write(|w| unsafe { w.bits(0) });

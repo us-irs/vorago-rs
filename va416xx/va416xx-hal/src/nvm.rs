@@ -21,13 +21,19 @@ const NVM_CLOCK_DIV: u16 = 2;
 
 /// Write enable register.
 pub const FRAM_WREN: u8 = 0x06;
+/// Write disable command.
 pub const FRAM_WRDI: u8 = 0x04;
+/// Read status register command.
 pub const FRAM_RDSR: u8 = 0x05;
 /// Write single status register
 pub const FRAM_WRSR: u8 = 0x01;
+/// Read data command.
 pub const FRAM_READ: u8 = 0x03;
+/// Write data command.
 pub const FRAM_WRITE: u8 = 0x02;
+/// Read device ID command.
 pub const FRAM_RDID: u8 = 0x9F;
+/// Enter sleep mode command.
 pub const FRAM_SLEEP: u8 = 0xB9;
 
 // Address Masks
@@ -51,23 +57,32 @@ const fn lsb_addr_byte(addr: u32) -> u8 {
     (addr & ADDR_LSB_MASK) as u8
 }
 
+/// Write-protect enable mask for the status register.
 pub const WPEN_ENABLE_MASK: u8 = 1 << 7;
+/// Block-protect bit 0 mask for the status register.
 pub const BP_0_ENABLE_MASK: u8 = 1 << 2;
+/// Block-protect bit 1 mask for the status register.
 pub const BP_1_ENABLE_MASK: u8 = 1 << 3;
 
+/// NVM (FRAM) driver.
 pub struct Nvm {
     spi: Option<pac::Spi3>,
 }
 
+/// Data read back from the NVM did not match the expected data.
 #[derive(Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct VerifyError {
+    /// Address of the first mismatching byte.
     addr: u32,
+    /// Byte value found in NVM.
     found: u8,
+    /// Byte value that was expected.
     expected: u8,
 }
 
 impl Nvm {
+    /// Create a new NVM driver, taking ownership of the SPI3 peripheral.
     pub fn new(spi: pac::Spi3, _clocks: &Clocks) -> Self {
         enable_peripheral_clock(pac::Spi3::PERIPH_SEL);
         // This is done in the C HAL.
@@ -107,6 +122,7 @@ impl Nvm {
         nvm
     }
 
+    /// Disable write protection.
     pub fn disable_write_prot(&mut self) {
         self.wait_for_tx_idle();
         self.write_with_bmstop(FRAM_WREN);
@@ -116,6 +132,7 @@ impl Nvm {
         self.wait_for_tx_idle();
     }
 
+    /// Read the status register.
     pub fn read_rdsr(&self) -> u8 {
         self.write_single(FRAM_RDSR);
         self.write_with_bmstop(0x00);
@@ -125,6 +142,7 @@ impl Nvm {
         (self.read_single_word() & 0xff) as u8
     }
 
+    /// Enable write protection.
     pub fn enable_write_prot(&mut self) {
         self.wait_for_tx_idle();
         self.write_with_bmstop(FRAM_WREN);
@@ -132,16 +150,20 @@ impl Nvm {
         self.write_single(FRAM_WRSR);
         self.write_with_bmstop(0x00);
     }
+
+    /// Raw SPI3 peripheral accessor.
     #[inline(always)]
     pub fn spi(&self) -> &pac::Spi3 {
         self.spi.as_ref().unwrap()
     }
 
+    /// Write a single word to the SPI FIFO.
     #[inline(always)]
     pub fn write_single(&self, word: u8) {
         self.spi().data().write(|w| unsafe { w.bits(word as u32) });
     }
 
+    /// Write a single word to the SPI FIFO, marking it as the end of a blockmode frame.
     #[inline(always)]
     pub fn write_with_bmstop(&self, word: u8) {
         self.spi()
@@ -149,6 +171,7 @@ impl Nvm {
             .write(|w| unsafe { w.bits(BMSTART_BMSTOP_MASK | word as u32) });
     }
 
+    /// Block until the TX FIFO is empty and the bus is idle, then clear both FIFOs.
     #[inline(always)]
     pub fn wait_for_tx_idle(&self) {
         while self.spi().status().read().tfe().bit_is_clear() {
@@ -160,6 +183,7 @@ impl Nvm {
         self.clear_fifos()
     }
 
+    /// Clear both the TX and RX FIFO.
     #[inline(always)]
     pub fn clear_fifos(&self) {
         self.spi().fifo_clr().write(|w| {
@@ -168,6 +192,7 @@ impl Nvm {
         });
     }
 
+    /// Block until a word is available in the RX FIFO.
     #[inline(always)]
     pub fn wait_for_rx_available(&self) {
         while !self.spi().status().read().rne().bit_is_set() {
@@ -175,11 +200,13 @@ impl Nvm {
         }
     }
 
+    /// Read a single word from the RX FIFO.
     #[inline(always)]
     pub fn read_single_word(&self) -> u32 {
         self.spi().data().read().bits()
     }
 
+    /// Write data to the NVM starting at the given address.
     pub fn write_data(&self, addr: u32, data: &[u8]) {
         self.wait_for_tx_idle();
         self.write_with_bmstop(FRAM_WREN);
@@ -202,6 +229,7 @@ impl Nvm {
         self.wait_for_tx_idle();
     }
 
+    /// Read data from the NVM starting at the given address.
     pub fn read_data(&self, addr: u32, buf: &mut [u8]) {
         self.common_read_start(addr);
         for byte in buf {
@@ -214,6 +242,7 @@ impl Nvm {
         self.wait_for_tx_idle();
     }
 
+    /// Read data from the NVM starting at the given address and compare it against `comp_buf`.
     pub fn verify_data(&self, addr: u32, comp_buf: &[u8]) -> Result<(), VerifyError> {
         self.common_read_start(addr);
         for (idx, byte) in comp_buf.iter().enumerate() {

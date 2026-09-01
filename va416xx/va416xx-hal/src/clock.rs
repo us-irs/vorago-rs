@@ -14,18 +14,28 @@ use crate::time::Hertz;
 pub use vorago_shared_hal::clock::{Clocks, HBO_FREQ};
 use vorago_shared_hal::{PeripheralSelect, enable_peripheral_clock};
 
+/// Time to wait for the crystal oscillator to start up, in milliseconds.
 pub const XTAL_OSC_TSTART_MS: u32 = 15;
 
+/// IOCONFIG input filter clock source.
 #[derive(Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum FilterClockSelect {
+    /// The system clock.
     SysClk = 0,
+    /// Filter clock 1.
     Clk1 = 1,
+    /// Filter clock 2.
     Clk2 = 2,
+    /// Filter clock 3.
     Clk3 = 3,
+    /// Filter clock 4.
     Clk4 = 4,
+    /// Filter clock 5.
     Clk5 = 5,
+    /// Filter clock 6.
     Clk6 = 6,
+    /// Filter clock 7.
     Clk7 = 7,
 }
 
@@ -33,13 +43,13 @@ pub enum FilterClockSelect {
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum ClockSelect {
-    // Internal Heart-Beat Osciallator. Not tightly controlled (+/-20 %). Not recommended as the regular clock!
+    /// Internal Heart-Beat Osciallator. Not tightly controlled (+/-20 %). Not recommended as the regular clock!
     Hbo = 0b00,
-    // External clock signal on XTAL_N line, 1-100 MHz
+    /// External clock signal on XTAL_N line, 1-100 MHz
     XtalN = 0b01,
-    // Internal Phase-Locked Loop.
+    /// Internal Phase-Locked Loop.
     Pll = 0b10,
-    // Crystal oscillator amplified, 4-10 MHz.
+    /// Crystal oscillator amplified, 4-10 MHz.
     XtalOsc = 0b11,
 }
 
@@ -52,31 +62,45 @@ pub enum ClockSelect {
 #[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum ReferenceClockSelect {
+    /// No reference clock.
     #[default]
     None = 0b00,
+    /// Crystal oscillator, amplified.
     XtalOsc = 0b01,
+    /// External clock signal on the XTAL_N line.
     XtalN = 0b10,
 }
 
+/// Divisor applied to the selected system clock.
 #[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum ClockDivisorSelect {
+    /// Divide by 1.
     #[default]
     Div1 = 0b00,
+    /// Divide by 2.
     Div2 = 0b01,
+    /// Divide by 4.
     Div4 = 0b10,
+    /// Divide by 8.
     Div8 = 0b11,
 }
 
+/// Divisor applied to the system clock to derive the ADC clock.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum AdcClockDivisorSelect {
+    /// Divide by 8.
     Div8 = 0b00,
+    /// Divide by 4.
     Div4 = 0b01,
+    /// Divide by 2.
     Div2 = 0b10,
+    /// Divide by 1.
     Div1 = 0b11,
 }
 
+/// PLL configuration, see [ClockConfigurator::pll_cfg].
 #[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct PllConfig {
@@ -84,12 +108,13 @@ pub struct PllConfig {
     pub clkr: u8,
     /// Clock divider on feedback path
     pub clkf: u8,
-    // Output clock divider.
+    /// Output clock divider.
     pub clkod: u8,
     /// Bandwidth adjustment
     pub bwadj: u8,
 }
 
+/// Apply the given clock divisor to the given clock frequency.
 #[inline]
 pub const fn clock_after_division(clk: Hertz, div_sel: ClockDivisorSelect) -> Hertz {
     match div_sel {
@@ -107,7 +132,9 @@ pub fn pll_setup_delay() {
     }
 }
 
+/// Extension trait to constrain the CLKGEN peripheral into a [ClockConfigurator].
 pub trait ClkgenExt {
+    /// Constrain the CLKGEN peripheral into a [ClockConfigurator].
     fn constrain(self) -> ClockConfigurator;
 }
 
@@ -126,19 +153,26 @@ impl ClkgenExt for pac::Clkgen {
     }
 }
 
+/// The clock source frequency was not set before calling [ClockConfigurator::freeze].
 #[derive(Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct ClockSourceFrequencyNotSet;
 
+/// Error type for [ClockConfigurator::freeze].
 #[derive(Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum ClockConfigError {
+    /// The clock source frequency was not set.
     ClkSourceFreqNotSet,
+    /// The PLL was selected but no PLL configuration was set.
     PllConfigNotSet,
+    /// The PLL failed to lock.
     PllInitError,
+    /// The selected clock and reference clock configuration are inconsistent.
     InconsistentCfg,
 }
 
+/// Builder structure to configure and freeze the clock configuration.
 pub struct ClockConfigurator {
     ref_clk_sel: ReferenceClockSelect,
     clksel_sys: ClockSelect,
@@ -192,6 +226,7 @@ impl ClockConfigurator {
         Self::new(unsafe { pac::Clkgen::steal() })
     }
 
+    /// Set the source clock frequency.
     #[inline]
     pub fn source_clk(mut self, src_clk: Hertz) -> Self {
         self.source_clk = Some(src_clk);
@@ -209,24 +244,28 @@ impl ClockConfigurator {
         self
     }
 
+    /// Like [Self::xtal_n_clk], but also sets the source clock frequency.
     #[inline]
     pub fn xtal_n_clk_with_src_freq(mut self, src_clk: Hertz) -> Self {
         self = self.xtal_n_clk();
         self.source_clk(src_clk)
     }
 
+    /// Set the system clock select value.
     #[inline]
     pub fn clksel_sys(mut self, clksel_sys: ClockSelect) -> Self {
         self.clksel_sys = clksel_sys;
         self
     }
 
+    /// Set the PLL configuration.
     #[inline]
     pub fn pll_cfg(mut self, pll_cfg: PllConfig) -> Self {
         self.pll_cfg = Some(pll_cfg);
         self
     }
 
+    /// Set the reference clock select value.
     #[inline]
     pub fn ref_clk_sel(mut self, ref_clk_sel: ReferenceClockSelect) -> Self {
         self.ref_clk_sel = ref_clk_sel;
@@ -396,6 +435,7 @@ impl ClockConfigurator {
     }
 }
 
+/// Rearm the system clock lost detection.
 pub fn rearm_sysclk_lost() {
     rearm_sysclk_lost_with_periph(&unsafe { pac::Clkgen::steal() })
 }
@@ -412,6 +452,7 @@ fn rearm_sysclk_lost_with_periph(clkgen: &pac::Clkgen) {
         .write(|w| w.sys_clk_lost_det_rearm().clear_bit());
 }
 
+/// Rearm the PLL lock lost detection.
 #[cfg(feature = "revb")]
 pub fn rearm_pll_lock_lost() {
     rearm_pll_lock_lost_with_periph(&unsafe { pac::Clkgen::steal() })

@@ -12,13 +12,20 @@ use super::{
     regs::{DiagnosticRegister, InterruptClear, MmioCan, StatusPending},
 };
 
+/// State of a channel used for asynchronous transmission.
 #[derive(Debug)]
 pub enum TxChannelState {
+    /// The channel has not been configured for TX yet.
     Unconfigured = 0,
+    /// The channel is configured and ready to transmit.
     Idle = 1,
+    /// A data frame transmission is in progress.
     TxDataFrame = 2,
+    /// A remote frame transmission is in progress.
     TxRtrTransmission = 3,
+    /// Waiting to receive the response to a transmitted remote frame.
     TxRtrReception = 4,
+    /// The transmission has completed and can be polled to completion.
     Finished = 5,
 }
 
@@ -26,6 +33,7 @@ static TX_STATES: [AtomicU8; 15] = [const { AtomicU8::new(0) }; 15];
 static TX_WAKERS: [embassy_sync::waitqueue::AtomicWaker; 15] =
     [const { embassy_sync::waitqueue::AtomicWaker::new() }; 15];
 
+/// Identifies the kind of transmission-related event reported by [on_interrupt_can].
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum TxEventId {
@@ -42,26 +50,40 @@ pub enum TxEventId {
     TransmitScheduling,
 }
 
+/// Result of handling a CAN interrupt via [on_interrupt_can].
 #[derive(Debug)]
 pub enum InterruptResult {
+    /// No interrupt was pending.
     NoInterrupt,
+    /// A frame was received on the given channel.
     ReceivedFrame {
+        /// Index of the channel that received the frame.
         channel_index: usize,
+        /// The received frame.
         frame: CanFrame,
     },
+    /// A transmission-related event occurred on the given channel.
     TransmissionEvent {
+        /// Index of the channel the event occurred on.
         channel_index: usize,
+        /// Kind of event that occurred.
         id: TxEventId,
     },
 }
 
+/// Error type for [on_interrupt_can].
 #[derive(Debug)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum InterruptError {
+    /// An unexpected error occurred.
     UnexpectedError,
+    /// The pending interrupt ID was invalid.
     InvalidInterruptId(StatusPending),
+    /// The buffer status was invalid.
     InvalidStatus(u4),
+    /// The buffer was in an unexpected state.
     UnexpectedState(BufferState),
+    /// A CAN bus error occurred.
     CanError(DiagnosticRegister),
 }
 
@@ -208,10 +230,12 @@ fn clear_and_disable_interrupt(regs: &mut MmioCan<'static>, idx: usize) {
     });
 }
 
+/// No TX channel has been configured yet, see [CanTxAsync::configure_channel].
 #[derive(Debug, thiserror::Error)]
 #[error("all channels are unconfigured, none available for TX")]
 pub struct AllTxChannelsUnconfiguredError;
 
+/// Future which resolves once the transmission on the given channel has completed.
 pub struct CanTxFuture(usize);
 
 impl Future for CanTxFuture {
@@ -231,6 +255,7 @@ impl Future for CanTxFuture {
 }
 
 impl CanTxFuture {
+    /// Find a free, configured TX channel and start transmitting the given frame on it.
     pub fn new(frame: CanFrame) -> nb::Result<Self, AllTxChannelsUnconfiguredError> {
         let mut channel_is_free = [false; 15];
         let mut all_channels_unused = true;
@@ -262,24 +287,31 @@ impl CanTxFuture {
     }
 }
 
+/// Error type for [CanTxAsync::configure_channel].
 #[derive(Debug, thiserror::Error)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum ChannelConfigError {
+    /// The channel is currently busy.
     #[error("channel is busy")]
     Busy,
+    /// The given channel index is out of range.
     #[error("invalid offset: {0}")]
     Offset(#[from] InvalidBufferIndexError),
 }
 
+/// Asynchronous CAN frame transmitter.
 pub struct CanTxAsync;
 
 impl CanTxAsync {
+    /// Create a new asynchronous transmitter, clearing pending interrupts and enabling the CAN
+    /// interrupt in the NVIC.
     pub fn new(can: &mut super::Can) -> Self {
         can.clear_interrupts();
         can.enable_nvic_interrupt();
         CanTxAsync
     }
 
+    /// Mark the given channel index as available for transmission.
     pub fn configure_channel(&mut self, channel_idx: usize) -> Result<(), ChannelConfigError> {
         if channel_idx >= TX_STATES.len() {
             return Err(ChannelConfigError::Offset(InvalidBufferIndexError(

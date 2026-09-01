@@ -1,5 +1,6 @@
 use crate::{enable_nvic_interrupt, pac};
 
+/// Enable scrubbing for the ROM with the given counter reset value.
 #[inline(always)]
 pub fn enable_rom_scrub(syscfg: &mut pac::Sysconfig, counter_reset: u16) {
     syscfg
@@ -7,6 +8,7 @@ pub fn enable_rom_scrub(syscfg: &mut pac::Sysconfig, counter_reset: u16) {
         .write(|w| unsafe { w.bits(counter_reset as u32) });
 }
 
+/// Enable scrubbing for RAM0 with the given counter reset value.
 #[inline(always)]
 pub fn enable_ram0_scrub(syscfg: &mut pac::Sysconfig, counter_reset: u16) {
     syscfg
@@ -14,6 +16,7 @@ pub fn enable_ram0_scrub(syscfg: &mut pac::Sysconfig, counter_reset: u16) {
         .write(|w| unsafe { w.bits(counter_reset as u32) });
 }
 
+/// Enable scrubbing for RAM1 with the given counter reset value.
 #[inline(always)]
 pub fn enable_ram1_scrub(syscfg: &mut pac::Sysconfig, counter_reset: u16) {
     syscfg

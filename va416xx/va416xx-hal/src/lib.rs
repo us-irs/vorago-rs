@@ -29,6 +29,7 @@
 //! The [examples folder](https://github.com/us-irs/vorago-rs/tree/main/va416xx/examples) contains
 //! various example applications using the HAL.
 #![no_std]
+#![deny(missing_docs)]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 #[cfg(feature = "alloc")]
 extern crate alloc;
@@ -42,6 +43,7 @@ pub use va416xx as pac;
 pub mod can;
 pub mod clock;
 pub mod dma;
+/// EDAC (error detection and correction) support for RAM and ROM.
 pub mod edac;
 pub mod embassy_time;
 pub mod gpio;
@@ -70,6 +72,7 @@ pub use vorago_shared_hal::{
     enable_peripheral_clock, reset_peripheral_for_cycles,
 };
 
+/// The given pin number is out of range for its port.
 #[derive(Debug, PartialEq, Eq, thiserror::Error)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 #[error("invalid pin with number {0}")]
@@ -104,15 +107,22 @@ pub fn port_function_select(
     Ok(())
 }
 
+/// Extension trait providing peripheral clock and reset control directly on the SYSCONFIG
+/// register block.
 pub trait SyscfgExt {
+    /// Enable the clock of the given peripheral.
     fn enable_peripheral_clock(&mut self, clock: PeripheralSelect);
 
+    /// Disable the clock of the given peripheral.
     fn disable_peripheral_clock(&mut self, clock: PeripheralSelect);
 
+    /// Assert the reset of the given peripheral.
     fn assert_periph_reset(&mut self, periph: PeripheralSelect);
 
+    /// Deassert the reset of the given peripheral.
     fn deassert_periph_reset(&mut self, periph: PeripheralSelect);
 
+    /// Hold the given peripheral in reset for the given number of cycles, then release it.
     fn reset_peripheral_reset_for_cycles(&mut self, periph: PeripheralSelect, cycles: usize);
 }
 

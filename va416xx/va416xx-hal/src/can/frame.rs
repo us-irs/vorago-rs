@@ -1,9 +1,11 @@
 pub use embedded_can::{ExtendedId, Id, StandardId};
 
+/// The given data slice is larger than the 8 bytes a CAN frame can hold.
 #[derive(Debug, thiserror::Error)]
 #[error("invalid data size error {0}")]
 pub struct InvalidDataSizeError(usize);
 
+/// A regular CAN data frame.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct CanFrameNormal {
     id: embedded_can::Id,
@@ -12,6 +14,7 @@ pub struct CanFrameNormal {
 }
 
 impl CanFrameNormal {
+    /// Create a new data frame with the given ID and data.
     pub fn new(id: embedded_can::Id, data: &[u8]) -> Result<Self, InvalidDataSizeError> {
         if data.len() > 8 {
             return Err(InvalidDataSizeError(data.len()));
@@ -26,22 +29,26 @@ impl CanFrameNormal {
         })
     }
 
+    /// Identifier of this frame.
     #[inline]
     pub fn id(&self) -> embedded_can::Id {
         self.id
     }
 
+    /// Data payload of this frame.
     #[inline]
     pub fn data(&self) -> &[u8] {
         &self.data[0..self.dlc()]
     }
 
+    /// Data length code of this frame.
     #[inline]
     pub fn dlc(&self) -> usize {
         self.size
     }
 }
 
+/// A remote transmission request (RTR) CAN frame.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct CanFrameRtr {
     id: embedded_can::Id,
@@ -49,22 +56,28 @@ pub struct CanFrameRtr {
 }
 
 impl CanFrameRtr {
+    /// Create a new remote frame with the given ID and requested data length code.
     pub fn new(id: embedded_can::Id, dlc: usize) -> Self {
         Self { id, dlc }
     }
 
+    /// Identifier of this frame.
     pub fn id(&self) -> embedded_can::Id {
         self.id
     }
 
+    /// Requested data length code of this frame.
     pub fn dlc(&self) -> usize {
         self.dlc
     }
 }
 
+/// A CAN frame, either a regular data frame or a remote transmission request.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CanFrame {
+    /// A regular data frame.
     Normal(CanFrameNormal),
+    /// A remote transmission request frame.
     Rtr(CanFrameRtr),
 }
 
