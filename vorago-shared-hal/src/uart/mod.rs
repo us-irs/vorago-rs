@@ -1254,8 +1254,8 @@ impl Tx {
     /// # Safety
     ///
     /// See [TxAsync::new] for details.
-    pub unsafe fn into_async(self) -> TxAsync {
-        unsafe { TxAsync::new(self) }
+    pub fn into_async(self) -> TxAsync {
+        TxAsync::new(self)
     }
 }
 

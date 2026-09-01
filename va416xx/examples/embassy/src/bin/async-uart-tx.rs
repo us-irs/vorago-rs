@@ -69,7 +69,7 @@ async fn main(_spawner: Spawner) {
     let uarta = uart::Uart::new_for_uart0(dp.uart0, pinsg.pg0, pinsg.pg1, uart_config);
     let (tx, _rx) = uarta.split();
     // Safety: We do not cancel futures.
-    let mut async_tx = unsafe { TxAsync::new(tx) };
+    let mut async_tx = TxAsync::new(tx);
     let mut ticker = Ticker::every(Duration::from_secs(1));
     let mut idx = 0;
     loop {

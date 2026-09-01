@@ -3,16 +3,21 @@
 use embassy_example as _;
 use embassy_executor::Spawner;
 use embassy_time::{Duration, Ticker};
+use once_cell::sync::OnceCell;
 
 use va108xx_hal::{
     gpio::{Output, PinState},
     pac::{self, interrupt},
     pins::{PinsA, PinsB},
     prelude::*,
-    spi::{self, SpiClockConfig},
+    spi::{self, Bank, SpiClockConfig},
 };
 
 const SYSCLK_FREQ: Hertz = Hertz::from_raw(50_000_000);
+
+/// Token identifying the SPI0 peripheral, set once at construction and read by the interrupt
+/// handler, which does not have access to the [spi::asynch::Spi] driver itself.
+static SPI_TOKEN: OnceCell<Bank> = OnceCell::new();
 
 // main is itself an async function.
 #[embassy_executor::main]
@@ -36,14 +41,12 @@ async fn main(_spawner: Spawner) {
     let (sck, mosi, miso) = (porta.pa31, porta.pa30, porta.pa29);
     let spi = spi::Spi::<u8>::new_for_spi0(dp.spia, (sck, miso, mosi), spi_cfg);
 
-    let mut spi = spi::asynch::SpiAsync::new(
-        spi,
-        Some(va108xx_hal::InterruptConfig::new(
-            va108xx_hal::pac::Interrupt::OC2,
-            true,
-            true,
-        )),
-    );
+    let mut spi = spi.into_async(Some(va108xx_hal::InterruptConfig::new(
+        va108xx_hal::pac::Interrupt::OC2,
+        true,
+        true,
+    )));
+    SPI_TOKEN.set(spi.bank_id()).unwrap();
     let mut ticker = Ticker::every(Duration::from_secs(1));
     let buf: [u8; 4] = [0xAA; 4];
     loop {
@@ -58,5 +61,5 @@ async fn main(_spawner: Spawner) {
 
 #[interrupt]
 fn OC2() {
-    spi::asynch::on_interrupt(va108xx_hal::spi::Bank::Spi0);
+    spi::asynch::Spi::on_interrupt(*SPI_TOKEN.get().unwrap());
 }

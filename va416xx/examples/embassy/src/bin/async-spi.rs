@@ -18,6 +18,7 @@ use panic_probe as _;
 use embassy_example::EXTCLK_FREQ;
 use embassy_executor::Spawner;
 use embassy_time::{Duration, Ticker};
+use once_cell::sync::OnceCell;
 
 use va416xx_hal::{
     clock::ClockConfigurator,
@@ -28,6 +29,10 @@ use va416xx_hal::{
     spi::{self, Bank, SpiClockConfig},
     time::Hertz,
 };
+
+/// Token identifying the SPI2 peripheral, set once at construction and read by the interrupt
+/// handlers, which do not have access to the [spi::asynch::Spi] driver itself.
+static SPI_TOKEN: OnceCell<Bank> = OnceCell::new();
 
 /// Drop a transfer future which is still in flight, once per cycle.
 ///
@@ -62,9 +67,9 @@ async fn main(_spawner: Spawner) {
     let spi_clk_cfg = SpiClockConfig::from_clks(&clocks, 1.MHz()).unwrap();
     let spi_cfg = spi::SpiConfig::default().clk_cfg(spi_clk_cfg);
     let (sck, miso, mosi) = (porta.pa5, porta.pa6, porta.pa7);
-    let spi = spi::Spi::<u8>::new_for_spi2(dp.spi2, (sck, miso, mosi), spi_cfg);
+    let mut spi = spi::Spi::<u8>::new_for_spi2(dp.spi2, (sck, miso, mosi), spi_cfg).into_async();
 
-    let mut spi = spi::asynch::SpiAsync::new(spi);
+    SPI_TOKEN.set(spi.bank_id()).unwrap();
     // Safety: We enable the two interrupt vectors used by the SPI2 driver here, once, before
     // the driver is used.
     unsafe {
@@ -92,11 +97,11 @@ async fn main(_spawner: Spawner) {
 #[interrupt]
 #[allow(non_snake_case)]
 fn SPI2_TX() {
-    spi::asynch::on_interrupt(Bank::Spi2);
+    spi::asynch::Spi::on_interrupt(*SPI_TOKEN.get().unwrap());
 }
 
 #[interrupt]
 #[allow(non_snake_case)]
 fn SPI2_RX() {
-    spi::asynch::on_interrupt(Bank::Spi2);
+    spi::asynch::Spi::on_interrupt(*SPI_TOKEN.get().unwrap());
 }

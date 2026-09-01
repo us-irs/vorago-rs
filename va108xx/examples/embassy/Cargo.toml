@@ -18,6 +18,7 @@ defmt-rtt = "1"
 panic-probe = { version = "1", features = ["print-defmt"] }
 
 critical-section = "1"
+once_cell = { version = "1", default-features = false, features = ["critical-section"] }
 
 embassy-sync = "0.8"
 embassy-time = "0.5"

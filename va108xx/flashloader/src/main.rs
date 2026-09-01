@@ -101,7 +101,7 @@ mod app {
         tm_tx_handler::spawn().unwrap();
 
         // Safety: We do not cancel futures.
-        let tx_async = unsafe { TxAsync::new(tx) };
+        let tx_async = TxAsync::new(tx);
 
         static TC_PIPE: static_cell::ConstStaticCell<
             embassy_sync::pipe::Pipe<CriticalSectionRawMutex, TC_PIPE_SIZE>,
