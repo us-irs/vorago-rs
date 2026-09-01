@@ -9,6 +9,7 @@ use super::{
     },
 };
 
+/// Low-level access to a single CAN message buffer.
 pub struct CanChannelLowLevel {
     id: CanId,
     /// Message buffer index.
@@ -76,15 +77,18 @@ impl CanChannelLowLevel {
         }
     }
 
+    /// Reset all registers of this message buffer to 0.
     pub fn reset(&mut self) {
         self.msg_buf.reset();
     }
 
+    /// Read the current buffer state.
     #[inline]
     pub fn read_state(&self) -> Result<BufferState, u4> {
         self.msg_buf.read_stat_ctrl().state()
     }
 
+    /// Write the buffer state.
     #[inline]
     pub fn write_state(&mut self, buffer_state: BufferState) {
         self.msg_buf.modify_stat_ctrl(|mut val| {
@@ -93,6 +97,7 @@ impl CanChannelLowLevel {
         });
     }
 
+    /// Configure this buffer for transmission with an optional priority.
     pub fn configure_for_transmission(&mut self, tx_priority: Option<u4>) {
         self.msg_buf.modify_stat_ctrl(|mut val| {
             val.set_dlc(u4::new(0));
@@ -104,6 +109,7 @@ impl CanChannelLowLevel {
         });
     }
 
+    /// Write a standard identifier to this buffer.
     pub fn set_standard_id(&mut self, standard_id: embedded_can::StandardId, set_rtr: bool) {
         let mut id1_reg = standard_id.as_raw() << 5;
         if set_rtr {
@@ -113,6 +119,7 @@ impl CanChannelLowLevel {
             .write_id1(BaseId::new_with_raw_value(id1_reg as u32));
     }
 
+    /// Write an extended identifier to this buffer.
     pub fn set_extended_id(&mut self, extended_id: embedded_can::ExtendedId, set_rtr: bool) {
         let id_raw = extended_id.as_raw();
         let id1_reg = (((id_raw >> 18) & 0x7FF) << 4) as u16 | ((id_raw >> 15) & 0b111) as u16;
@@ -123,6 +130,7 @@ impl CanChannelLowLevel {
             .write_id0(ExtendedId::new_with_raw_value(id0_reg as u32));
     }
 
+    /// Configure this buffer to receive frames.
     pub fn configure_for_reception(&mut self) {
         self.msg_buf.write_stat_ctrl(
             BufStatusAndControl::builder()
@@ -133,6 +141,9 @@ impl CanChannelLowLevel {
         );
     }
 
+    /// Load the given frame into this buffer and start transmission.
+    ///
+    /// This function does not check whether the buffer is ready to accept a new frame.
     pub fn transmit_frame_unchecked(&mut self, frame: CanFrame) {
         let is_remote = frame.is_remote_frame();
         self.write_id(frame.id(), is_remote);
@@ -191,6 +202,7 @@ impl CanChannelLowLevel {
         self.write_state(BufferState::TxOnce);
     }
 
+    /// Clear the interrupt pending bit for this buffer.
     #[inline]
     pub fn clear_interrupt(&mut self) {
         let mut regs = unsafe { self.id.steal_regs() };
@@ -199,6 +211,7 @@ impl CanChannelLowLevel {
         regs.write_iclr(clear);
     }
 
+    /// Enable the error interrupt, optionally also enabling interrupt code translation.
     pub fn enable_error_interrupt(&mut self, enable_translation: bool) {
         let mut regs = unsafe { self.id.steal_regs() };
         if enable_translation {
@@ -213,6 +226,7 @@ impl CanChannelLowLevel {
         });
     }
 
+    /// Enable the interrupt for this buffer, optionally also enabling interrupt code translation.
     pub fn enable_interrupt(&mut self, enable_translation: bool) {
         let mut regs = unsafe { self.id.steal_regs() };
         if enable_translation {

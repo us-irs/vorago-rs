@@ -11,6 +11,7 @@
 //! The [examples folder](https://github.com/us-irs/vorago-rs/tree/main/va108xx/examples) contains
 //! various example applications using the HAL.
 #![no_std]
+#![deny(missing_docs)]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 
 use gpio::Port;
@@ -24,6 +25,7 @@ pub mod pins;
 pub mod prelude;
 pub mod pwm;
 pub mod spi;
+/// Peripheral clock gating and reset control.
 pub mod sysconfig;
 pub mod time;
 pub mod timer;
@@ -39,6 +41,7 @@ pub use vorago_shared_hal::{
 /// This is the NONE destination reigster value for the IRQSEL peripheral.
 pub const IRQ_DST_NONE: u32 = 0xffffffff;
 
+/// The given pin number is out of range for its port.
 #[derive(Debug, PartialEq, Eq, thiserror::Error)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 #[error("invalid pin with number {0}")]

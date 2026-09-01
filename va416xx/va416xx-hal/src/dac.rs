@@ -8,13 +8,16 @@ use vorago_shared_hal::{
 
 use crate::{clock::Clocks, pac};
 
+/// Register block shared by all DAC peripheral instances.
 pub type DacRegisterBlock = pac::dac0::RegisterBlock;
 
 /// Common trait implemented by all PAC peripheral access structures. The register block
 /// format is the same for all DAC blocks.
 pub trait DacInstance: Deref<Target = DacRegisterBlock> {
+    /// Index of this DAC instance.
     const IDX: u8;
 
+    /// Raw pointer to the register block.
     fn ptr() -> *const DacRegisterBlock;
 }
 
@@ -36,20 +39,30 @@ impl DacInstance for pac::Dac1 {
     }
 }
 
+/// DAC settling time, in APB2 clock cycles.
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum DacSettling {
+    /// No settling time.
     NoSettling = 0,
+    /// 25 APB2 clock cycles.
     Apb2Times25 = 1,
+    /// 50 APB2 clock cycles.
     Apb2Times50 = 2,
+    /// 75 APB2 clock cycles.
     Apb2Times75 = 3,
+    /// 100 APB2 clock cycles.
     Apb2Times100 = 4,
+    /// 125 APB2 clock cycles.
     Apb2Times125 = 5,
+    /// 150 APB2 clock cycles.
     Apb2Times150 = 6,
 }
 
+/// DAC peripheral driver.
 pub struct Dac(*const DacRegisterBlock);
 
+/// The given value exceeds the 12-bit DAC input range.
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct ValueTooLarge;
@@ -72,10 +85,12 @@ impl Dac {
         dac
     }
 
+    /// Raw register block accessor.
     pub const fn regs(&self) -> &DacRegisterBlock {
         unsafe { &*self.0 }
     }
 
+    /// Clear all pending DAC interrupts.
     #[inline(always)]
     pub fn clear_irqs(&mut self) {
         self.regs().irq_clr().write(|w| {
@@ -86,6 +101,7 @@ impl Dac {
         });
     }
 
+    /// Clear the DAC FIFO.
     #[inline(always)]
     pub fn clear_fifo(&mut self) {
         self.regs().fifo_clr().write(|w| unsafe { w.bits(1) });
@@ -129,11 +145,13 @@ impl Dac {
         self.regs().ctrl0().write(|w| w.man_trig_en().set_bit());
     }
 
+    /// Enable the external trigger source.
     #[inline(always)]
     pub fn enable_external_trigger(&self) {
         self.regs().ctrl0().write(|w| w.ext_trig_en().set_bit());
     }
 
+    /// Whether the DAC output has settled after the last trigger.
     pub fn is_settled(&self) -> nb::Result<(), ()> {
         if self.regs().status().read().dac_busy().bit_is_set() {
             return Err(nb::Error::WouldBlock);
@@ -141,6 +159,7 @@ impl Dac {
         Ok(())
     }
 
+    /// Reset the DAC peripheral.
     #[inline(always)]
     pub fn reset(&mut self) {
         enable_peripheral_clock(PeripheralSelect::Dac);

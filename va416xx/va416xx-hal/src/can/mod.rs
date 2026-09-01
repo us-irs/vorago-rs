@@ -28,31 +28,43 @@ use vorago_shared_hal::enable_nvic_interrupt;
 use crate::{PeripheralSelect, clock::Clocks, enable_peripheral_clock, time::Hertz};
 use libm::roundf;
 
+/// CAN frame types.
 pub mod frame;
 pub use frame::*;
 
+/// Async CAN transmission support.
 pub mod asynch;
+/// Low-level access to individual CAN message buffers.
 pub mod ll;
 pub mod regs;
 
+/// Minimum allowed prescaler value.
 pub const PRESCALER_MIN: u8 = 2;
+/// Maximum allowed prescaler value.
 pub const PRESCALER_MAX: u8 = 128;
 /// 1 is the minimum value, but not recommended by Vorago.
 pub const TSEG1_MIN: u8 = 1;
+/// Maximum allowed TSEG1 value.
 pub const TSEG1_MAX: u8 = 16;
+/// Maximum allowed TSEG2 value.
 pub const TSEG2_MAX: u8 = 8;
 /// In addition, SJW may not be larger than TSEG2.
 pub const SJW_MAX: u8 = 4;
 
+/// Minimum recommended sample point.
 pub const MIN_SAMPLE_POINT: f32 = 0.5;
+/// Maximum allowed bitrate deviation.
 pub const MAX_BITRATE_DEVIATION: f32 = 0.005;
 
 static CHANNELS_TAKEN: [AtomicBool; 2] = [AtomicBool::new(false), AtomicBool::new(false)];
 
+/// CAN peripheral bank.
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum CanId {
+    /// CAN0.
     Can0 = 0,
+    /// CAN1.
     Can1 = 1,
 }
 
@@ -70,6 +82,7 @@ impl CanId {
         }
     }
 
+    /// NVIC interrupt vector for this CAN bank.
     #[inline]
     pub const fn irq_id(&self) -> va416xx::Interrupt {
         match self {
@@ -85,6 +98,7 @@ pub const fn calculate_sample_point(tseg1: u8, tseg2: u8) -> f32 {
     (tseg1_val + 1.0) / (1.0 + tseg1_val + tseg2 as f32)
 }
 
+/// CAN bit timing configuration.
 #[derive(Debug, Clone, Copy)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct ClockConfig {
@@ -171,21 +185,25 @@ impl ClockConfig {
         Self::new(prescaler as u8, tseg1, tseg2, sjw)
     }
 
+    /// Raw SJW register value.
     #[inline]
     pub fn sjw_reg_value(&self) -> u2 {
         u2::new(self.sjw.value() - 1)
     }
 
+    /// Raw TSEG1 register value.
     #[inline]
     pub fn tseg1_reg_value(&self) -> u4 {
         u4::new(self.tseg1.value() - 1)
     }
 
+    /// Raw TSEG2 register value.
     #[inline]
     pub fn tseg2_reg_value(&self) -> u3 {
         u3::new(self.tseg2.value() - 1)
     }
 
+    /// Raw prescaler register value.
     #[inline]
     pub fn prescaler_reg_value(&self) -> u7 {
         u7::new(self.prescaler.value() - 2)
@@ -264,6 +282,7 @@ pub fn calculate_all_viable_clock_configs(
     Ok(configs)
 }
 
+/// Calculate the nominal bit time in time quanta for the given clock, bitrate and prescaler.
 #[inline]
 pub const fn calculate_nominal_bit_time(
     apb1_clock: Hertz,
@@ -273,19 +292,25 @@ pub const fn calculate_nominal_bit_time(
     apb1_clock.to_raw() / (target_bitrate.to_raw() * prescaler as u32)
 }
 
+/// Calculate the actual bitrate resulting from the given clock, prescaler and nominal bit time.
 #[inline]
 pub const fn calculate_actual_bitrate(apb1_clock: Hertz, prescaler: u8, nom_bit_time: u32) -> f32 {
     apb1_clock.to_raw() as f32 / (prescaler as u32 * nom_bit_time) as f32
 }
 
+/// Calculate the relative deviation of the actual bitrate from the target bitrate.
 #[inline]
 pub const fn calculate_bitrate_deviation(actual_bitrate: f32, target_bitrate: Hertz) -> f32 {
     (actual_bitrate - target_bitrate.to_raw() as f32).abs() / target_bitrate.to_raw() as f32
 }
 
+/// Common trait implemented by the PAC peripheral access structure for every CAN bank.
 pub trait CanInstance {
+    /// CAN bank of the peripheral.
     const ID: CanId;
+    /// Interrupt of this CAN bank.
     const IRQ: va416xx::Interrupt;
+    /// Peripheral selector used for clock and reset control.
     const PERIPH_SEL: PeripheralSelect;
 }
 
@@ -301,16 +326,19 @@ impl CanInstance for va416xx::Can1 {
     const PERIPH_SEL: PeripheralSelect = PeripheralSelect::Can1;
 }
 
+/// The given CAN message buffer index is out of range.
 #[derive(Debug, thiserror::Error)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 #[error("invalid buffer index {0}")]
 pub struct InvalidBufferIndexError(usize);
 
+/// The given SJW value is invalid, see [ClockConfig::new].
 #[derive(Debug, thiserror::Error)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 #[error("sjw must be less than or equal to the smaller tseg value")]
 pub struct InvalidSjwError(u8);
 
+/// The given sample point is invalid.
 #[derive(Debug, thiserror::Error)]
 #[error("invalid sample point {sample_point}")]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
@@ -319,23 +347,32 @@ pub struct InvalidSamplePointError {
     sample_point: f32,
 }
 
+/// Error type for [ClockConfig::new] and [ClockConfig::from_bitrate_and_segments].
 #[derive(Debug, thiserror::Error)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum ClockConfigError {
+    /// Invalid synchronization jump width.
     #[error("invalid sjw: {0}")]
     InvalidSjw(#[from] InvalidSjwError),
+    /// TSEG1 or TSEG2 is zero.
     #[error("TSEG is zero which is not allowed")]
     TsegIsZero,
+    /// TSEG1 is larger than 16.
     #[error("TSEG1 is larger than 16")]
     InvalidTseg1,
+    /// TSEG2 is larger than 8.
     #[error("TSEG1 is larger than 8")]
     InvalidTseg2,
+    /// Invalid sample point.
     #[error("invalid sample point: {0}")]
     InvalidSamplePoint(#[from] InvalidSamplePointError),
+    /// The target bitrate is zero.
     #[error("bitrate is zero")]
     BitrateIsZero,
+    /// The resulting bitrate error is larger than 0.5 %.
     #[error("bitrate error larger than +-0.5 %")]
     BitrateErrorTooLarge,
+    /// No prescaler in the valid range achieves the target bitrate.
     #[error("maximum or minimum allowed prescaler is not sufficient for target bitrate clock")]
     CanNotFindPrescaler,
 }
@@ -347,6 +384,7 @@ pub struct Can {
 }
 
 impl Can {
+    /// Create a new CAN driver, taking ownership of the given peripheral instance.
     pub fn new<CanI: CanInstance>(_can: CanI, clk_config: ClockConfig) -> Self {
         enable_peripheral_clock(CanI::PERIPH_SEL);
         let id = CanI::ID;
@@ -430,6 +468,7 @@ impl Can {
         self.regs.write_bmskb(BaseId::new_with_raw_value(0xffff));
     }
 
+    /// Raw MMIO register accessor.
     #[inline]
     pub fn regs(&mut self) -> &mut MmioCan<'static> {
         &mut self.regs
@@ -453,26 +492,31 @@ impl Can {
         }
     }
 
+    /// Read the error counters.
     #[inline]
     pub fn read_error_counters(&self) -> regs::ErrorCounter {
         self.regs.read_error_counter()
     }
 
+    /// Read the error diagnostics register.
     #[inline]
     pub fn read_error_diagnostics(&self) -> regs::DiagnosticRegister {
         self.regs.read_diag()
     }
 
+    /// CAN bank of this instance.
     #[inline]
     pub fn id(&self) -> CanId {
         self.id
     }
 
+    /// Overwrite the CONTROL register.
     #[inline]
     pub fn write_ctrl_reg(&mut self, ctrl: Control) {
         self.regs.write_control(ctrl);
     }
 
+    /// Read-modify-write the CONTROL register.
     #[inline]
     pub fn modify_control<F>(&mut self, f: F)
     where
@@ -481,6 +525,8 @@ impl Can {
         self.regs.modify_control(f);
     }
 
+    /// Enable or disable locking of all message buffers while a data copy operation is in
+    /// progress.
     #[inline]
     pub fn set_bufflock(&mut self, enable: bool) {
         self.regs.modify_control(|mut ctrl| {
@@ -489,6 +535,7 @@ impl Can {
         });
     }
 
+    /// Enable the CAN module.
     #[inline]
     pub fn enable(&mut self) {
         self.regs.modify_control(|mut ctrl| {
@@ -498,19 +545,27 @@ impl Can {
     }
 }
 
+/// State of a [CanTx] channel.
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum TxState {
+    /// The channel is idle and ready to transmit.
     Idle,
+    /// A data frame transmission is in progress.
     TransmittingDataFrame,
+    /// A remote frame transmission is in progress.
     TransmittingRemoteFrame,
+    /// Waiting to receive the response to a transmitted remote frame.
     AwaitingRemoteFrameReply,
 }
 
+/// Invalid state encountered while operating a [CanTx] channel, see [InvalidTxStateError].
 #[derive(Debug)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum InvalidTxState {
+    /// Invalid driver-level TX state.
     State(TxState),
+    /// Invalid hardware message buffer state.
     BufferState(BufferState),
 }
 
@@ -526,18 +581,23 @@ impl From<BufferState> for InvalidTxState {
     }
 }
 
+/// The [CanTx] channel was in an invalid state for the attempted operation.
 #[derive(Debug, thiserror::Error)]
 #[error("invalid tx state {0:?}")]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct InvalidTxStateError(pub InvalidTxState);
 
+/// State of a [CanRx] channel.
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum RxState {
+    /// The channel is idle.
     Idle,
+    /// The channel is configured to receive frames.
     Receiving,
 }
 
+/// The [CanRx] channel was in an invalid state for the attempted operation.
 #[derive(Debug, thiserror::Error)]
 #[error("invalid rx state {0:?}")]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
@@ -551,6 +611,7 @@ pub struct CanTx {
 }
 
 impl CanTx {
+    /// Reset and configure the given low-level channel for transmission.
     pub fn new(mut ll: CanChannelLowLevel, tx_priority: Option<u4>) -> Self {
         ll.reset();
         ll.configure_for_transmission(tx_priority);
@@ -560,6 +621,7 @@ impl CanTx {
         }
     }
 
+    /// Convert this channel into a [CanRx] channel.
     #[inline]
     pub fn into_rx_channel(self) -> CanRx {
         CanRx::new(self.ll)
@@ -666,6 +728,7 @@ impl CanTx {
         Err(nb::Error::WouldBlock)
     }
 
+    /// Reset the underlying message buffer and the channel state.
     pub fn reset(&mut self) {
         self.ll.reset();
         self.mode = TxState::Idle;
@@ -679,6 +742,7 @@ pub struct CanRx {
 }
 
 impl CanRx {
+    /// Reset the given low-level channel and wrap it as a reception channel.
     pub fn new(mut ll: CanChannelLowLevel) -> Self {
         ll.reset();
         Self {
@@ -687,16 +751,19 @@ impl CanRx {
         }
     }
 
+    /// Convert this channel into a [CanTx] channel.
     #[inline]
     pub fn into_tx_channel(self, tx_priority: Option<u4>) -> CanTx {
         CanTx::new(self.ll, tx_priority)
     }
 
+    /// Enable the interrupt for this channel.
     #[inline]
     pub fn enable_interrupt(&mut self, enable_translation: bool) {
         self.ll.enable_interrupt(enable_translation);
     }
 
+    /// Configure this channel to receive frames matching the given standard identifier.
     pub fn configure_for_reception_with_standard_id(
         &mut self,
         standard_id: embedded_can::StandardId,
@@ -706,6 +773,7 @@ impl CanRx {
         self.configure_for_reception();
     }
 
+    /// Configure this channel to receive frames matching the given extended identifier.
     pub fn configure_for_reception_with_extended_id(
         &mut self,
         extended_id: embedded_can::ExtendedId,
@@ -715,11 +783,13 @@ impl CanRx {
         self.configure_for_reception();
     }
 
+    /// Configure this channel to receive frames.
     pub fn configure_for_reception(&mut self) {
         self.ll.configure_for_reception();
         self.mode = RxState::Receiving;
     }
 
+    /// Whether a frame is available to be read.
     #[inline]
     pub fn frame_available(&self) -> bool {
         self.ll
@@ -751,6 +821,7 @@ impl CanRx {
     }
 }
 
+/// Resource management singleton for the 15 individual CAN message buffer channels.
 pub struct CanChannels {
     id: CanId,
     channels: [Option<CanChannelLowLevel>; 15],
@@ -783,6 +854,7 @@ impl CanChannels {
         }
     }
 
+    /// CAN bank these channels belong to.
     pub const fn can_id(&self) -> CanId {
         self.id
     }
@@ -795,6 +867,7 @@ impl CanChannels {
         self.channels[idx].take()
     }
 
+    /// Give back a previously taken channel.
     pub fn give(&mut self, idx: usize, channel: CanChannelLowLevel) {
         if idx > 14 {
             panic!("invalid buffer index for CAN channel");

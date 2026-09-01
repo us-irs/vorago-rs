@@ -32,28 +32,41 @@ pub enum CycleControl {
     /// second transfer is complete, the primary data structure is used. This pattern continues
     /// until software disables the channel.
     PingPong = 0b011,
+    /// Memory scatter-gather using the primary data structure.
     MemScatterGatherPrimary = 0b100,
+    /// Memory scatter-gather using the alternate data structure.
     MemScatterGatherAlternate = 0b101,
+    /// Peripheral scatter-gather using the primary data structure.
     PeriphScatterGatherPrimary = 0b110,
+    /// Peripheral scatter-gather using the alternate data structure.
     PeriphScatterGatherAlternate = 0b111,
 }
 
+/// Address increment step for a DMA source or destination pointer.
 #[bitbybit::bitenum(u2, exhaustive = true)]
 #[derive(Debug)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum AddrIncrement {
+    /// Increment by one byte.
     Byte = 0b00,
+    /// Increment by one halfword.
     Halfword = 0b01,
+    /// Increment by one word.
     Word = 0b10,
+    /// Do not increment.
     None = 0b11,
 }
 
+/// Data unit size transferred by a DMA cycle.
 #[bitbybit::bitenum(u2, exhaustive = false)]
 #[derive(Debug)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum DataSize {
+    /// One byte.
     Byte = 0b00,
+    /// One halfword.
     Halfword = 0b01,
+    /// One word.
     Word = 0b10,
 }
 
@@ -62,64 +75,97 @@ pub enum DataSize {
 #[derive(Debug)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum RPower {
+    /// Arbitrate after each transfer.
     EachTransfer = 0b0000,
+    /// Arbitrate every 2 transfers.
     Every2 = 0b0001,
+    /// Arbitrate every 4 transfers.
     Every4 = 0b0010,
+    /// Arbitrate every 8 transfers.
     Every8 = 0b0011,
+    /// Arbitrate every 16 transfers.
     Every16 = 0b0100,
+    /// Arbitrate every 32 transfers.
     Every32 = 0b0101,
+    /// Arbitrate every 64 transfers.
     Every64 = 0b0110,
+    /// Arbitrate every 128 transfers.
     Every128 = 0b0111,
+    /// Arbitrate every 256 transfers.
     Every256 = 0b1000,
+    /// Arbitrate every 512 transfers.
     Every512 = 0b1001,
+    /// Arbitrate every 1024 transfers.
     Every1024 = 0b1010,
+    /// Arbitrate every 1024 transfers (alternate encoding 0).
     Every1024Alt0 = 0b1011,
+    /// Arbitrate every 1024 transfers (alternate encoding 1).
     Every1024Alt1 = 0b1100,
+    /// Arbitrate every 1024 transfers (alternate encoding 2).
     Every1024Alt2 = 0b1101,
+    /// Arbitrate every 1024 transfers (alternate encoding 3).
     Every1024Alt3 = 0b1110,
+    /// Arbitrate every 1024 transfers (alternate encoding 4).
     Every1024Alt4 = 0b1111,
 }
 
+/// The given DMA control block address is not validly aligned.
 #[derive(Debug, PartialEq, Eq, thiserror::Error)]
 #[error("Invalid DMA control block address")]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct InvalidCtrlBlockAddrError;
 
+/// Per-channel DMA configuration register.
 #[bitbybit::bitfield(u32, default = 0x0, debug, defmt_fields(feature = "defmt"))]
 pub struct ChannelConfig {
+    /// Destination address increment step.
     #[bits(30..=31, rw)]
     dst_inc: AddrIncrement,
+    /// Destination data unit size.
     #[bits(28..=29, rw)]
     dst_size: Option<DataSize>,
+    /// Source address increment step.
     #[bits(26..=27, rw)]
     src_inc: AddrIncrement,
+    /// Source data unit size.
     #[bits(24..=25, rw)]
     src_size: Option<DataSize>,
+    /// Destination protection control bits.
     #[bits(21..=23, rw)]
     dest_prot_ctrl: u3,
+    /// Source protection control bits.
     #[bits(18..=20, rw)]
     src_prot_ctrl: u3,
+    /// Arbitration rate.
     #[bits(14..=17, rw)]
     r_power: RPower,
+    /// Number of transfers minus one.
     #[bits(4..=13, rw)]
     n_minus_1: u10,
+    /// Request the next transfer as part of a burst.
     #[bit(3, rw)]
     next_useburst: bool,
+    /// Cycle control mode.
     #[bits(0..=2, rw)]
     cycle_ctrl: CycleControl,
 }
 
+/// Primary or alternate channel control data structure.
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct DmaChannelControl {
+    /// End address of the source data.
     pub src_end_ptr: u32,
+    /// End address of the destination data.
     pub dest_end_ptr: u32,
+    /// Channel configuration.
     pub cfg: ChannelConfig,
     padding: u32,
 }
 
 impl DmaChannelControl {
+    /// Create a new zeroed channel control structure.
     const fn new() -> Self {
         Self {
             src_end_ptr: 0,
@@ -134,14 +180,19 @@ impl Default for DmaChannelControl {
         Self::new()
     }
 }
+/// DMA control block, holding the primary and alternate channel control structures for all
+/// 4 channels.
 #[repr(C)]
 #[repr(align(128))]
 pub struct DmaCtrlBlock {
+    /// Primary channel control structures.
     pub pri: [DmaChannelControl; 4],
+    /// Alternate channel control structures.
     pub alt: [DmaChannelControl; 4],
 }
 
 impl DmaCtrlBlock {
+    /// Create a new zeroed DMA control block.
     pub const fn new() -> Self {
         Self {
             pri: [DmaChannelControl::new(); 4],
@@ -171,16 +222,24 @@ impl DmaCtrlBlock {
     }
 }
 
+/// DMA peripheral driver.
 pub struct Dma {
     dma: pac::Dma,
     ctrl_block: *mut DmaCtrlBlock,
 }
 
+/// Error type for preparing a DMA transfer.
 #[derive(Debug, Clone, Copy, thiserror::Error)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum DmaTransferInitError {
+    /// Source and destination buffer lengths do not match.
     #[error("source and destination buffer length mismatch: {src_len} != {dest_len}")]
-    SourceDestLenMissmatch { src_len: usize, dest_len: usize },
+    SourceDestLenMissmatch {
+        /// Length of the source buffer.
+        src_len: usize,
+        /// Length of the destination buffer.
+        dest_len: usize,
+    },
     /// Overflow when calculating the source or destination end address.
     #[error("address overflow")]
     AddrOverflow,
@@ -189,29 +248,39 @@ pub enum DmaTransferInitError {
     TransferSizeTooLarge(usize),
 }
 
+/// Protection configuration for a [Dma] instance, see [Dma::new].
 #[derive(Debug, Clone, Copy, Default)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct DmaConfig {
+    /// Mark transfers as bufferable.
     pub bufferable: bool,
+    /// Mark transfers as cacheable.
     pub cacheable: bool,
+    /// Mark transfers as privileged.
     pub privileged: bool,
 }
 
+/// A single DMA channel, obtained by splitting a [Dma] instance.
 pub struct DmaChannel {
     channel: u8,
     done_interrupt: pac::Interrupt,
     active_interrupt: pac::Interrupt,
+    /// Handle to the DMA peripheral, shared between all channels.
     pub dma: pac::Dma,
+    /// Primary channel control structure for this channel.
     pub ch_ctrl_pri: &'static mut DmaChannelControl,
+    /// Alternate channel control structure for this channel.
     pub ch_ctrl_alt: &'static mut DmaChannelControl,
 }
 
 impl DmaChannel {
+    /// Channel index, 0 to 3.
     #[inline(always)]
     pub fn channel(&self) -> u8 {
         self.channel
     }
 
+    /// Enable the channel.
     #[inline(always)]
     pub fn enable(&mut self) {
         self.dma
@@ -219,11 +288,13 @@ impl DmaChannel {
             .write(|w| unsafe { w.bits(1 << self.channel) });
     }
 
+    /// Whether the channel is enabled.
     #[inline(always)]
     pub fn is_enabled(&mut self) -> bool {
         ((self.dma.chnl_enable_set().read().bits() >> self.channel) & 0b1) != 0
     }
 
+    /// Disable the channel.
     #[inline(always)]
     pub fn disable(&mut self) {
         self.dma
@@ -231,6 +302,7 @@ impl DmaChannel {
             .write(|w| unsafe { w.bits(1 << self.channel) });
     }
 
+    /// Trigger the channel via a software request.
     #[inline(always)]
     pub fn trigger_with_sw_request(&mut self) {
         self.dma
@@ -238,11 +310,13 @@ impl DmaChannel {
             .write(|w| unsafe { w.bits(1 << self.channel) });
     }
 
+    /// Raw state value of the channel.
     #[inline(always)]
     pub fn state_raw(&self) -> u8 {
         self.dma.status().read().state().bits()
     }
 
+    /// Select the primary channel control structure for the next transfer.
     #[inline(always)]
     pub fn select_primary_structure(&self) {
         self.dma
@@ -250,6 +324,7 @@ impl DmaChannel {
             .write(|w| unsafe { w.bits(1 << self.channel) });
     }
 
+    /// Select the alternate channel control structure for the next transfer.
     #[inline(always)]
     pub fn select_alternate_structure(&self) {
         self.dma
@@ -512,16 +587,19 @@ impl Dma {
         Ok(dma)
     }
 
+    /// Enable the DMA master.
     #[inline(always)]
     pub fn enable(&self) {
         self.dma.cfg().write(|w| w.master_enable().set_bit());
     }
 
+    /// Disable the DMA master.
     #[inline(always)]
     pub fn disable(&self) {
         self.dma.cfg().write(|w| w.master_enable().clear_bit());
     }
 
+    /// Apply the given protection configuration.
     #[inline(always)]
     pub fn set_protection_bits(&self, cfg: &DmaConfig) {
         self.dma.cfg().write(|w| unsafe {

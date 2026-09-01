@@ -7,9 +7,12 @@ use crate::time::Hertz;
 use num_enum::{IntoPrimitive, TryFromPrimitive};
 use vorago_shared_hal::{PeripheralSelect, enable_peripheral_clock};
 
+/// Minimum supported ADC clock frequency.
 pub const ADC_MIN_CLK: Hertz = Hertz::from_raw(2_000_000);
+/// Maximum supported ADC clock frequency.
 pub const ADC_MAX_CLK: Hertz = Hertz::from_raw(12_500_000);
 
+/// ADC input channel.
 #[derive(Debug, PartialEq, Eq, Copy, Clone, TryFromPrimitive, IntoPrimitive)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 #[repr(u8)]
@@ -40,7 +43,9 @@ pub enum ChannelSelect {
     Bandgap1V = 11,
     /// Internal bandgap 1.5 V reference
     Bandgap1_5V = 12,
+    /// Internal AVDD/1.5 reference.
     Avdd1_5 = 13,
+    /// Internal DVDD/1.5 reference.
     Dvdd1_5 = 14,
     /// Internally generated Voltage equal to VREFH / 2
     Vrefp5 = 15,
@@ -51,49 +56,72 @@ bitflags::bitflags! {
     /// allow selecting multiple channels in a convenient manner.
     #[derive(Debug)]
     pub struct MultiChannelSelect: u16 {
+        /// Analogue Input 0 external channel.
         const AnIn0 = 1;
+        /// Analogue Input 1 external channel.
         const AnIn1 = 1 << 1;
+        /// Analogue Input 2 external channel.
         const AnIn2 = 1 << 2;
+        /// Analogue Input 3 external channel.
         const AnIn3 = 1 << 3;
+        /// Analogue Input 4 external channel.
         const AnIn4 = 1 << 4;
+        /// Analogue Input 5 external channel.
         const AnIn5 = 1 << 5;
+        /// Analogue Input 6 external channel.
         const AnIn6 = 1 << 6;
+        /// Analogue Input 7 external channel.
         const AnIn7 = 1 << 7;
+        /// DAC 0 internal channel.
         const Dac0 = 1 << 8;
+        /// DAC 1 internal channel.
         const Dac1 = 1 << 9;
+        /// Internal temperature sensor.
         const TempSensor = 1 << 10;
+        /// Internal bandgap 1 V reference.
         const Bandgap1V = 1 << 11;
+        /// Internal bandgap 1.5 V reference.
         const Bandgap1_5V = 1 << 12;
+        /// Internal AVDD/1.5 reference.
         const Avdd1_5 = 1 << 13;
+        /// Internal DVDD/1.5 reference.
         const Dvdd1_5 = 1 << 14;
+        /// Internally generated voltage equal to VREFH / 2.
         const Vrefp5 = 1 << 15;
     }
 }
 
+/// The ADC FIFO was empty when a value was expected.
 #[derive(Debug, PartialEq, Eq, Copy, Clone, thiserror::Error)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 #[error("ADC empty error")]
 pub struct AdcEmptyError;
 
+/// The given channel range is invalid.
 #[derive(Debug, PartialEq, Eq, Copy, Clone, thiserror::Error)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 #[error("invalid channel range error")]
 pub struct InvalidChannelRangeError;
 
+/// The given buffer is too small to hold all requested channel values.
 #[derive(Debug, PartialEq, Eq, Copy, Clone, thiserror::Error)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 #[error("buffer too small")]
 pub struct BufferTooSmallError;
 
+/// Error type for [Adc::sweep_and_read_range].
 #[derive(Debug, PartialEq, Eq, Copy, Clone, thiserror::Error)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum AdcRangeReadError {
+    /// Invalid channel range.
     #[error("invalid channel range: {0}")]
     InvalidChannelRange(#[from] InvalidChannelRangeError),
+    /// Buffer too small.
     #[error("buffer too small: {0}")]
     BufferTooSmall(#[from] BufferTooSmallError),
 }
 
+/// A single ADC conversion result, tagged with its source channel.
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct ChannelValue {
@@ -113,18 +141,22 @@ impl Default for ChannelValue {
 }
 
 impl ChannelValue {
+    /// Raw ADC conversion value.
     #[inline]
     pub fn value(&self) -> u16 {
         self.value
     }
 
+    /// Channel this value was read from.
     #[inline]
     pub fn channel(&self) -> ChannelSelect {
         self.channel
     }
 }
 
+/// Type-state marker for an [Adc] with the channel tag feature enabled.
 pub enum ChannelTagEnabled {}
+/// Type-state marker for an [Adc] with the channel tag feature disabled.
 pub enum ChannelTagDisabled {}
 
 /// ADC driver structure.
@@ -147,10 +179,12 @@ pub struct Adc<TagEnabled = ChannelTagDisabled> {
 impl Adc<ChannelTagEnabled> {}
 
 impl Adc<ChannelTagDisabled> {
+    /// Create a new ADC driver, with the channel tag feature disabled.
     pub fn new(adc: pac::Adc, clocks: &Clocks) -> Self {
         Self::generic_new(adc, clocks)
     }
 
+    /// Trigger a conversion on the given channel and block until the result is available.
     pub fn trigger_and_read_single_channel(&self, ch: ChannelSelect) -> Result<u16, AdcEmptyError> {
         self.generic_trigger_and_read_single_channel(ch)
             .map(|v| v & 0xfff)
@@ -193,11 +227,13 @@ impl Adc<ChannelTagDisabled> {
         Ok(fifo_entry_count as usize)
     }
 
+    /// Try to read the next value from the ADC FIFO without blocking.
     pub fn try_read_single_value(&self) -> nb::Result<Option<u16>, ()> {
         self.generic_try_read_single_value()
             .map(|v| v.map(|v| v & 0xfff))
     }
 
+    /// Whether the channel tag feature is enabled.
     #[inline(always)]
     pub fn channel_tag_enabled(&self) -> bool {
         false
@@ -205,12 +241,14 @@ impl Adc<ChannelTagDisabled> {
 }
 
 impl Adc<ChannelTagEnabled> {
+    /// Create a new ADC driver, with the channel tag feature enabled.
     pub fn new_with_channel_tag(adc: pac::Adc, clocks: &Clocks) -> Self {
         let mut adc = Self::generic_new(adc, clocks);
         adc.enable_channel_tag();
         adc
     }
 
+    /// Trigger a conversion on the given channel and block until the result is available.
     pub fn trigger_and_read_single_channel(
         &self,
         ch: ChannelSelect,
@@ -219,6 +257,7 @@ impl Adc<ChannelTagEnabled> {
             .map(|v| self.create_channel_value(v))
     }
 
+    /// Try to read the next value from the ADC FIFO without blocking.
     pub fn try_read_single_value(&self) -> nb::Result<Option<ChannelValue>, ()> {
         self.generic_try_read_single_value()
             .map(|v| v.map(|v| self.create_channel_value(v)))
@@ -263,6 +302,7 @@ impl Adc<ChannelTagEnabled> {
         Ok(fifo_entry_count as usize)
     }
 
+    /// Build a [ChannelValue] from a raw FIFO word, extracting the channel tag.
     #[inline]
     pub fn create_channel_value(&self, raw_value: u16) -> ChannelValue {
         ChannelValue {
@@ -271,6 +311,7 @@ impl Adc<ChannelTagEnabled> {
         }
     }
 
+    /// Whether the channel tag feature is enabled.
     #[inline(always)]
     pub fn channel_tag_enabled(&self) -> bool {
         true
@@ -299,11 +340,13 @@ impl<TagEnabled> Adc<TagEnabled> {
         self.adc.ctrl().modify(|_, w| w.chan_tag_en().clear_bit());
     }
 
+    /// Clear the ADC FIFO.
     #[inline(always)]
     pub fn clear_fifo(&self) {
         self.adc.fifo_clr().write(|w| unsafe { w.bits(1) });
     }
 
+    /// Try to read the next raw value from the ADC FIFO without blocking.
     pub fn generic_try_read_single_value(&self) -> nb::Result<Option<u16>, ()> {
         if self.adc.status().read().adc_busy().bit_is_set() {
             return Err(nb::Error::WouldBlock);
