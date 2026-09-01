@@ -38,7 +38,7 @@ mod app {
     use models::{create_encoded_tm_packet, Response};
     use spacepackets::{CcsdsPacketReader, SpacePacketHeader};
     use va108xx_hal::pins::PinsA;
-    use va108xx_hal::spi::SpiClockConfig;
+    use va108xx_hal::spi::ClockConfig;
     use va108xx_hal::uart::{self, TxAsync};
     use va108xx_hal::{pac, InterruptConfig};
     use vorago_reb1::m95m01::M95M01;
@@ -72,7 +72,7 @@ mod app {
         let periphs = cx.device;
         va108xx_hal::embassy_time::init(periphs.tim14, periphs.tim15, SYSCLK_FREQ);
 
-        let spi_clock_config = SpiClockConfig::new(2, 4);
+        let spi_clock_config = ClockConfig::new(2, 4);
         let nvm = M95M01::new(periphs.spic, spi_clock_config);
 
         let gpioa = PinsA::new(periphs.porta);

@@ -10,14 +10,14 @@ use va108xx_hal::{
     pac::{self, interrupt},
     pins::{PinsA, PinsB},
     prelude::*,
-    spi::{self, Bank, SpiClockConfig},
+    spi,
 };
 
 const SYSCLK_FREQ: Hertz = Hertz::from_raw(50_000_000);
 
 /// Token identifying the SPI0 peripheral, set once at construction and read by the interrupt
 /// handler, which does not have access to the [spi::asynch::Spi] driver itself.
-static SPI_TOKEN: OnceCell<Bank> = OnceCell::new();
+static SPI_TOKEN: OnceCell<spi::Bank> = OnceCell::new();
 
 // main is itself an async function.
 #[embassy_executor::main]
@@ -35,9 +35,9 @@ async fn main(_spawner: Spawner) {
     let mut led1 = Output::new(porta.pa7, PinState::Low);
     let mut led2 = Output::new(porta.pa6, PinState::Low);
 
-    let spi_clk_cfg = SpiClockConfig::from_clk(50.MHz(), 1.MHz()).unwrap();
-    let spi_cfg = spi::SpiConfig::default();
-    spi_cfg.clk_cfg(spi_clk_cfg);
+    let spi_clk_cfg = spi::ClockConfig::from_clk(50.MHz(), 1.MHz()).unwrap();
+    let mut spi_cfg = spi::Config::default();
+    spi_cfg.clock = spi_clk_cfg;
     let (sck, mosi, miso) = (porta.pa31, porta.pa30, porta.pa29);
     let spi = spi::Spi::<u8>::new_for_spi0(dp.spia, (sck, miso, mosi), spi_cfg);
 

@@ -14,7 +14,7 @@ use va108xx_hal::{
     pac,
     pins::{PinsA, PinsB},
     prelude::*,
-    spi::{self, configure_pin_as_hw_cs_pin, Spi, SpiClockConfig, TransferConfig},
+    spi::{self, configure_pin_as_hw_cs_pin, ClockConfig, Spi, TransferConfig},
     timer::CountdownTimer,
 };
 
@@ -45,14 +45,14 @@ fn main() -> ! {
     let dp = pac::Peripherals::take().unwrap();
     let mut delay = CountdownTimer::new(dp.tim0, 50.MHz());
 
-    let spi_clk_cfg = SpiClockConfig::from_clk(50.MHz(), SPI_SPEED_KHZ.kHz())
+    let spi_clk_cfg = ClockConfig::from_clk(50.MHz(), SPI_SPEED_KHZ.kHz())
         .expect("creating SPI clock config failed");
     let pinsa = PinsA::new(dp.porta);
     let pinsb = PinsB::new(dp.portb);
 
-    let mut spi_cfg = spi::SpiConfig::default();
+    let mut spi_cfg = spi::Config::default();
     if EXAMPLE_SEL == ExampleSelect::Loopback {
-        spi_cfg = spi_cfg.loopback(true)
+        spi_cfg.loopback_mode = true
     }
 
     // Set up the SPI peripheral

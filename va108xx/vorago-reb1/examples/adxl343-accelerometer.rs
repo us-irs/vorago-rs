@@ -11,12 +11,12 @@ use panic_rtt_target as _;
 use rtt_target::{rprintln, rtt_init_print};
 use va108xx_hal::gpio::{Output, PinState};
 use va108xx_hal::pins::PinsA;
-use va108xx_hal::spi::{configure_pin_as_hw_cs_pin, SpiClockConfig};
+use va108xx_hal::spi::{configure_pin_as_hw_cs_pin, ClockConfig};
 use va108xx_hal::timer::CountdownTimer;
 use va108xx_hal::{
     pac,
     prelude::*,
-    spi::{Spi, SpiConfig},
+    spi::{Config, Spi},
 };
 
 const READ_MASK: u8 = 1 << 7;
@@ -40,12 +40,12 @@ fn main() -> ! {
     // Need to set the ADC chip select low
     Output::new(pinsa.pa17, PinState::Low);
 
-    let spi_cfg = SpiConfig::default()
-        .clk_cfg(
-            SpiClockConfig::from_clk(50.MHz(), 1.MHz()).expect("creating SPI clock config failed"),
-        )
-        .mode(MODE_3)
-        .slave_output_disable(true);
+    let clock_config =
+        ClockConfig::from_clk(50.MHz(), 1.MHz()).expect("creating SPI clock config failed");
+    let mut spi_cfg = Config::default();
+    spi_cfg.clock = clock_config;
+    spi_cfg.mode = MODE_3;
+    spi_cfg.slave_output_disable = true;
     let mut spi = Spi::new_for_spi1(dp.spib, (sck, miso, mosi), spi_cfg);
     spi.configure_hw_cs(hw_cs_id);
 
