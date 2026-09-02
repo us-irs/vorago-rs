@@ -12,12 +12,15 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 - The async SPI driver's interrupt handler no longer takes a critical section on every
   interrupt. The shared transfer state moved from a `Mutex<RefCell<TransferContext>>` to plain
-  atomics, gated by an `Acquire`/`Release` flag that publishes the transfer buffers.
+  atomics, gated by an `Acquire`/`Release` flag that publishes the transfer buffers. The waker
+  and completion flag, previously separate per-bank statics, are now plain atomic fields on
+  `TransferContext` as well.
 - `SpiAsync` was renamed to `asynch::Spi`. Its `on_interrupt` free function became
   `Spi::on_interrupt`. It now takes a `Bank` token obtained from the new `Spi::bank_id` instead
   of requiring access to the driver instance, so it can be called from an interrupt handler that
   only has a token, not the driver.
 - Added `Spi::into_async` on the blocking driver as a shortcut for `asynch::Spi::new`.
+- `SpiFuture` was renamed to `asynch::Transfer`. The old name is kept as a deprecated type alias.
 - `SpiConfig` was renamed to `Config` and reworked: it is now `#[non_exhaustive]` with public
   fields (`clock`, `mode`, `blockmode`, ...) instead of a builder-method API, plus a
   `Config::new(mode, clock)` constructor for the two fields without a sensible default.
@@ -48,6 +51,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   bare interrupt handler without stashing the driver in a `Mutex<RefCell<Option<_>>>`. The
   previous `&mut self` form is still available as `RxWithInterrupt::on_interrupt_owned`, for
   owned-instance use (e.g. an RTIC `local` resource).
+- Added an async I2C driver in a new `i2c::asynch` module: `I2cMaster::into_async`/
+  `asynch::I2c::new` construct it, `I2c::read`/`write`/`write_read` return an `asynch::Transfer`
+  future, and `I2c::on_interrupt` services it from the peripheral's interrupt vector.
+- Added `Error::Overflow` for I2C, reported when the RX or TX FIFO overflows during a transfer.
+- Several I2C register accessors were renamed for consistency: `cmd` became `command`, and
+  `irq_enb`/`irq_raw`/`irq_status`/`irq_clear` became `interrupt_enable`/`interrupt_raw`/
+  `interrupt_status`/`interrupt_clear`.
 
 ### Fixed
 

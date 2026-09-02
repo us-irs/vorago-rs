@@ -1,11 +1,13 @@
+/// Async I2C support.
+pub mod asynch;
 /// Register definitions for the I2C peripheral.
 pub mod regs;
 
 use crate::{
-    PeripheralSelect, enable_peripheral_clock, sealed::Sealed,
+    PeripheralSelect, enable_peripheral_clock, i2c::regs::InterruptControl, sealed::Sealed,
     sysconfig::reset_peripheral_for_cycles, time::Hertz,
 };
-use arbitrary_int::{u4, u10, u11, u20};
+use arbitrary_int::{traits::Integer, u4, u10, u11, u20};
 use core::marker::PhantomData;
 use embedded_hal::i2c::{self, Operation, SevenBitAddress, TenBitAddress};
 use regs::ClockTimeoutLimit;
@@ -20,9 +22,15 @@ use va416xx as pac;
 // Defintions
 //==================================================================================================
 
-const CLK_100K: Hertz = Hertz::from_raw(100_000);
-const CLK_400K: Hertz = Hertz::from_raw(400_000);
-const MIN_CLK_400K: Hertz = Hertz::from_raw(8_000_000);
+/// Standard mode bus frequency.
+pub const CLK_100K: Hertz = Hertz::from_raw(100_000);
+/// Fast mode bus frequency.
+pub const CLK_400K: Hertz = Hertz::from_raw(400_000);
+/// Minimum system clock frequency required for fast mode.
+pub const MIN_CLK_400K: Hertz = Hertz::from_raw(8_000_000);
+
+/// Depth of the TX and RX FIFOs, in words.
+pub const FIFO_DEPTH: usize = 16;
 
 /// The configured clock is too slow to reach the requested I2C fast mode speed.
 #[derive(Debug, PartialEq, Eq, thiserror::Error)]
@@ -57,6 +65,9 @@ pub enum Error {
     /// The I2C clock was seen low for longer than the configured timeout.
     #[error("clock timeout, SCL was low for {0} clock cycles")]
     ClockTimeout(u20),
+    /// The RX or TX FIFO overflowed.
+    #[error("FIFO overflow")]
+    Overflow,
 }
 
 /// Error type for [I2cMaster::new].
@@ -84,6 +95,7 @@ impl embedded_hal::i2c::Error for Error {
             Error::DataTooLarge | Error::InsufficientDataReceived | Error::ClockTimeout(_) => {
                 embedded_hal::i2c::ErrorKind::Other
             }
+            Error::Overflow => embedded_hal::i2c::ErrorKind::Overrun,
         }
     }
 }
@@ -260,7 +272,7 @@ impl Default for MasterConfig {
             rx_full_mode: RxFifoFullMode::Stall,
             alg_filt: false,
             dlg_filt: false,
-            timeout: None,
+            timeout: Some(u20::MAX),
             timing_config: None,
         }
     }
@@ -288,14 +300,14 @@ impl TimeoutGuard {
         };
         if clk_timeout_enabled {
             // Clear any interrupts which might be pending.
-            guard.regs.write_irq_clear(
+            guard.regs.write_interrupt_clear(
                 regs::InterruptClear::builder()
                     .with_clock_timeout(true)
                     .with_tx_overflow(false)
                     .with_rx_overflow(false)
                     .build(),
             );
-            guard.regs.modify_irq_enb(|mut value| {
+            guard.regs.modify_interrupt_enable(|mut value| {
                 value.set_clock_timeout(true);
                 value
             });
@@ -311,7 +323,7 @@ impl TimeoutGuard {
 impl Drop for TimeoutGuard {
     fn drop(&mut self) {
         if self.clk_timeout_enabled {
-            self.regs.modify_irq_enb(|mut value| {
+            self.regs.modify_interrupt_enable(|mut value| {
                 value.set_clock_timeout(false);
                 value
             });
@@ -431,13 +443,20 @@ impl<Addr> I2cMaster<Addr> {
     /// Cancel the currently ongoing transaction.
     #[inline]
     pub fn cancel_transfer(&mut self) {
-        self.regs.write_cmd(
+        self.regs.write_command(
             regs::Command::builder()
                 .with_start(false)
                 .with_stop(false)
                 .with_cancel(true)
                 .build(),
         );
+    }
+
+    /// Disable the interrupts.
+    #[inline]
+    pub fn disable_interrupts(&mut self) {
+        self.regs
+            .write_interrupt_enable(InterruptControl::new_with_raw_value(0));
     }
 
     /// Clear the TX FIFO.
@@ -519,7 +538,7 @@ impl<Addr> I2cMaster<Addr> {
     #[inline]
     pub fn write_command(&mut self, cmd: I2cCommand) {
         self.regs
-            .write_cmd(regs::Command::new_with_raw_value(cmd as u32));
+            .write_command(regs::Command::new_with_raw_value(cmd as u32));
     }
 
     /// Write the target address and transfer direction to the ADDRESS register.
@@ -590,7 +609,8 @@ impl<Addr> I2cMaster<Addr> {
                 }
                 return Ok(());
             }
-            if timeout_guard.timeout_enabled() && self.regs.read_irq_status().clock_timeout() {
+            if timeout_guard.timeout_enabled() && self.regs.read_interrupt_status().clock_timeout()
+            {
                 return Err(Error::ClockTimeout(
                     self.regs.read_clk_timeout_limit().value(),
                 ));
@@ -662,7 +682,8 @@ impl<Addr> I2cMaster<Addr> {
                     }
                 }
             }
-            if timeout_guard.timeout_enabled() && self.regs.read_irq_status().clock_timeout() {
+            if timeout_guard.timeout_enabled() && self.regs.read_interrupt_status().clock_timeout()
+            {
                 return Err(Error::ClockTimeout(
                     self.regs.read_clk_timeout_limit().value(),
                 ));
@@ -688,6 +709,24 @@ impl<Addr> I2cMaster<Addr> {
             WriteCompletionCondition::Waiting,
         )?;
         self.read_blocking(address, read)
+    }
+}
+
+impl I2cMaster<SevenBitAddress> {
+    /// Convert this blocking driver into an asynchronous one.
+    ///
+    /// See [asynch::I2c::new] for more details.
+    #[cfg(feature = "vor1x")]
+    pub fn into_async(self, opt_irq_cfg: Option<crate::InterruptConfig>) -> asynch::I2c {
+        asynch::I2c::new(self, opt_irq_cfg)
+    }
+
+    /// Convert this blocking driver into an asynchronous one.
+    ///
+    /// See [asynch::I2c::new] for more details.
+    #[cfg(feature = "vor4x")]
+    pub fn into_async(self) -> asynch::I2c {
+        asynch::I2c::new(self)
     }
 }
 
