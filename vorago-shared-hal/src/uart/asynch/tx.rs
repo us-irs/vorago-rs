@@ -105,9 +105,11 @@ fn on_interrupt(bank: Bank) {
     context.progress.store(progress, Ordering::Relaxed);
 }
 
-/// Future returned by [Tx::write].
+/// Live UART TX transfer returned by [Tx::write].
+///
+/// Implements [Future] and can be polled/awaited to completion.
 #[derive(Debug)]
-pub struct TxFuture<'uart, 'buf> {
+pub struct Transfer<'uart, 'buf> {
     id: Bank,
     empty_buffer: bool,
     // Set once `poll` observes completion. `TX_DONE` itself is not enough to tell completion
@@ -117,7 +119,7 @@ pub struct TxFuture<'uart, 'buf> {
     phantom: core::marker::PhantomData<(&'uart (), &'buf ())>,
 }
 
-impl<'uart, 'buf> TxFuture<'uart, 'buf> {
+impl<'uart, 'buf> Transfer<'uart, 'buf> {
     /// # Safety
     ///
     /// This function stores the raw pointer of the passed data slice. The user MUST ensure
@@ -175,7 +177,7 @@ impl<'uart, 'buf> TxFuture<'uart, 'buf> {
     }
 }
 
-impl Future for TxFuture<'_, '_> {
+impl Future for Transfer<'_, '_> {
     type Output = Result<usize, TxOverrunError>;
 
     fn poll(
@@ -206,7 +208,7 @@ impl Future for TxFuture<'_, '_> {
 ///
 /// It is imperative that this `Drop` method is executed to avoid undefined behaviour on
 /// transfer. Do *NOT* use `core::mem::forget` on the `TxFuture`.
-impl Drop for TxFuture<'_, '_> {
+impl Drop for Transfer<'_, '_> {
     fn drop(&mut self) {
         if self.empty_buffer {
             return;
@@ -274,8 +276,8 @@ impl Tx {
     ///
     /// This implementation is not side effect free, and a started future might have already
     /// written part of the passed buffer.
-    pub fn write<'buf>(&mut self, buf: &'buf [u8]) -> TxFuture<'_, 'buf> {
-        TxFuture::new(&mut self.0, buf)
+    pub fn write<'buf>(&mut self, buf: &'buf [u8]) -> Transfer<'_, 'buf> {
+        Transfer::new(&mut self.0, buf)
     }
 
     /// Write an entire buffer into this writer.

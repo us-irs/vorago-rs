@@ -38,6 +38,16 @@ impl Bank {
     pub unsafe fn steal_regs(&self) -> MmioRegisters<'static> {
         Registers::new_mmio(*self)
     }
+
+    /// The interrupt vector used for master-mode interrupts on this bank.
+    #[cfg(feature = "vor4x")]
+    pub const fn interrupt_id_master(&self) -> va416xx::Interrupt {
+        match self {
+            Bank::I2c0 => va416xx::Interrupt::I2C0_MS,
+            Bank::I2c1 => va416xx::Interrupt::I2C1_MS,
+            Bank::I2c2 => va416xx::Interrupt::I2C2_MS,
+        }
+    }
 }
 
 pub use types::*;
@@ -275,7 +285,7 @@ pub mod types {
     pub struct DataCount(arbitrary_int::UInt<u32, 11>);
 
     /// IRQENB register.
-    #[bitbybit::bitfield(u32, debug, defmt_bitfields(feature = "defmt"))]
+    #[bitbybit::bitfield(u32, default = 0x0, debug, defmt_bitfields(feature = "defmt"))]
     pub struct InterruptControl {
         /// I2C idle interrupt enable.
         #[bit(0, rw)]
@@ -381,6 +391,15 @@ pub mod types {
         /// Clear the RX overflow interrupt.
         #[bit(11, w)]
         rx_overflow: bool,
+    }
+
+    impl InterruptClear {
+        /// Clear all interrupts.
+        pub const ALL: Self = Self::builder()
+            .with_clock_timeout(true)
+            .with_tx_overflow(true)
+            .with_rx_overflow(true)
+            .build();
     }
 
     /// TIMINGCONFIG register, allowing manual override of the timing values derived from
@@ -807,7 +826,7 @@ pub struct Registers {
     address: Address,
     data: Data,
     #[mmio(Write)]
-    cmd: Command,
+    command: Command,
     #[mmio(PureRead)]
     status: Status,
     #[mmio(PureRead)]
@@ -816,13 +835,13 @@ pub struct Registers {
     tx_count: DataCount,
     #[mmio(PureRead)]
     rx_count: DataCount,
-    irq_enb: InterruptControl,
+    interrupt_enable: InterruptControl,
     #[mmio(PureRead)]
-    irq_raw: InterruptStatus,
+    interrupt_raw: InterruptStatus,
     #[mmio(PureRead)]
-    irq_status: InterruptStatus,
+    interrupt_status: InterruptStatus,
     #[mmio(Write)]
-    irq_clear: InterruptClear,
+    interrupt_clear: InterruptClear,
     rx_fifo_trigger: TriggerLevel,
     tx_fifo_trigger: TriggerLevel,
     #[mmio(Write)]

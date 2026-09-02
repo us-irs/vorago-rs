@@ -29,6 +29,9 @@ embassy-executor = { version = "0.10", features = [
 ]}
 
 va416xx-hal = { version = "0.7", path = "../../va416xx-hal", features = ["defmt"] }
+lis2dh12 = { git = "https://github.com/robamu/lis2dh12.git", branch = "add-async-support", features = [
+  "out_f32",
+] }
 
 [features]
 default = ["ticks-hz-1_000", "va416xx-hal/time-driver-tim14-tim15"]
