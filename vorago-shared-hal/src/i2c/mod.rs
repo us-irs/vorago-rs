@@ -276,11 +276,11 @@ enum WriteCompletionCondition {
 
 struct TimeoutGuard {
     clk_timeout_enabled: bool,
-    regs: regs::MmioI2c<'static>,
+    regs: regs::MmioRegisters<'static>,
 }
 
 impl TimeoutGuard {
-    fn new(regs: &regs::MmioI2c<'static>) -> Self {
+    fn new(regs: &regs::MmioRegisters<'static>) -> Self {
         let clk_timeout_enabled = regs.read_clk_timeout_limit().value().value() > 0;
         let mut guard = TimeoutGuard {
             clk_timeout_enabled,
@@ -325,7 +325,7 @@ impl Drop for TimeoutGuard {
 /// I2C master driver.
 pub struct I2cMaster<Addr = SevenBitAddress> {
     id: Bank,
-    regs: regs::MmioI2c<'static>,
+    regs: regs::MmioRegisters<'static>,
     addr: PhantomData<Addr>,
 }
 
@@ -340,7 +340,7 @@ impl<Addr> I2cMaster<Addr> {
     ) -> Result<Self, ClockTooSlowForFastI2cError> {
         reset_peripheral_for_cycles(I2c::PERIPH_SEL, 2);
         enable_peripheral_clock(I2c::PERIPH_SEL);
-        let mut regs = regs::I2c::new_mmio(I2c::ID);
+        let mut regs = regs::Registers::new_mmio(I2c::ID);
         #[cfg(feature = "vor1x")]
         let clk_div = calc_clk_div(sysclk, speed_mode)?;
         #[cfg(feature = "vor4x")]

@@ -22,7 +22,7 @@ use core::sync::atomic::AtomicBool;
 use arbitrary_int::{prelude::*, u2, u3, u4, u7, u11, u15};
 use embedded_can::Frame;
 use ll::CanChannelLowLevel;
-use regs::{BaseId, BufferState, Control, MmioCan, TimingConfig};
+use regs::{BaseId, BufferState, Control, MmioRegisters, TimingConfig};
 use vorago_shared_hal::enable_nvic_interrupt;
 
 use crate::{PeripheralSelect, clock::Clocks, enable_peripheral_clock, time::Hertz};
@@ -73,12 +73,12 @@ impl CanId {
     ///
     /// # Safety
     ///
-    /// See safety of the [regs::Can::new_mmio_fixed_0].
+    /// See safety of the [regs::Registers::new_mmio_fixed_0].
     #[inline]
-    pub const unsafe fn steal_regs(&self) -> regs::MmioCan<'static> {
+    pub const unsafe fn steal_regs(&self) -> regs::MmioRegisters<'static> {
         match self {
-            CanId::Can0 => unsafe { regs::Can::new_mmio_fixed_0() },
-            CanId::Can1 => unsafe { regs::Can::new_mmio_fixed_1() },
+            CanId::Can0 => unsafe { regs::Registers::new_mmio_fixed_0() },
+            CanId::Can1 => unsafe { regs::Registers::new_mmio_fixed_1() },
         }
     }
 
@@ -379,7 +379,7 @@ pub enum ClockConfigError {
 
 /// The main CAN peripheral driver.
 pub struct Can {
-    regs: regs::MmioCan<'static>,
+    regs: regs::MmioRegisters<'static>,
     id: CanId,
 }
 
@@ -389,9 +389,9 @@ impl Can {
         enable_peripheral_clock(CanI::PERIPH_SEL);
         let id = CanI::ID;
         let mut regs = if id == CanId::Can0 {
-            unsafe { regs::Can::new_mmio_fixed_0() }
+            unsafe { regs::Registers::new_mmio_fixed_0() }
         } else {
-            unsafe { regs::Can::new_mmio_fixed_1() }
+            unsafe { regs::Registers::new_mmio_fixed_1() }
         };
         // Disable the CAN bus before configuring it.
         regs.write_control(Control::new_with_raw_value(0));
@@ -470,7 +470,7 @@ impl Can {
 
     /// Raw MMIO register accessor.
     #[inline]
-    pub fn regs(&mut self) -> &mut MmioCan<'static> {
+    pub fn regs(&mut self) -> &mut MmioRegisters<'static> {
         &mut self.regs
     }
 

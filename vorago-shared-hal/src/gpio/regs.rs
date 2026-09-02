@@ -28,7 +28,7 @@ cfg_if::cfg_if! {
 #[derive(derive_mmio::Mmio)]
 #[mmio(no_ctors)]
 #[repr(C)]
-pub struct Gpio {
+pub struct Registers {
     #[mmio(PureRead)]
     data_in: u32,
     #[mmio(PureRead)]
@@ -74,22 +74,22 @@ pub struct Gpio {
 
 cfg_if::cfg_if! {
     if #[cfg(feature = "vor1x")] {
-        static_assertions::const_assert_eq!(core::mem::size_of::<Gpio>(), 0x1000);
+        static_assertions::const_assert_eq!(core::mem::size_of::<Registers>(), 0x1000);
     } else if #[cfg(feature = "vor4x")] {
-        static_assertions::const_assert_eq!(core::mem::size_of::<Gpio>(), 0x400);
+        static_assertions::const_assert_eq!(core::mem::size_of::<Registers>(), 0x400);
     }
 }
 
-impl Gpio {
-    const fn new_mmio_at(base: usize) -> MmioGpio<'static> {
-        MmioGpio {
+impl Registers {
+    const fn new_mmio_at(base: usize) -> MmioRegisters<'static> {
+        MmioRegisters {
             ptr: base as *mut _,
             phantom: core::marker::PhantomData,
         }
     }
 
     /// Get an MMIO accessor for the register block of the given port.
-    pub const fn new_mmio(port: Port) -> MmioGpio<'static> {
+    pub const fn new_mmio(port: Port) -> MmioRegisters<'static> {
         match port {
             Port::A => Self::new_mmio_at(GPIO_0_BASE),
             Port::B => Self::new_mmio_at(GPIO_1_BASE),
@@ -107,7 +107,7 @@ impl Gpio {
     }
 }
 
-impl MmioGpio<'_> {
+impl MmioRegisters<'_> {
     /// The port this register block belongs to, derived from its base address.
     pub fn port(&self) -> Port {
         match unsafe { self.ptr() } as usize {

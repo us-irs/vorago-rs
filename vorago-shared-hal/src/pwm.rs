@@ -37,7 +37,7 @@ pub enum PwmB {}
 /// Reduced version where type information is deleted
 pub struct PwmPin<Mode = PwmA> {
     tim_id: TimId,
-    regs: timer::regs::MmioTimer<'static>,
+    regs: timer::regs::MmioRegisters<'static>,
     ref_clk: Hertz,
     /// For PWMB, this is the upper limit
     current_duty: u16,
@@ -120,7 +120,7 @@ impl<Mode> PwmPin<Mode> {
         IoPeriphPin::new(pin_id, func_sel, None);
         let mut pin = PwmPin {
             tim_id,
-            regs: timer::regs::Timer::new_mmio(tim_id),
+            regs: timer::regs::Registers::new_mmio(tim_id),
             current_duty: 0,
             current_lower_limit: 0,
             current_period: initial_frequency,

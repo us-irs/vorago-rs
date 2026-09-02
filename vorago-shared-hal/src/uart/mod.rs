@@ -28,7 +28,7 @@ use crate::{
     sealed::Sealed,
 };
 use arbitrary_int::{prelude::*, u6, u18};
-use regs::{ClockScale, Control, Data, Enable, FifoClear, InterruptClear, MmioUart};
+use regs::{ClockScale, Control, Data, Enable, FifoClear, InterruptClear, MmioRegisters};
 
 use crate::{PeripheralSelect, enable_nvic_interrupt, enable_peripheral_clock, time::Hertz};
 use embedded_hal_nb::serial::Read;
@@ -805,7 +805,7 @@ impl Uart {
         IoPeriphPin::new(rx_pin_id, rx_func_sel, None);
         enable_peripheral_clock(periph_sel);
 
-        let mut reg_block = regs::Uart::new_mmio(uart_bank);
+        let mut reg_block = regs::Registers::new_mmio(uart_bank);
         reg_block.write_clkscale(
             ClockScale::builder()
                 .with_int(config.clock_config.div)
@@ -983,7 +983,7 @@ impl embedded_hal_nb::serial::Write<u8> for Uart {
 
 /// Enable the receiver on the given register block.
 #[inline(always)]
-pub fn enable_rx(uart: &mut MmioUart<'static>) {
+pub fn enable_rx(uart: &mut MmioRegisters<'static>) {
     uart.modify_enable(|mut value| {
         value.set_rx(true);
         value
@@ -992,7 +992,7 @@ pub fn enable_rx(uart: &mut MmioUart<'static>) {
 
 /// Disable the receiver on the given register block.
 #[inline(always)]
-pub fn disable_rx(uart: &mut MmioUart<'static>) {
+pub fn disable_rx(uart: &mut MmioRegisters<'static>) {
     uart.modify_enable(|mut value| {
         value.set_rx(false);
         value
@@ -1001,7 +1001,7 @@ pub fn disable_rx(uart: &mut MmioUart<'static>) {
 
 /// Enable the RX interrupts on the given register block.
 #[inline(always)]
-pub fn enable_rx_interrupts(uart: &mut MmioUart<'static>, timeout: bool) {
+pub fn enable_rx_interrupts(uart: &mut MmioRegisters<'static>, timeout: bool) {
     uart.modify_interrupt_enable(|mut value| {
         value.set_rx_status(true);
         value.set_rx(true);
@@ -1014,7 +1014,7 @@ pub fn enable_rx_interrupts(uart: &mut MmioUart<'static>, timeout: bool) {
 
 /// Disable the RX interrupts on the given register block.
 #[inline(always)]
-pub fn disable_rx_interrupts(uart: &mut MmioUart<'static>) {
+pub fn disable_rx_interrupts(uart: &mut MmioRegisters<'static>) {
     uart.modify_interrupt_enable(|mut value| {
         value.set_rx_status(false);
         value.set_rx(false);
@@ -1028,7 +1028,7 @@ pub fn disable_rx_interrupts(uart: &mut MmioUart<'static>) {
 /// Can be created by using the [Uart::split] API.
 pub struct Rx {
     id: Bank,
-    regs: regs::MmioUart<'static>,
+    regs: regs::MmioRegisters<'static>,
 }
 
 impl core::fmt::Debug for Rx {
@@ -1054,7 +1054,7 @@ impl Rx {
     fn new(id: Bank) -> Self {
         Self {
             id,
-            regs: regs::Uart::new_mmio(id),
+            regs: regs::Registers::new_mmio(id),
         }
     }
 
@@ -1209,7 +1209,7 @@ impl embedded_io::Read for Rx {
 
 /// Enable the transmitter on the given register block.
 #[inline(always)]
-pub fn enable_tx(uart: &mut MmioUart<'static>) {
+pub fn enable_tx(uart: &mut MmioRegisters<'static>) {
     uart.modify_enable(|mut value| {
         value.set_tx(true);
         value
@@ -1218,7 +1218,7 @@ pub fn enable_tx(uart: &mut MmioUart<'static>) {
 
 /// Disable the transmitter on the given register block.
 #[inline(always)]
-pub fn disable_tx(uart: &mut MmioUart<'static>) {
+pub fn disable_tx(uart: &mut MmioRegisters<'static>) {
     uart.modify_enable(|mut value| {
         value.set_tx(false);
         value
@@ -1227,7 +1227,7 @@ pub fn disable_tx(uart: &mut MmioUart<'static>) {
 
 /// Enable the TX interrupts on the given register block.
 #[inline(always)]
-pub fn enable_tx_interrupts(tx_below_trigger: bool, uart: &mut MmioUart<'static>) {
+pub fn enable_tx_interrupts(tx_below_trigger: bool, uart: &mut MmioRegisters<'static>) {
     uart.modify_interrupt_enable(|mut value| {
         value.set_tx_below_trigger(tx_below_trigger);
         value.set_tx_empty(true);
@@ -1238,7 +1238,7 @@ pub fn enable_tx_interrupts(tx_below_trigger: bool, uart: &mut MmioUart<'static>
 
 /// Disable the TX interrupts on the given register block.
 #[inline(always)]
-pub fn disable_tx_interrupts(uart: &mut MmioUart<'static>) {
+pub fn disable_tx_interrupts(uart: &mut MmioRegisters<'static>) {
     uart.modify_interrupt_enable(|mut value| {
         value.set_tx_below_trigger(false);
         value.set_tx_empty(false);
@@ -1252,7 +1252,7 @@ pub fn disable_tx_interrupts(uart: &mut MmioUart<'static>) {
 /// Can be created by using the [Uart::split] API.
 pub struct Tx {
     id: Bank,
-    regs: regs::MmioUart<'static>,
+    regs: regs::MmioRegisters<'static>,
 }
 
 impl core::fmt::Debug for Tx {
@@ -1278,7 +1278,7 @@ impl Tx {
     fn new(id: Bank) -> Self {
         Self {
             id,
-            regs: regs::Uart::new_mmio(id),
+            regs: regs::Registers::new_mmio(id),
         }
     }
 

@@ -345,7 +345,7 @@ pub mod pins_vor4x;
 /// Hardware timers
 pub struct CountdownTimer {
     id: TimId,
-    regs: regs::MmioTimer<'static>,
+    regs: regs::MmioRegisters<'static>,
     curr_freq: Hertz,
     ref_clk: Hertz,
     rst_val: u32,
@@ -364,7 +364,7 @@ impl CountdownTimer {
         assert_tim_reset_for_cycles(Tim::ID, 2);
         CountdownTimer {
             id: Tim::ID,
-            regs: regs::Timer::new_mmio(Tim::ID),
+            regs: regs::Registers::new_mmio(Tim::ID),
             ref_clk: sys_clk,
             rst_val: 0,
             curr_freq: 0.Hz(),
@@ -383,7 +383,7 @@ impl CountdownTimer {
         assert_tim_reset_for_cycles(Tim::ID, 2);
         CountdownTimer {
             id: Tim::ID,
-            regs: regs::Timer::new_mmio(Tim::ID),
+            regs: regs::Registers::new_mmio(Tim::ID),
             ref_clk: clks.apb1(),
             rst_val: 0,
             curr_freq: 0.Hz(),

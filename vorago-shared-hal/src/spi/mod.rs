@@ -592,7 +592,7 @@ pub fn clk_div_for_target_clock(sys_clk: Hertz, spi_clk: Hertz) -> Option<u16> {
 /// SPI peripheral driver structure.
 pub struct Spi<Word = u8> {
     id: Bank,
-    regs: regs::MmioSpi<'static>,
+    regs: regs::MmioRegisters<'static>,
     /// Fill word for read-only SPI transactions.
     fill_word: Word,
     blockmode: bool,
@@ -687,7 +687,7 @@ where
     /// configuring any pins.
     pub fn new_generic(spi_sel: Bank, periph_sel: PeripheralSelect, spi_cfg: Config) -> Self {
         enable_peripheral_clock(periph_sel);
-        let mut regs = regs::Spi::new_mmio(spi_sel);
+        let mut regs = regs::Registers::new_mmio(spi_sel);
         let (cpo_bit, cph_bit) = mode_to_cpo_cph_bit(spi_cfg.mode);
         regs.write_ctrl0(
             regs::Control0::builder()
@@ -726,7 +726,7 @@ where
         });
         Spi {
             id: spi_sel,
-            regs: regs::Spi::new_mmio(spi_sel),
+            regs: regs::Registers::new_mmio(spi_sel),
             fill_word: Default::default(),
             bmstall: spi_cfg.bmstall,
             blockmode: spi_cfg.blockmode,
@@ -1165,7 +1165,7 @@ impl From<Spi<u16>> for Spi<u8> {
 /// pins required by the [embedded_hal_bus](https://docs.rs/embedded-hal-bus/latest/embedded_hal_bus/)
 /// API.
 pub struct HwCsPin {
-    regs: regs::MmioSpi<'static>,
+    regs: regs::MmioRegisters<'static>,
     id: HwChipSelectId,
 }
 

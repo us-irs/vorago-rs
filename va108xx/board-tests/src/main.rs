@@ -12,7 +12,7 @@ use defmt_rtt as _;
 // Panic provider
 use panic_probe as _;
 use va108xx_hal::{
-    gpio::{regs::Gpio, Input, Output, PinState, Pull},
+    gpio::{regs::Registers as GpioRegisters, Input, Output, PinState, Pull},
     pac,
     pins::{PinsA, PinsB, Port},
     prelude::*,
@@ -116,9 +116,9 @@ fn main() -> ! {
             assert!(input.is_low());
         }
         TestCase::Perid => {
-            let mmio_porta = Gpio::new_mmio(Port::A);
+            let mmio_porta = GpioRegisters::new_mmio(Port::A);
             assert_eq!(mmio_porta.read_perid(), 0x004007e1);
-            let mmio_porta = Gpio::new_mmio(Port::B);
+            let mmio_porta = GpioRegisters::new_mmio(Port::B);
             assert_eq!(mmio_porta.read_perid(), 0x004007e1);
         }
         TestCase::Pulse => {
