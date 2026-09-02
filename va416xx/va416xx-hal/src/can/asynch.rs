@@ -9,7 +9,7 @@ use crate::can::regs::BufferState;
 
 use super::{
     CanChannelLowLevel, CanFrame, CanId, InvalidBufferIndexError,
-    regs::{DiagnosticRegister, InterruptClear, MmioCan, StatusPending},
+    regs::{DiagnosticRegister, InterruptClear, MmioRegisters, StatusPending},
 };
 
 /// State of a channel used for asynchronous transmission.
@@ -215,14 +215,14 @@ pub fn on_interrupt_can(
 }
 
 #[inline(always)]
-fn clear_interrupt(regs: &mut MmioCan<'static>, idx: usize) {
+fn clear_interrupt(regs: &mut MmioRegisters<'static>, idx: usize) {
     let mut clr = InterruptClear::new_with_raw_value(0);
     clr.set_buffer(idx, true);
     regs.write_iclr(clr);
 }
 
 #[inline(always)]
-fn clear_and_disable_interrupt(regs: &mut MmioCan<'static>, idx: usize) {
+fn clear_and_disable_interrupt(regs: &mut MmioRegisters<'static>, idx: usize) {
     clear_interrupt(regs, idx);
     regs.modify_ien(|mut val| {
         val.set_buffer(idx, false);

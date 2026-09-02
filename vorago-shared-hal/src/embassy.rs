@@ -4,7 +4,7 @@ use crate::{
     enable_nvic_interrupt,
     timer::{
         TimId, TimInstance, assert_tim_reset_for_cycles, enable_tim_clk,
-        regs::{EnableControl, MmioTimer},
+        regs::{EnableControl, MmioRegisters},
     },
 };
 use critical_section::{CriticalSection, Mutex};
@@ -169,13 +169,13 @@ impl TimerDriver {
         }
     }
 
-    fn timekeeper_tim() -> MmioTimer<'static> {
+    fn timekeeper_tim() -> MmioRegisters<'static> {
         TIMEKEEPER_TIM
             .get()
             .map(|tim| unsafe { tim.steal_regs() })
             .unwrap()
     }
-    fn alarm_tim() -> MmioTimer<'static> {
+    fn alarm_tim() -> MmioRegisters<'static> {
         ALARM_TIM
             .get()
             .map(|tim| unsafe { tim.steal_regs() })

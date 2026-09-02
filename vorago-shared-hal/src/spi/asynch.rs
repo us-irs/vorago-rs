@@ -86,7 +86,7 @@ fn on_interrupt(peripheral: super::Bank) {
     };
 }
 
-fn handle_rx_overrun(spi: &mut super::regs::MmioSpi<'static>, idx: usize) {
+fn handle_rx_overrun(spi: &mut super::regs::MmioRegisters<'static>, idx: usize) {
     TRANSFER_CONTEXTS[idx]
         .rx_overrun
         .store(true, Ordering::Relaxed);
@@ -102,7 +102,7 @@ fn handle_rx_overrun(spi: &mut super::regs::MmioSpi<'static>, idx: usize) {
 fn on_interrupt_read(
     idx: usize,
     context: &TransferContext,
-    spi: &mut super::regs::MmioSpi<'static>,
+    spi: &mut super::regs::MmioRegisters<'static>,
     enabled_irqs: InterruptControl,
 ) {
     // Safety: The gate was observed active, so the slice published with it is still valid.
@@ -139,7 +139,7 @@ fn on_interrupt_read(
 fn on_interrupt_write(
     idx: usize,
     context: &TransferContext,
-    spi: &mut super::regs::MmioSpi<'static>,
+    spi: &mut super::regs::MmioRegisters<'static>,
     enabled_irqs: InterruptControl,
 ) {
     // Safety: The gate was observed active, so the slice published with it is still valid.
@@ -178,7 +178,7 @@ fn on_interrupt_write(
 fn on_interrupt_transfer(
     idx: usize,
     context: &TransferContext,
-    spi: &mut super::regs::MmioSpi<'static>,
+    spi: &mut super::regs::MmioRegisters<'static>,
     enabled_irqs: InterruptControl,
 ) {
     // Safety: The gate was observed active, so the slices published with it are still valid.
@@ -222,7 +222,7 @@ fn on_interrupt_transfer(
 fn on_interrupt_transfer_in_place(
     idx: usize,
     context: &TransferContext,
-    spi: &mut super::regs::MmioSpi<'static>,
+    spi: &mut super::regs::MmioRegisters<'static>,
     enabled_irqs: InterruptControl,
 ) {
     // Safety: The gate was observed active, so the slice published with it is still valid.
@@ -279,7 +279,7 @@ impl Progress {
 /// and unfinished conditions.
 fn isr_finish_handler(
     idx: usize,
-    spi: &mut super::regs::MmioSpi<'static>,
+    spi: &mut super::regs::MmioRegisters<'static>,
     context: &TransferContext,
     progress: Progress,
     transfer_len: usize,
@@ -297,7 +297,7 @@ fn isr_finish_handler(
     unfinished_transfer(spi, transfer_len, progress, enabled);
 }
 
-fn finish_transfer(spi: &mut super::regs::MmioSpi<'static>, idx: usize) {
+fn finish_transfer(spi: &mut super::regs::MmioRegisters<'static>, idx: usize) {
     // Clean up, restore clean state.
     reset_trigger_levels(spi);
     spi.write_fifo_clear(FifoClear::ALL);
@@ -310,7 +310,7 @@ fn finish_transfer(spi: &mut super::regs::MmioSpi<'static>, idx: usize) {
 
 #[inline]
 fn unfinished_transfer(
-    spi: &mut super::regs::MmioSpi<'static>,
+    spi: &mut super::regs::MmioRegisters<'static>,
     transfer_len: usize,
     progress: Progress,
     enabled_irqs: InterruptControl,
@@ -338,7 +338,7 @@ fn unfinished_transfer(
 }
 
 #[inline]
-fn reset_trigger_levels(spi: &mut super::regs::MmioSpi<'static>) {
+fn reset_trigger_levels(spi: &mut super::regs::MmioRegisters<'static>) {
     spi.write_rx_fifo_trigger(TriggerLevel::new(u5::new(0x08)));
     spi.write_tx_fifo_trigger(TriggerLevel::new(u5::new(0x00)));
 }

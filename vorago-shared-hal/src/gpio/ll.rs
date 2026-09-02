@@ -8,7 +8,9 @@ use crate::{PeripheralSelect, sysconfig::enable_peripheral_clock};
 pub use crate::InvalidOffsetError;
 pub use crate::Port;
 pub use crate::ioconfig::regs::Pull;
-use crate::ioconfig::regs::{FunctionSelect, IoConfig, MmioIoConfig};
+use crate::ioconfig::regs::{
+    FunctionSelect, MmioRegisters as MmioIoConfigRegisters, Registers as IoConfigRegisters,
+};
 use crate::pins::PinId;
 
 use super::Pin;
@@ -218,8 +220,8 @@ impl DynPinId {
 
 /// Low-level driver structure for GPIO pins.
 pub struct LowLevelGpio {
-    gpio: super::regs::MmioGpio<'static>,
-    ioconfig: MmioIoConfig<'static>,
+    gpio: super::regs::MmioRegisters<'static>,
+    ioconfig: MmioIoConfigRegisters<'static>,
     id: DynPinId,
 }
 
@@ -243,8 +245,8 @@ impl LowLevelGpio {
     /// Create a new low-level GPIO pin instance using only the [PinId].
     pub fn new(id: DynPinId) -> Self {
         LowLevelGpio {
-            gpio: super::regs::Gpio::new_mmio(id.port),
-            ioconfig: IoConfig::new_mmio(),
+            gpio: super::regs::Registers::new_mmio(id.port),
+            ioconfig: IoConfigRegisters::new_mmio(),
             id,
         }
     }

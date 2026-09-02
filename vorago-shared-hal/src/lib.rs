@@ -203,8 +203,8 @@ impl Port {
     /// # Safety
     ///
     /// Circumvents ownership and safety guarantees by the HAL.
-    pub unsafe fn steal_regs(&self) -> gpio::regs::MmioGpio<'static> {
-        gpio::regs::Gpio::new_mmio(*self)
+    pub unsafe fn steal_regs(&self) -> gpio::regs::MmioRegisters<'static> {
+        gpio::regs::Registers::new_mmio(*self)
     }
 }
 
