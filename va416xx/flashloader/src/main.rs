@@ -434,6 +434,7 @@ mod app {
                         "app data for raw memory write is too short: {}",
                         app_data.len()
                     );
+                    return;
                 }
                 let memory_id = app_data[0];
                 if memory_id != BOOT_NVM_MEMORY_ID {
